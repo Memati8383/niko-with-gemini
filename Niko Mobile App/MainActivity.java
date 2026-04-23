@@ -653,7 +653,7 @@ public class MainActivity extends Activity {
         // Otomatik güncelleme kontrolü (Arka planda)
         checkForUpdates();
 
-        // Erişilebilirlik Servisi Kontrolü (Tam Otomatik WhatsApp ve YouTube için)
+        // Erişilebilirlik Servisi Kontrolü (Tam Otomatik WhatsApp için)
         if (!isAccessibilityServiceEnabled()) {
             showAccessibilityAccessDialog();
         }
@@ -7240,7 +7240,6 @@ public class MainActivity extends Activity {
      * 
      * Otomasyonlar:
      * - WhatsApp otomatik mesaj gönderimi
-     * - YouTube reklam atlama
      */
     public static class NikoAccessibilityService extends AccessibilityService {
         private static NikoAccessibilityService instance;
@@ -7330,8 +7329,6 @@ public class MainActivity extends Activity {
 
             if (packageName.equals("com.whatsapp")) {
                 handleWhatsAppAutoSend(rootNode);
-            } else if (packageName.equals("com.google.android.youtube")) {
-                handleYouTubeAdSkip(rootNode);
             }
 
             rootNode.recycle();
@@ -7355,24 +7352,6 @@ public class MainActivity extends Activity {
             }
         }
 
-        private void handleYouTubeAdSkip(AccessibilityNodeInfo rootNode) {
-            List<AccessibilityNodeInfo> skipButtons = rootNode.findAccessibilityNodeInfosByViewId("com.google.android.youtube:id/skip_ad_button");
-            if (skipButtons == null || skipButtons.isEmpty()) {
-                skipButtons = rootNode.findAccessibilityNodeInfosByViewId("com.google.android.youtube:id/ad_skip_button");
-            }
-
-            if (skipButtons != null && !skipButtons.isEmpty()) {
-                for (AccessibilityNodeInfo node : skipButtons) {
-                    if (node.isVisibleToUser() && node.isEnabled()) {
-                        node.performAction(AccessibilityNodeInfo.ACTION_CLICK);
-                        addLog("📺 YouTube reklamı otomatik atlandı.");
-                    }
-                    node.recycle();
-                }
-            } else {
-                findAndClickByText(rootNode, "reklamı atla", "skip ad");
-            }
-        }
 
         private void findAndClickByText(AccessibilityNodeInfo node, String... targets) {
             if (node == null) return;
