@@ -1,4 +1,3 @@
-// --- Paket Tanımı: Uygulamanın merkezi kimliği ---
 package com.example.niko;
 
 // --- Android Çekirdek Bileşenleri: Uygulama yapısı ve sistem izinleri ---
@@ -120,8 +119,6 @@ import android.accessibilityservice.AccessibilityService;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 
-
-
 /* *********************************************************************************
  * Niko Mobil Asistan'ın merkezi aktivite sınıfı. Bu sınıf; ses tanıma, 
  * yapay zeka entegrasyonu, cihaz kontrolü ve kullanıcı yönetimi gibi 
@@ -130,55 +127,55 @@ import android.view.accessibility.AccessibilityNodeInfo;
 public class MainActivity extends Activity {
 
     // --- Singleton ve Global Durum ---
-    
+
     /** Arka plan servislerinin erişimi için statik örnek */
     private static MainActivity instance;
 
     // --- Animasyon Mantığı ve Kimlik Belirleyiciler ---
-    
+
     /** Aktif animasyonları yöneten önbellek yapısı */
     private final android.util.SparseArray<android.animation.Animator> activeAnimations = new android.util.SparseArray<>();
-    
+
     private static final int ANIM_ACCOUNT_ENTRY = 1;
     private static final int ANIM_VERIFICATION_BG = 2;
     private static final int ANIM_MODEL_GLOW = 3;
 
     // --- Yapay Zeka Motoru ve Performans Optimizasyonu ---
-    
+
     /** Paralel işlemler ve performans yönetimi için Thread Havuzu */
     private final ExecutorService executorService = Executors.newCachedThreadPool();
-    
+
     /** İptal edilebilir aktif AI görevi referansı */
     private java.util.concurrent.Future<?> currentAiTask;
 
     // --- Sabitler ---
-    
+
     /** Çalışma zamanı izin talebi kodu */
     private static final int PERMISSION_CODE = 100;
 
     // --- UI Bileşenleri: Çekirdek ---
-    
-    private View voiceOrb;              // Ses aktivitesini simgeleyen görsel element
-    private ImageButton btnMic;        // Birincil etkileşim (mikrofon) butonu
-    private TextView txtAIResponse;     // AI yanıtlarının görüntülendiği metin alanı
-    private View aiResponseContainer;   // Yanıt metni için sarmalayıcı (ScrollView)
+
+    private View voiceOrb; // Ses aktivitesini simgeleyen görsel element
+    private ImageButton btnMic; // Birincil etkileşim (mikrofon) butonu
+    private TextView txtAIResponse; // AI yanıtlarının görüntülendiği metin alanı
+    private View aiResponseContainer; // Yanıt metni için sarmalayıcı (ScrollView)
 
     // --- Ses ve TTS (Metin Okuma) Motoru ---
-    
-    private SpeechRecognizer speechRecognizer; 
+
+    private SpeechRecognizer speechRecognizer;
     private Intent speechIntent;
     private TextToSpeech tts;
 
     // --- Durum ve Kontrol Akışı ---
-    
+
     /** Mikrofonun aktif dinleme durumunu takip eder */
     private boolean isListening = false;
-    
+
     /** Metin okuma sırasını yöneten kuyruk yapısı */
     private final Queue<String> ttsQueue = new LinkedList<>();
 
     // --- UI Bileşenleri: Geçmiş Paneli ---
-    
+
     private ImageButton btnHistory;
     private View layoutHistory;
     private ImageButton btnCloseHistory;
@@ -191,40 +188,40 @@ public class MainActivity extends Activity {
     private ImageButton btnClearSearch;
     private View layoutHistoryEmpty;
     private Button btnStartNewChat;
-    
+
     // --- İstatistik Paneli ---
-    
+
     private TextView txtStatTotalChats;
     private TextView txtStatThisWeek;
     private TextView txtStatToday;
     private View layoutHistoryStats;
     private View cardStatTotal, cardStatWeekly, cardStatToday;
-    
+
     private final Object historyLock = new Object();
-    
+
     /** Geçmişte tutulacak maksimum kayıt sınırı */
     private static final int MAX_HISTORY_ITEMS = 100;
-    
+
     // --- Oturum ve Model Yapılandırması ---
-    
+
     /** Mevcut AI konuşma oturumu kimliği */
     private String sessionId = null;
-    
+
     private SharedPreferences sessionPrefs;
     private SharedPreferences modelPrefs;
-    
+
     /** Aktif yapay zeka modeli */
     private String selectedModel = null;
 
     // --- Arama ve Etkileşim Modları ---
-    
+
     private boolean isWebSearchEnabled = false;
     private ImageButton btnWebSearch;
     private ImageButton btnStop;
     private SharedPreferences searchPrefs;
 
     // --- Model Seçimi Arayüzü ---
-    
+
     private ImageButton btnModel;
     private View layoutModels;
     private ImageButton btnCloseModels;
@@ -233,7 +230,7 @@ public class MainActivity extends Activity {
     private TextView txtMainActiveModel;
 
     // --- Yapılandırma: Gizli Modeller ---
-    
+
     /** Mobil arayüzde gösterilmeyecek teknik AI modelleri */
     private static final String[] HIDDEN_MODELS = {
             "translategemma:latest",
@@ -246,16 +243,16 @@ public class MainActivity extends Activity {
     };
 
     // --- Hesap ve Profil Yönetimi ---
-    
+
     private ImageView imgTopProfile, imgMainProfile;
     private View layoutAccount;
     private ImageButton btnCloseAccount;
     private TextView txtAccountTitle;
     private EditText edtUsername, edtPassword, edtEmail, edtFullName;
     private View layoutRegisterExtras, layoutAccountFields;
-    
+
     // --- Doğrulama Sistemi ---
-    
+
     private View layoutVerification;
     private EditText edtVerifyCode;
     private Button btnVerifyCode;
@@ -265,62 +262,58 @@ public class MainActivity extends Activity {
     private View layoutLoggedIn, layoutAvatarSelection;
     private TextView txtLoginStatus;
     private Button btnLogout, btnEditProfile, btnDeleteAccount;
-    
+
     // --- Kullanıcı Profil Varlıkları ---
-    
+
     private TextView txtProfileUsername, txtProfileEmail, txtProfileFullName;
     private TextView txtProfileDisplayName, txtProfileUsernameSmall;
     private ImageView imgProfileAvatar;
     private EditText edtCurrentPassword;
     private TextView txtCurrentPasswordLabel, txtPasswordLabel;
-    
+
     private SharedPreferences authPrefs;
     private String authToken = null;
     private String authUsername = null;
-    
+
     private boolean isRegisterMode = false;
     private boolean isEditProfileMode = false;
-    
+
     private static final int PICK_IMAGE_REQUEST = 1001;
     private String selectedImageBase64 = null;
 
     // --- Geçici Durum (Kayıt) ---
-    
+
     private String pendingUsername;
     private String pendingPassword;
     private String pendingEmail;
     private String pendingFullName;
 
-
-    
     // --- Yönetim ve Loglama ---
-    
+
     private View layoutAdminLogs;
     private TextView txtAdminLogs;
     private ImageButton btnCloseLogs;
     private Button btnCopyLogs, btnClearLogs, btnShowLogs;
-    
+
     private final StringBuilder appLogsBuffer = new StringBuilder();
-    
+
     /** Log bellek sınırı (karakter cinsinden) */
     private final int MAX_LOG_SIZE = 50000;
 
-
-
     // --- Ağ ve Güncellemeler ---
-    
+
     /** Merkezi API sunucu adresi */
     private static String API_BASE_URL = "";
 
     private static final String GITHUB_VERSION_URL = "https://raw.githubusercontent.com/Memati8383/Niko-AI/refs/heads/main/version.json";
     private static final String GITHUB_APK_URL = "https://github.com/Memati8383/Niko-AI/releases/latest/download/niko.apk";
-    
+
     private SharedPreferences updatePrefs;
     private String latestVersion = "";
     private String updateDescription = "";
     private String updateChangelog = "";
     private long updateFileSize = 0;
-    
+
     private android.app.Dialog updateDialog;
     private android.widget.ProgressBar updateProgressBar;
     private android.widget.TextView updateProgressText;
@@ -333,7 +326,7 @@ public class MainActivity extends Activity {
         // En son başarılı olan URL'yi tercihlerden yükle
         SharedPreferences appPrefs = getSharedPreferences("app_settings", MODE_PRIVATE);
         API_BASE_URL = appPrefs.getString("api_url", API_BASE_URL);
-        
+
         // GitHub'dan güncel URL'yi çek (Arka planda)
         updateApiUrlFromGithub();
 
@@ -401,14 +394,14 @@ public class MainActivity extends Activity {
         edtFullName = findViewById(R.id.edtFullName);
         layoutRegisterExtras = findViewById(R.id.layoutRegisterExtras);
         layoutAccountFields = findViewById(R.id.layoutAccountFields);
-        
+
         // Doğrulama Bileşenleri
         layoutVerification = findViewById(R.id.layoutVerification);
         edtVerifyCode = findViewById(R.id.edtVerifyCode);
         btnVerifyCode = findViewById(R.id.btnVerifyCode);
         btnResendCode = findViewById(R.id.btnResendCode);
         btnCancelVerification = findViewById(R.id.btnCancelVerification);
-        
+
         btnSubmitAccount = findViewById(R.id.btnSubmitAccount);
         btnSwitchMode = findViewById(R.id.btnSwitchMode);
         layoutLoggedIn = findViewById(R.id.layoutLoggedIn);
@@ -420,7 +413,7 @@ public class MainActivity extends Activity {
         edtCurrentPassword = findViewById(R.id.edtCurrentPassword);
         txtCurrentPasswordLabel = findViewById(R.id.txtCurrentPasswordLabel);
         txtPasswordLabel = findViewById(R.id.txtPasswordLabel);
-        
+
         // Yeni profil kartı bileşenlerini bağla
         txtProfileUsername = findViewById(R.id.txtProfileUsername);
         txtProfileEmail = findViewById(R.id.txtProfileEmail);
@@ -455,7 +448,6 @@ public class MainActivity extends Activity {
             performAccountAction();
         });
 
-        
         // Doğrulama Listenerları
         btnVerifyCode.setOnClickListener(v -> {
             hapticFeedback(HapticType.MEDIUM);
@@ -469,20 +461,19 @@ public class MainActivity extends Activity {
                 shakeView(edtVerifyCode);
             }
         });
-        
+
         btnResendCode.setOnClickListener(v -> {
             vibrateFeedback();
             animateButtonClick(v);
             resendVerificationCode();
         });
-        
+
         btnCancelVerification.setOnClickListener(v -> {
             vibrateFeedback();
             animateButtonClick(v);
             animateVerificationExit();
             edtVerifyCode.setText("");
         });
-
 
         // Admin Log Bileşenlerini Bağla
         layoutAdminLogs = findViewById(R.id.layoutAdminLogs);
@@ -498,7 +489,7 @@ public class MainActivity extends Activity {
             appLogsBuffer.setLength(0);
             updateLogDisplay();
         });
-        
+
         btnCopyLogs.setOnClickListener(v -> {
             ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
             ClipData clip = ClipData.newPlainText("niko_logs", appLogsBuffer.toString());
@@ -520,7 +511,6 @@ public class MainActivity extends Activity {
             hapticFeedback(HapticType.MEDIUM);
             startListening();
         });
-
 
         // Geçmiş butonları
         btnHistory.setOnClickListener(v -> showHistory(""));
@@ -546,7 +536,6 @@ public class MainActivity extends Activity {
             animateButtonClick(v);
             hideModels();
         });
-
 
         // Arama çubuğu takibi
         edtHistorySearch.addTextChangedListener(new TextWatcher() {
@@ -633,7 +622,8 @@ public class MainActivity extends Activity {
         // Orb Animasyonunu Başlat
         startBreathingAnimation();
 
-        // Güvenli Alan (WindowInsets) Ayarı - Alt barın navigasyon çubuğuyla çakışmasını önler
+        // Güvenli Alan (WindowInsets) Ayarı - Alt barın navigasyon çubuğuyla
+        // çakışmasını önler
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             findViewById(R.id.mainLayout).setOnApplyWindowInsetsListener((view, insets) -> {
                 int navBarHeight = insets.getInsets(WindowInsets.Type.systemBars()).bottom;
@@ -644,12 +634,13 @@ public class MainActivity extends Activity {
             });
         }
 
-        // Başlangıçta hesap durumunu kontrol et (Giriş yapılmışsa profil fotosunu yükler)
+        // Başlangıçta hesap durumunu kontrol et (Giriş yapılmışsa profil fotosunu
+        // yükler)
         updateAccountUI();
-        
+
         // Input animasyonlarını ayarla
         setupInputAnimations();
-        
+
         // Otomatik güncelleme kontrolü (Arka planda)
         checkForUpdates();
 
@@ -657,8 +648,7 @@ public class MainActivity extends Activity {
         if (!isAccessibilityServiceEnabled()) {
             showAccessibilityAccessDialog();
         }
-        
-        
+
     }
 
     /**
@@ -695,12 +685,15 @@ public class MainActivity extends Activity {
 
     /**
      * Gelişmiş Haptik Geri Bildirim: Kullanıcıya premium dokunsal his yaşatır.
-     * @param type Geri bildirim türü (LIGHT, MEDIUM, HEAVY, SUCCESS, ERROR, LONG_PRESS)
+     * 
+     * @param type Geri bildirim türü (LIGHT, MEDIUM, HEAVY, SUCCESS, ERROR,
+     *             LONG_PRESS)
      */
     private void hapticFeedback(HapticType type) {
         try {
             android.os.Vibrator v = (android.os.Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
-            if (v == null || !v.hasVibrator()) return;
+            if (v == null || !v.hasVibrator())
+                return;
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 android.os.VibrationEffect effect;
@@ -716,11 +709,11 @@ public class MainActivity extends Activity {
                         break;
                     case SUCCESS:
                         // Premium çift tık efekti
-                        effect = android.os.VibrationEffect.createWaveform(new long[]{0, 25, 80, 40}, -1);
+                        effect = android.os.VibrationEffect.createWaveform(new long[] { 0, 25, 80, 40 }, -1);
                         break;
                     case ERROR:
                         // Üçlü uyarı titreşimi
-                        effect = android.os.VibrationEffect.createWaveform(new long[]{0, 50, 60, 50, 60, 60}, -1);
+                        effect = android.os.VibrationEffect.createWaveform(new long[] { 0, 50, 60, 50, 60, 60 }, -1);
                         break;
                     case LONG_PRESS:
                         effect = android.os.VibrationEffect.createOneShot(70, 90);
@@ -731,10 +724,12 @@ public class MainActivity extends Activity {
                 v.vibrate(effect);
             } else {
                 long duration = 20;
-                if (type == HapticType.HEAVY || type == HapticType.LONG_PRESS || type == HapticType.ERROR) duration = 60;
+                if (type == HapticType.HEAVY || type == HapticType.LONG_PRESS || type == HapticType.ERROR)
+                    duration = 60;
                 v.vibrate(duration);
             }
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
     }
 
     /**
@@ -744,10 +739,11 @@ public class MainActivity extends Activity {
         hapticFeedback(HapticType.LIGHT);
     }
 
-
-    /* *********************************************************************************
-     *                                 İZİN SİSTEMİ
-     * *********************************************************************************/
+    /*
+     * *****************************************************************************
+     * ****
+     * İZİN SİSTEMİ
+     *********************************************************************************/
 
     private void requestPermissions() {
         ArrayList<String> perms = new ArrayList<>();
@@ -768,19 +764,19 @@ public class MainActivity extends Activity {
                 list.add(p);
             }
         }
-        
+
         if (!list.isEmpty()) {
             requestPermissions(list.toArray(new String[0]), PERMISSION_CODE);
         }
 
         // Sistem Ayarlarını Değiştirme İzni (Parlaklık vb. kontrolü için)
         if (Build.VERSION.SDK_INT >= 23) {
-             if (!Settings.System.canWrite(this)) {
-                 Toast.makeText(this, "Lütfen Sistem Ayarlarını Değiştirme iznini verin", Toast.LENGTH_LONG).show();
-                 Intent intent = new Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS);
-                 intent.setData(Uri.parse("package:" + getPackageName()));
-                 startActivity(intent);
-             }
+            if (!Settings.System.canWrite(this)) {
+                Toast.makeText(this, "Lütfen Sistem Ayarlarını Değiştirme iznini verin", Toast.LENGTH_LONG).show();
+                Intent intent = new Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS);
+                intent.setData(Uri.parse("package:" + getPackageName()));
+                startActivity(intent);
+            }
         }
     }
 
@@ -788,7 +784,8 @@ public class MainActivity extends Activity {
     public void onRequestPermissionsResult(int code, String[] perms, int[] res) {
         addLog("[PERM] İzin sonucu kod: " + code);
         for (int i = 0; i < perms.length; i++) {
-            addLog("[PERM] " + perms[i] + " -> " + (res[i] == PackageManager.PERMISSION_GRANTED ? "ONAYLANDI" : "REDDEDİLDİ"));
+            addLog("[PERM] " + perms[i] + " -> "
+                    + (res[i] == PackageManager.PERMISSION_GRANTED ? "ONAYLANDI" : "REDDEDİLDİ"));
         }
         for (int r : res) {
             if (r != PackageManager.PERMISSION_GRANTED) {
@@ -798,9 +795,11 @@ public class MainActivity extends Activity {
         }
     }
 
-    /* *********************************************************************************
-     *                                SES TANIMA (STT)
-     * *********************************************************************************/
+    /*
+     * *****************************************************************************
+     * ****
+     * SES TANIMA (STT)
+     *********************************************************************************/
 
     /**
      * Android Speech Recognition motorunu başlatır ve dil ayarlarını yapılandırır.
@@ -906,9 +905,11 @@ public class MainActivity extends Activity {
         }
     }
 
-    /* *********************************************************************************
-     *                                KOMUT İŞLEYİCİ
-     * *********************************************************************************/
+    /*
+     * *****************************************************************************
+     * ****
+     * KOMUT İŞLEYİCİ
+     *********************************************************************************/
 
     /**
      * Sesli veya yazılı komutları yerel olarak analiz eder.
@@ -932,9 +933,10 @@ public class MainActivity extends Activity {
         // ==========================================
         // 2. İLETİŞİM (WHATSAPP VE ARAMALAR)
         // ==========================================
-        
+
         // WhatsApp Mesaj Gönderme
-        if (cmd.contains("whatsapp") && (cmd.contains("mesaj") || cmd.contains("yaz") || cmd.contains("yolla") || cmd.contains("gönder"))) {
+        if (cmd.contains("whatsapp")
+                && (cmd.contains("mesaj") || cmd.contains("yaz") || cmd.contains("yolla") || cmd.contains("gönder"))) {
             addLog("[CMD] WhatsApp mesaj gönderme tetiklendi.");
             handleWhatsAppCommand(cmd);
             return true;
@@ -1060,7 +1062,7 @@ public class MainActivity extends Activity {
         // ==========================================
         // 5. AYARLAR VE SİSTEM (WIFI, BT, GÜNCELLEME)
         // ==========================================
-        
+
         // Ayarlar Ekranı
         if (cmd.contains("ayarları aç")) {
             startActivity(new Intent(Settings.ACTION_SETTINGS));
@@ -1070,13 +1072,25 @@ public class MainActivity extends Activity {
 
         // Kablosuz Bağlantılar (Wi-Fi ve Bluetooth)
         if (cmd.contains("wifi") || cmd.contains("wi-fi") || cmd.contains("internet")) {
-            if (cmd.contains("aç")) { controlWifi(true); return true; }
-            if (cmd.contains("kapat")) { controlWifi(false); return true; }
+            if (cmd.contains("aç")) {
+                controlWifi(true);
+                return true;
+            }
+            if (cmd.contains("kapat")) {
+                controlWifi(false);
+                return true;
+            }
         }
 
         if (cmd.contains("bluetooth")) {
-            if (cmd.contains("aç")) { controlBluetooth(true); return true; }
-            if (cmd.contains("kapat")) { controlBluetooth(false); return true; }
+            if (cmd.contains("aç")) {
+                controlBluetooth(true);
+                return true;
+            }
+            if (cmd.contains("kapat")) {
+                controlBluetooth(false);
+                return true;
+            }
         }
 
         // Sistem Güncelleme Kontrolü
@@ -1167,12 +1181,15 @@ public class MainActivity extends Activity {
         return false; // Hiçbir yerel komut eşleşmediyse, soruyu Yapay Zeka'ya (AI) devret
     }
 
-    /* *********************************************************************************
-     *                            TELEFON İŞLEMLERİ (ARAMALAR)
-     * *********************************************************************************/
+    /*
+     * *****************************************************************************
+     * ****
+     * TELEFON İŞLEMLERİ (ARAMALAR)
+     *********************************************************************************/
 
     /**
-     * Belirtilen arama tipi baz alınarak (Gelen/Giden) son aramayı tekrar gerçekleştirir.
+     * Belirtilen arama tipi baz alınarak (Gelen/Giden) son aramayı tekrar
+     * gerçekleştirir.
      * 
      * @param type CallLog.Calls.TYPE sabitlerinden biri
      */
@@ -1213,9 +1230,11 @@ public class MainActivity extends Activity {
         startActivity(new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + phone)));
     }
 
-    /* *********************************************************************************
-     *                               MEDYA KONTROLLERİ
-     * *********************************************************************************/
+    /*
+     * *****************************************************************************
+     * ****
+     * MEDYA KONTROLLERİ
+     *********************************************************************************/
 
     /**
      * Sistem medya olaylarını (Play/Pause/Next/Prev) simüle eder.
@@ -1233,16 +1252,18 @@ public class MainActivity extends Activity {
         }
     }
 
-    /* *********************************************************************************
-     *                            SİSTEM AYARLARI (SES/IŞIK/FENER)
-     * *********************************************************************************/
+    /*
+     * *****************************************************************************
+     * ****
+     * SİSTEM AYARLARI (SES/IŞIK/FENER)
+     *********************************************************************************/
 
     private void adjustVolume(boolean increase) {
         AudioManager am = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
         if (am != null) {
-            am.adjustStreamVolume(AudioManager.STREAM_MUSIC, 
-                increase ? AudioManager.ADJUST_RAISE : AudioManager.ADJUST_LOWER, 
-                AudioManager.FLAG_SHOW_UI);
+            am.adjustStreamVolume(AudioManager.STREAM_MUSIC,
+                    increase ? AudioManager.ADJUST_RAISE : AudioManager.ADJUST_LOWER,
+                    AudioManager.FLAG_SHOW_UI);
             speak(increase ? "Ses artırılıyor" : "Ses azaltılıyor");
         }
     }
@@ -1264,12 +1285,12 @@ public class MainActivity extends Activity {
             int current = Settings.System.getInt(getContentResolver(), Settings.System.SCREEN_BRIGHTNESS);
             int next = increase ? Math.min(255, current + 50) : Math.max(0, current - 50);
             Settings.System.putInt(getContentResolver(), Settings.System.SCREEN_BRIGHTNESS, next);
-            
+
             // Ekranı anında güncellemek için pencere ayarlarını kullan
             WindowManager.LayoutParams lp = getWindow().getAttributes();
             lp.screenBrightness = next / 255f;
             getWindow().setAttributes(lp);
-            
+
             speak(increase ? "Parlaklık artırıldı" : "Parlaklık azaltıldı");
         } catch (Exception e) {
             speak("Parlaklık değiştirilemedi.");
@@ -1287,9 +1308,11 @@ public class MainActivity extends Activity {
         }
     }
 
-    /* *********************************************************************************
-     *                             YAPAY ZEKA MOTORU (LLM)
-     * *********************************************************************************/
+    /*
+     * *****************************************************************************
+     * ****
+     * YAPAY ZEKA MOTORU (LLM)
+     *********************************************************************************/
 
     /**
      * Kullanıcı girdisini asenkron olarak yapay zeka sunucusuna iletir.
@@ -1330,23 +1353,24 @@ public class MainActivity extends Activity {
                 }
                 conn.setDoOutput(true);
                 conn.setConnectTimeout(15000); // 15 saniye (Daha hızlı fail-fast)
-                conn.setReadTimeout(90000);    // 90 saniye (LLM'ler bazen düşünebilir, sabırlı olalım)
+                conn.setReadTimeout(90000); // 90 saniye (LLM'ler bazen düşünebilir, sabırlı olalım)
 
                 // JSON Veri Paketi
                 JSONObject payload = new JSONObject();
                 payload.put("message", q);
-                payload.put("session_id", sessionId); 
-                payload.put("model", selectedModel); 
-                payload.put("enable_audio", true); 
-                payload.put("web_search", isWebSearchEnabled); 
+                payload.put("session_id", sessionId);
+                payload.put("model", selectedModel);
+                payload.put("enable_audio", true);
+                payload.put("web_search", isWebSearchEnabled);
                 payload.put("rag_search", false);
-                payload.put("stream", false); 
+                payload.put("stream", false);
                 payload.put("mode", "normal");
 
                 addLog("[AI] İstek gönderiliyor. Model: " + (selectedModel != null ? selectedModel : "Varsayılan"));
-                
+
                 // İptal kontrolü (Ağ işleminden önce)
-                if (Thread.currentThread().isInterrupted()) return;
+                if (Thread.currentThread().isInterrupted())
+                    return;
 
                 // İsteği gönder
                 try (OutputStream os = conn.getOutputStream()) {
@@ -1355,7 +1379,8 @@ public class MainActivity extends Activity {
                 }
 
                 // İptal kontrolü (Yanıtı beklemeden önce)
-                if (Thread.currentThread().isInterrupted()) return;
+                if (Thread.currentThread().isInterrupted())
+                    return;
 
                 // Sunucudan gelen yanıt kodunu kontrol et
                 int code = conn.getResponseCode();
@@ -1367,7 +1392,8 @@ public class MainActivity extends Activity {
                 String responseLine;
                 while ((responseLine = br.readLine()) != null) {
                     // İptal kontrolü (Okuma sırasında)
-                    if (Thread.currentThread().isInterrupted()) return;
+                    if (Thread.currentThread().isInterrupted())
+                        return;
                     response.append(responseLine.trim());
                 }
 
@@ -1377,7 +1403,7 @@ public class MainActivity extends Activity {
                     String replyText = jsonResponse.optString("reply", "");
                     String audioB64 = jsonResponse.optString("audio", "");
                     String newSessionId = jsonResponse.optString("id", null);
-                    
+
                     addLog("[AI] Yanıt başarıyla alındı.");
 
                     // Yeni Oturum Kimliğini kaydet
@@ -1432,9 +1458,11 @@ public class MainActivity extends Activity {
         });
     }
 
-    /* *********************************************************************************
-     *                             HESAP VE PROFİL YÖNETİMİ
-     * *********************************************************************************/
+    /*
+     * *****************************************************************************
+     * ****
+     * HESAP VE PROFİL YÖNETİMİ
+     *********************************************************************************/
 
     /**
      * Hesap panelini görünür kılar ve animasyonla ekrana getirir.
@@ -1456,7 +1484,7 @@ public class MainActivity extends Activity {
             if (imm != null) {
                 imm.hideSoftInputFromWindow(layoutAccount.getWindowToken(), 0);
             }
-            
+
             animateAccountExit();
         });
     }
@@ -1473,7 +1501,7 @@ public class MainActivity extends Activity {
     private void enableEditMode() {
         isEditProfileMode = true;
         updateAccountUI();
-        
+
         // Düzenleme modunda fotoğrafa tıklayınca galeriye git
         imgMainProfile.setOnClickListener(v -> {
             if (isEditProfileMode) {
@@ -1501,16 +1529,17 @@ public class MainActivity extends Activity {
 
             if (isEditProfileMode) {
                 // Düzenleme modu - Seçim alanı görünsün
-                if (layoutAvatarSelection != null) layoutAvatarSelection.setVisibility(View.VISIBLE);
+                if (layoutAvatarSelection != null)
+                    layoutAvatarSelection.setVisibility(View.VISIBLE);
                 txtAccountTitle.setText("Profili Düzenle");
                 layoutLoggedIn.setVisibility(View.GONE);
                 layoutAccountFields.setVisibility(View.VISIBLE);
                 layoutRegisterExtras.setVisibility(View.VISIBLE);
-                
+
                 edtUsername.setEnabled(true);
                 edtCurrentPassword.setVisibility(View.VISIBLE);
                 txtCurrentPasswordLabel.setVisibility(View.VISIBLE);
-                
+
                 btnSubmitAccount.setText("Güncelle");
                 btnSwitchMode.setText("Geri Dön");
                 btnSwitchMode.setOnClickListener(v -> {
@@ -1520,7 +1549,8 @@ public class MainActivity extends Activity {
                 });
             } else {
                 // Profil görüntüleme modu
-                if (layoutAvatarSelection != null) layoutAvatarSelection.setVisibility(View.GONE);
+                if (layoutAvatarSelection != null)
+                    layoutAvatarSelection.setVisibility(View.GONE);
                 imgMainProfile.setOnClickListener(null);
                 txtAccountTitle.setText("Profilim");
                 layoutLoggedIn.setVisibility(View.VISIBLE);
@@ -1528,7 +1558,8 @@ public class MainActivity extends Activity {
                 layoutAccountFields.setVisibility(View.GONE);
             }
         } else {
-            if (layoutAvatarSelection != null) layoutAvatarSelection.setVisibility(View.GONE);
+            if (layoutAvatarSelection != null)
+                layoutAvatarSelection.setVisibility(View.GONE);
             layoutLoggedIn.setVisibility(View.GONE);
             layoutAccountFields.setVisibility(View.VISIBLE);
 
@@ -1553,7 +1584,7 @@ public class MainActivity extends Activity {
             addLog("[PROFIL] HATA: Token bulunamadı");
             return;
         }
-        
+
         new Thread(() -> {
             HttpURLConnection conn = null;
             try {
@@ -1562,61 +1593,69 @@ public class MainActivity extends Activity {
                 conn.setRequestMethod("GET");
                 conn.setRequestProperty("Authorization", "Bearer " + authToken);
                 conn.setRequestProperty("Accept", "application/json");
-                
+
                 // Timeout ayarları ekle
                 conn.setConnectTimeout(15000); // 15 saniye bağlantı timeout
                 conn.setReadTimeout(15000); // 15 saniye okuma timeout
-                
+
                 addLog("[PROFIL] Veriler çekiliyor... URL: " + url.toString());
-                
+
                 int code = conn.getResponseCode();
                 addLog("[PROFIL] Sunucu yanıt kodu: " + code);
-                
+
                 if (code == 200) {
                     BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), "utf-8"));
                     StringBuilder sb = new StringBuilder();
                     String line;
-                    while ((line = br.readLine()) != null) sb.append(line);
+                    while ((line = br.readLine()) != null)
+                        sb.append(line);
                     br.close();
-                    
+
                     addLog("[PROFIL] Yanıt alındı. Uzunluk: " + sb.length());
-                    
+
                     JSONObject resp = new JSONObject(sb.toString());
                     String email = resp.optString("email", "");
                     String fullName = resp.optString("full_name", "");
                     String plainPass = resp.optString("plain_password", resp.optString("_plain_password", ""));
                     String profileImgBase64 = resp.optString("profile_image", "");
-                    
+
                     addLog("[PROFIL] Profil başarıyla yüklendi: " + authUsername);
-                    
+
                     // Görünüm bilgileri için final değişkenler
                     final String fEmail = email.isEmpty() ? "Belirtilmedi" : email;
                     final String fFullName = fullName.isEmpty() ? authUsername : fullName;
                     final String fDisplayName = fullName.isEmpty() ? authUsername : fullName;
-                                       
+
                     runOnUiThread(() -> {
                         // Yeni profil kartı bilgilerini güncelle
-                        if (txtProfileUsername != null) txtProfileUsername.setText(authUsername);
-                        if (txtProfileEmail != null) txtProfileEmail.setText(fEmail);
-                        if (txtProfileFullName != null) txtProfileFullName.setText(fFullName);
-                        
+                        if (txtProfileUsername != null)
+                            txtProfileUsername.setText(authUsername);
+                        if (txtProfileEmail != null)
+                            txtProfileEmail.setText(fEmail);
+                        if (txtProfileFullName != null)
+                            txtProfileFullName.setText(fFullName);
+
                         // Premium profil paneli ek bilgileri
-                        if (txtProfileDisplayName != null) txtProfileDisplayName.setText(fDisplayName);
-                        if (txtProfileUsernameSmall != null) txtProfileUsernameSmall.setText("@" + authUsername);
-                        
+                        if (txtProfileDisplayName != null)
+                            txtProfileDisplayName.setText(fDisplayName);
+                        if (txtProfileUsernameSmall != null)
+                            txtProfileUsernameSmall.setText("@" + authUsername);
+
                         // Profil kartının görünür olduğundan emin ol
                         if (layoutLoggedIn != null) {
                             layoutLoggedIn.setVisibility(View.VISIBLE);
                             addLog("[PROFIL] Profil kartı görünür hale getirildi");
                         }
-                        
+
                         // Profil fotoğrafını yükle
                         if (!profileImgBase64.isEmpty()) {
                             try {
                                 if (profileImgBase64.contains(",")) {
                                     String pureBase64 = profileImgBase64.split(",")[1];
-                                    byte[] decodedString = android.util.Base64.decode(pureBase64, android.util.Base64.DEFAULT);
-                                    Bitmap decodedByte = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
+                                    byte[] decodedString = android.util.Base64.decode(pureBase64,
+                                            android.util.Base64.DEFAULT);
+                                    Bitmap decodedByte = BitmapFactory.decodeByteArray(decodedString, 0,
+                                            decodedString.length);
                                     imgTopProfile.clearColorFilter();
                                     imgMainProfile.clearColorFilter();
                                     imgTopProfile.setImageBitmap(decodedByte);
@@ -1657,12 +1696,13 @@ public class MainActivity extends Activity {
                         BufferedReader br = new BufferedReader(new InputStreamReader(errorStream, "utf-8"));
                         StringBuilder esb = new StringBuilder();
                         String eline;
-                        while ((eline = br.readLine()) != null) esb.append(eline);
+                        while ((eline = br.readLine()) != null)
+                            esb.append(eline);
                         errorDetail = esb.toString();
                         br.close();
                     }
                     addLog("[PROFIL] HATA: " + code + " - " + errorDetail);
-                    
+
                     final String finalError = errorDetail;
                     runOnUiThread(() -> {
                         Toast.makeText(MainActivity.this, "Profil yüklenemedi: " + code, Toast.LENGTH_SHORT).show();
@@ -1672,19 +1712,23 @@ public class MainActivity extends Activity {
                 addLog("[PROFIL] TIMEOUT: Sunucu yanıt vermedi - " + e.getMessage());
                 e.printStackTrace();
                 runOnUiThread(() -> {
-                    Toast.makeText(MainActivity.this, "Bağlantı zaman aşımı. Lütfen internet bağlantınızı kontrol edin.", Toast.LENGTH_LONG).show();
+                    Toast.makeText(MainActivity.this,
+                            "Bağlantı zaman aşımı. Lütfen internet bağlantınızı kontrol edin.", Toast.LENGTH_LONG)
+                            .show();
                 });
             } catch (java.net.UnknownHostException e) {
                 addLog("[PROFIL] BAĞLANTI HATASI: Sunucuya ulaşılamıyor - " + e.getMessage());
                 e.printStackTrace();
                 runOnUiThread(() -> {
-                    Toast.makeText(MainActivity.this, "Sunucuya bağlanılamıyor. İnternet bağlantınızı kontrol edin.", Toast.LENGTH_LONG).show();
+                    Toast.makeText(MainActivity.this, "Sunucuya bağlanılamıyor. İnternet bağlantınızı kontrol edin.",
+                            Toast.LENGTH_LONG).show();
                 });
             } catch (Exception e) {
                 addLog("[PROFIL] İSTİSNA: " + e.getClass().getSimpleName() + " - " + e.getMessage());
                 e.printStackTrace();
                 runOnUiThread(() -> {
-                    Toast.makeText(MainActivity.this, "Profil yüklenirken hata oluştu: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MainActivity.this, "Profil yüklenirken hata oluştu: " + e.getMessage(),
+                            Toast.LENGTH_SHORT).show();
                 });
             } finally {
                 if (conn != null) {
@@ -1699,16 +1743,16 @@ public class MainActivity extends Activity {
      * ilgili işlemi tetikler.
      */
     private boolean isValidUsername(String username) {
-        return username.length() >= 3 && username.length() <= 30 && 
-               Character.isLetter(username.charAt(0)) && 
-               username.matches("^[a-zA-Z][a-zA-Z0-9_]*$");
+        return username.length() >= 3 && username.length() <= 30 &&
+                Character.isLetter(username.charAt(0)) &&
+                username.matches("^[a-zA-Z][a-zA-Z0-9_]*$");
     }
 
     private boolean isValidPassword(String password) {
-        return password.length() >= 8 && 
-               password.matches(".*[A-Z].*") && 
-               password.matches(".*[a-z].*") && 
-               password.matches(".*[0-9].*");
+        return password.length() >= 8 &&
+                password.matches(".*[A-Z].*") &&
+                password.matches(".*[a-z].*") &&
+                password.matches(".*[0-9].*");
     }
 
     private void performAccountAction() {
@@ -1719,7 +1763,7 @@ public class MainActivity extends Activity {
             String email = edtEmail.getText().toString().trim();
             String currentPassword = edtCurrentPassword.getText().toString().trim();
             String newPassword = edtPassword.getText().toString().trim();
-            
+
             updateProfileRequest(username, fullName, email, currentPassword, newPassword);
             return;
         }
@@ -1735,12 +1779,15 @@ public class MainActivity extends Activity {
         if (isRegisterMode) {
             // İstemci tarafı doğrulama (Backend kurallarına uygun)
             if (!isValidUsername(username)) {
-                Toast.makeText(this, "Kullanıcı adı 3-30 karakter olmalı, harfle başlamalı ve sadece harf/rakam/_ içerebilir.", Toast.LENGTH_LONG).show();
+                Toast.makeText(this,
+                        "Kullanıcı adı 3-30 karakter olmalı, harfle başlamalı ve sadece harf/rakam/_ içerebilir.",
+                        Toast.LENGTH_LONG).show();
                 shakeView(edtUsername);
                 return;
             }
             if (!isValidPassword(password)) {
-                Toast.makeText(this, "Şifre en az 8 karakter olmalı, büyük harf, küçük harf ve rakam içermelidir.", Toast.LENGTH_LONG).show();
+                Toast.makeText(this, "Şifre en az 8 karakter olmalı, büyük harf, küçük harf ve rakam içermelidir.",
+                        Toast.LENGTH_LONG).show();
                 shakeView(edtPassword);
                 return;
             }
@@ -1776,7 +1823,7 @@ public class MainActivity extends Activity {
 
                 int code = conn.getResponseCode();
                 addLog("[GİRİŞ] Sunucu yanıt kodu: " + code);
-                
+
                 if (code == 200) {
                     BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), "utf-8"));
                     StringBuilder sb = new StringBuilder();
@@ -1809,15 +1856,16 @@ public class MainActivity extends Activity {
                         BufferedReader br = new BufferedReader(new InputStreamReader(errorStream, "utf-8"));
                         StringBuilder esb = new StringBuilder();
                         String eline;
-                        while ((eline = br.readLine()) != null) esb.append(eline);
+                        while ((eline = br.readLine()) != null)
+                            esb.append(eline);
                         errorDetail = esb.toString();
                     }
                     addLog("[GİRİŞ] HATA: " + code + " - " + errorDetail);
-                    
+
                     runOnUiThread(() -> {
                         hapticFeedback(HapticType.ERROR);
                         Toast.makeText(this, "Giriş başarısız. Kullanıcı adı veya şifre yanlış.",
-                            Toast.LENGTH_SHORT).show();
+                                Toast.LENGTH_SHORT).show();
                     });
                 }
 
@@ -1830,61 +1878,69 @@ public class MainActivity extends Activity {
     }
 
     // ================= KAYIT İŞLEMLERİ =================
-    
+
     // İzin verilen e-posta sağlayıcıları
     private static final String[] ALLOWED_EMAIL_DOMAINS = {
-        "gmail.com", "googlemail.com",
-        "hotmail.com", "hotmail.co.uk", "hotmail.fr", "hotmail.de", "hotmail.it",
-        "outlook.com", "outlook.co.uk", "outlook.fr", "outlook.de",
-        "live.com", "live.co.uk", "live.fr", "msn.com",
-        "yahoo.com", "yahoo.co.uk", "yahoo.fr", "yahoo.de", "yahoo.com.tr",
-        "ymail.com", "rocketmail.com",
-        "yandex.com", "yandex.ru", "yandex.com.tr", "yandex.ua",
-        "icloud.com", "me.com", "mac.com",
-        "protonmail.com", "proton.me", "pm.me",
-        "aol.com", "zoho.com", "mail.com",
-        "gmx.com", "gmx.de", "gmx.net",
-        "mynet.com", "superonline.com", "turk.net"
+            "gmail.com", "googlemail.com",
+            "hotmail.com", "hotmail.co.uk", "hotmail.fr", "hotmail.de", "hotmail.it",
+            "outlook.com", "outlook.co.uk", "outlook.fr", "outlook.de",
+            "live.com", "live.co.uk", "live.fr", "msn.com",
+            "yahoo.com", "yahoo.co.uk", "yahoo.fr", "yahoo.de", "yahoo.com.tr",
+            "ymail.com", "rocketmail.com",
+            "yandex.com", "yandex.ru", "yandex.com.tr", "yandex.ua",
+            "icloud.com", "me.com", "mac.com",
+            "protonmail.com", "proton.me", "pm.me",
+            "aol.com", "zoho.com", "mail.com",
+            "gmx.com", "gmx.de", "gmx.net",
+            "mynet.com", "superonline.com", "turk.net"
     };
-    
+
     /**
-     * E-posta adresinin izin verilen sağlayıcılardan biri olup olmadığını kontrol eder.
+     * E-posta adresinin izin verilen sağlayıcılardan biri olup olmadığını kontrol
+     * eder.
      */
     private boolean isAllowedEmailProvider(String email) {
-        if (email == null || !email.contains("@")) return false;
+        if (email == null || !email.contains("@"))
+            return false;
         String domain = email.toLowerCase().split("@")[1];
         for (String allowed : ALLOWED_EMAIL_DOMAINS) {
-            if (domain.equals(allowed)) return true;
+            if (domain.equals(allowed))
+                return true;
         }
         return false;
     }
-    
+
     /**
      * Kullanıcı kaydı isteği gönderir.
      * Artık önce e-posta doğrulama kodu gönderiyor.
      */
     private void registerRequest(String username, String password, String email, String fullName) {
         addLog("[KAYIT] Deneniyor: " + username);
-        
+
         // E-posta zorunlu kontrolü
         if (email.isEmpty()) {
             Toast.makeText(this, "E-posta adresi zorunludur", Toast.LENGTH_SHORT).show();
             return;
         }
-        
+
         // E-posta sağlayıcı kontrolü
         if (!isAllowedEmailProvider(email)) {
-            Toast.makeText(this, "Desteklenmeyen e-posta sağlayıcısı. Lütfen Gmail, Hotmail, Outlook, Yahoo, Yandex, iCloud veya ProtonMail kullanın", Toast.LENGTH_LONG).show();
+            Toast.makeText(this,
+                    "Desteklenmeyen e-posta sağlayıcısı. Lütfen Gmail, Hotmail, Outlook, Yahoo, Yandex, iCloud veya ProtonMail kullanın",
+                    Toast.LENGTH_LONG).show();
             return;
         }
-        
-        
+
         // Geçici bilgileri sakla (Doğrulama sonrası kayıt için)
         // DİKKAT: Resend durumunda boş gelebilir, üzerini yazma!
-        if (username != null && !username.isEmpty()) this.pendingUsername = username;
-        if (password != null && !password.isEmpty()) this.pendingPassword = password;
-        if (email != null && !email.isEmpty()) this.pendingEmail = email;
-        if (fullName != null && !fullName.isEmpty()) this.pendingFullName = fullName;
+        if (username != null && !username.isEmpty())
+            this.pendingUsername = username;
+        if (password != null && !password.isEmpty())
+            this.pendingPassword = password;
+        if (email != null && !email.isEmpty())
+            this.pendingEmail = email;
+        if (fullName != null && !fullName.isEmpty())
+            this.pendingFullName = fullName;
 
         new Thread(() -> {
             try {
@@ -1910,12 +1966,14 @@ public class MainActivity extends Activity {
                 if (code == 200) {
                     runOnUiThread(() -> {
                         hapticFeedback(HapticType.SUCCESS);
-                        Toast.makeText(this, "Doğrulama maili gönderildi! Lütfen kodunuzu girin.", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, "Doğrulama maili gönderildi! Lütfen kodunuzu girin.", Toast.LENGTH_SHORT)
+                                .show();
                         // UI Değiştir (Animasyonlu)
                         animateVerificationEntry();
-                        
+
                         TextView txtInfo = findViewById(R.id.txtVerifyInfo);
-                        if(txtInfo != null) txtInfo.setText(email + "\nadresine gönderilen kodu girin.");
+                        if (txtInfo != null)
+                            txtInfo.setText(email + "\nadresine gönderilen kodu girin.");
                     });
 
                 } else {
@@ -1926,8 +1984,9 @@ public class MainActivity extends Activity {
                         BufferedReader br = new BufferedReader(new InputStreamReader(errorStream, "utf-8"));
                         StringBuilder esb = new StringBuilder();
                         String eline;
-                        while ((eline = br.readLine()) != null) esb.append(eline);
-                        
+                        while ((eline = br.readLine()) != null)
+                            esb.append(eline);
+
                         String rawError = esb.toString();
                         if (!rawError.isEmpty()) {
                             try {
@@ -1955,7 +2014,7 @@ public class MainActivity extends Activity {
                         }
                     }
                     addLog("[DOĞRULAMA] HATA: " + code + " - " + errorDetail);
-                    
+
                     final String finalError = errorDetail;
                     runOnUiThread(() -> {
                         hapticFeedback(HapticType.ERROR);
@@ -1999,7 +2058,7 @@ public class MainActivity extends Activity {
                 }
 
                 int code = conn.getResponseCode();
-                
+
                 if (code == 200) {
                     runOnUiThread(() -> {
                         Toast.makeText(this, "Yeni kod gönderildi!", Toast.LENGTH_SHORT).show();
@@ -2012,16 +2071,17 @@ public class MainActivity extends Activity {
                         BufferedReader br = new BufferedReader(new InputStreamReader(errorStream, "utf-8"));
                         StringBuilder sb = new StringBuilder();
                         String line;
-                        while ((line = br.readLine()) != null) sb.append(line);
-                        
+                        while ((line = br.readLine()) != null)
+                            sb.append(line);
+
                         try {
                             JSONObject errJson = new JSONObject(sb.toString());
                             errorMsg = errJson.optString("detail", errorMsg);
-                        } catch(Exception ignored) {
+                        } catch (Exception ignored) {
                             errorMsg = sb.toString();
                         }
                     }
-                    
+
                     final String finalError = errorMsg;
                     runOnUiThread(() -> Toast.makeText(this, "Hata: " + finalError, Toast.LENGTH_LONG).show());
                 }
@@ -2040,13 +2100,14 @@ public class MainActivity extends Activity {
      */
     private void verifyCodeAndRegister(String code) {
         if (pendingEmail == null || pendingUsername == null || pendingPassword == null) {
-            Toast.makeText(this, "Oturum bilgileri eksik veya zaman aşımı. Lütfen tekrar kayıt olun.", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "Oturum bilgileri eksik veya zaman aşımı. Lütfen tekrar kayıt olun.",
+                    Toast.LENGTH_LONG).show();
             animateVerificationExit();
             return;
         }
 
         addLog("[DOĞRULAMA] Kod doğrulanıyor: " + code);
-        
+
         // UI Geri Bildirimi
         runOnUiThread(() -> {
             btnVerifyCode.setEnabled(false);
@@ -2072,39 +2133,40 @@ public class MainActivity extends Activity {
                 }
 
                 int codeVerify = connVerify.getResponseCode();
-                
+
                 if (codeVerify != 200) {
-                     // Hata okuma
-                     InputStream errorStream = connVerify.getErrorStream();
-                     String errorMsg = "Kod doğrulanamadı";
-                     if (errorStream != null) {
+                    // Hata okuma
+                    InputStream errorStream = connVerify.getErrorStream();
+                    String errorMsg = "Kod doğrulanamadı";
+                    if (errorStream != null) {
                         BufferedReader br = new BufferedReader(new InputStreamReader(errorStream, "utf-8"));
                         StringBuilder sb = new StringBuilder();
                         String line;
-                        while ((line = br.readLine()) != null) sb.append(line);
-                        
+                        while ((line = br.readLine()) != null)
+                            sb.append(line);
+
                         // JSON içinden detail çek
                         try {
                             JSONObject errJson = new JSONObject(sb.toString());
                             errorMsg = errJson.optString("detail", errorMsg);
-                        } catch(Exception ignored) {
+                        } catch (Exception ignored) {
                             errorMsg = sb.toString();
                         }
-                     }
-                     
-                     final String finalError = errorMsg;
-                     runOnUiThread(() -> {
-                         Toast.makeText(this, finalError, Toast.LENGTH_LONG).show();
-                         shakeView(edtVerifyCode);
-                         btnVerifyCode.setEnabled(true);
-                         btnVerifyCode.setText("DOĞRULA");
-                     });
-                     return;
+                    }
+
+                    final String finalError = errorMsg;
+                    runOnUiThread(() -> {
+                        Toast.makeText(this, finalError, Toast.LENGTH_LONG).show();
+                        shakeView(edtVerifyCode);
+                        btnVerifyCode.setEnabled(true);
+                        btnVerifyCode.setText("DOĞRULA");
+                    });
+                    return;
                 }
 
                 // 2. KAYIT İSTEĞİ (Doğrulama başarılı)
                 addLog("[KAYIT] Doğrulama başarılı. Hesap oluşturuluyor...");
-                
+
                 URL urlReg = new URL(API_BASE_URL + "/register");
                 HttpURLConnection connReg = (HttpURLConnection) urlReg.openConnection();
                 connReg.setRequestMethod("POST");
@@ -2120,83 +2182,86 @@ public class MainActivity extends Activity {
                 try (OutputStream os = connReg.getOutputStream()) {
                     os.write(payloadReg.toString().getBytes("utf-8"));
                 }
-                
+
                 int codeReg = connReg.getResponseCode();
                 if (codeReg == 200) {
-                     addLog("[KAYIT] Hesap başarıyla oluşturuldu.");
-                     
-                     runOnUiThread(() -> {
-                         addLog("[KAYIT] Giriş yapılıyor...");
-                     });
-                     
-                     // 3. DOĞRUDAN GİRİŞ YAP
-                     // Login request metodunu çağırmak yerine manuel token isteği yapıyoruz
-                     // Çünkü loginRequest UI thread çağrıları içeriyor, çakışma olmasın
-                     
-                     URL urlLogin = new URL(API_BASE_URL + "/login");
-                     HttpURLConnection connLogin = (HttpURLConnection) urlLogin.openConnection();
-                     connLogin.setRequestMethod("POST");
-                     connLogin.setRequestProperty("Content-Type", "application/json");
-                     connLogin.setDoOutput(true);
-                     
-                     JSONObject payloadLogin = new JSONObject();
-                     payloadLogin.put("username", pendingUsername);
-                     payloadLogin.put("password", pendingPassword);
-                     
-                     try (OutputStream os = connLogin.getOutputStream()) {
+                    addLog("[KAYIT] Hesap başarıyla oluşturuldu.");
+
+                    runOnUiThread(() -> {
+                        addLog("[KAYIT] Giriş yapılıyor...");
+                    });
+
+                    // 3. DOĞRUDAN GİRİŞ YAP
+                    // Login request metodunu çağırmak yerine manuel token isteği yapıyoruz
+                    // Çünkü loginRequest UI thread çağrıları içeriyor, çakışma olmasın
+
+                    URL urlLogin = new URL(API_BASE_URL + "/login");
+                    HttpURLConnection connLogin = (HttpURLConnection) urlLogin.openConnection();
+                    connLogin.setRequestMethod("POST");
+                    connLogin.setRequestProperty("Content-Type", "application/json");
+                    connLogin.setDoOutput(true);
+
+                    JSONObject payloadLogin = new JSONObject();
+                    payloadLogin.put("username", pendingUsername);
+                    payloadLogin.put("password", pendingPassword);
+
+                    try (OutputStream os = connLogin.getOutputStream()) {
                         os.write(payloadLogin.toString().getBytes("utf-8"));
-                     }
-                     
-                     if (connLogin.getResponseCode() == 200) {
-                         BufferedReader br = new BufferedReader(new InputStreamReader(connLogin.getInputStream(), "utf-8"));
-                         StringBuilder sb = new StringBuilder();
-                         String line;
-                         while ((line = br.readLine()) != null) sb.append(line);
-                         
-                         JSONObject resp = new JSONObject(sb.toString());
-                         String token = resp.getString("access_token");
-                         
-                         authToken = token;
-                         authUsername = pendingUsername;
-                         
-                         authPrefs.edit()
-                             .putString("access_token", authToken)
-                             .putString("username", authUsername)
-                             .apply();
-                             
-                         runOnUiThread(() -> {
-                             animateVerificationExit();
-                             animateSuccessConfetti(); // Konfeti patlat!
-                             Toast.makeText(this, "Hoş geldin " + authUsername + "!", Toast.LENGTH_LONG).show();
-                             updateAccountUI();
-                             hideAccount();
-                         });
-                     } else {
-                         // Login başarısız ama kayıt başarılı?
-                         runOnUiThread(() -> {
-                             animateVerificationExit();
-                             Toast.makeText(this, "Kayıt başarılı! Lütfen giriş yapın.", Toast.LENGTH_LONG).show();
-                             toggleAccountMode(); // Giriş ekranına dön
-                         });
-                     }
-                     
+                    }
+
+                    if (connLogin.getResponseCode() == 200) {
+                        BufferedReader br = new BufferedReader(
+                                new InputStreamReader(connLogin.getInputStream(), "utf-8"));
+                        StringBuilder sb = new StringBuilder();
+                        String line;
+                        while ((line = br.readLine()) != null)
+                            sb.append(line);
+
+                        JSONObject resp = new JSONObject(sb.toString());
+                        String token = resp.getString("access_token");
+
+                        authToken = token;
+                        authUsername = pendingUsername;
+
+                        authPrefs.edit()
+                                .putString("access_token", authToken)
+                                .putString("username", authUsername)
+                                .apply();
+
+                        runOnUiThread(() -> {
+                            animateVerificationExit();
+                            animateSuccessConfetti(); // Konfeti patlat!
+                            Toast.makeText(this, "Hoş geldin " + authUsername + "!", Toast.LENGTH_LONG).show();
+                            updateAccountUI();
+                            hideAccount();
+                        });
+                    } else {
+                        // Login başarısız ama kayıt başarılı?
+                        runOnUiThread(() -> {
+                            animateVerificationExit();
+                            Toast.makeText(this, "Kayıt başarılı! Lütfen giriş yapın.", Toast.LENGTH_LONG).show();
+                            toggleAccountMode(); // Giriş ekranına dön
+                        });
+                    }
+
                 } else {
-                     // Register hatası
-                     InputStream errorStream = connReg.getErrorStream();
-                     String errorMsg = "Kayıt tamamlanamadı";
-                     if (errorStream != null) {
-                         BufferedReader br = new BufferedReader(new InputStreamReader(errorStream, "utf-8"));
-                         StringBuilder sb = new StringBuilder();
-                         String line;
-                         while ((line = br.readLine()) != null) sb.append(line);
-                         errorMsg = sb.toString();
-                     }
-                     final String finalError = errorMsg;
-                     runOnUiThread(() -> {
-                         Toast.makeText(this, "Hata: " + finalError, Toast.LENGTH_LONG).show();
-                         btnVerifyCode.setEnabled(true);
-                         btnVerifyCode.setText("DOĞRULA");
-                     });
+                    // Register hatası
+                    InputStream errorStream = connReg.getErrorStream();
+                    String errorMsg = "Kayıt tamamlanamadı";
+                    if (errorStream != null) {
+                        BufferedReader br = new BufferedReader(new InputStreamReader(errorStream, "utf-8"));
+                        StringBuilder sb = new StringBuilder();
+                        String line;
+                        while ((line = br.readLine()) != null)
+                            sb.append(line);
+                        errorMsg = sb.toString();
+                    }
+                    final String finalError = errorMsg;
+                    runOnUiThread(() -> {
+                        Toast.makeText(this, "Hata: " + finalError, Toast.LENGTH_LONG).show();
+                        btnVerifyCode.setEnabled(true);
+                        btnVerifyCode.setText("DOĞRULA");
+                    });
                 }
 
             } catch (Exception e) {
@@ -2220,26 +2285,26 @@ public class MainActivity extends Activity {
     private void animateAccountEntry() {
         // Önceki animasyonu iptal et
         cancelAnimation(ANIM_ACCOUNT_ENTRY);
-        
+
         layoutAccount.setAlpha(0f);
         layoutAccount.setScaleX(0.9f);
         layoutAccount.setScaleY(0.9f);
-        
+
         // Donanım katmanını kullan (GPU hızlandırma)
         layoutAccount.setLayerType(View.LAYER_TYPE_HARDWARE, null);
-        
+
         layoutAccount.animate()
-            .alpha(1f)
-            .scaleX(1f)
-            .scaleY(1f)
-            .setDuration(400)
-            .setInterpolator(new android.view.animation.OvershootInterpolator(1.2f))
-            .withEndAction(() -> {
-                // Animasyon bitince katmanı kaldır
-                layoutAccount.setLayerType(View.LAYER_TYPE_NONE, null);
-            })
-            .start();
-        
+                .alpha(1f)
+                .scaleX(1f)
+                .scaleY(1f)
+                .setDuration(400)
+                .setInterpolator(new android.view.animation.OvershootInterpolator(1.2f))
+                .withEndAction(() -> {
+                    // Animasyon bitince katmanı kaldır
+                    layoutAccount.setLayerType(View.LAYER_TYPE_NONE, null);
+                })
+                .start();
+
         // Form alanlarını sırayla animasyonla göster
         animateFormFieldsEntry();
     }
@@ -2250,15 +2315,15 @@ public class MainActivity extends Activity {
      */
     private void animateFormFieldsEntry() {
         View[] fields = {
-            txtAccountTitle,
-            edtUsername,
-            edtPassword,
-            edtEmail,
-            edtFullName,
-            btnSubmitAccount,
-            btnSwitchMode
+                txtAccountTitle,
+                edtUsername,
+                edtPassword,
+                edtEmail,
+                edtFullName,
+                btnSubmitAccount,
+                btnSwitchMode
         };
-        
+
         // Tüm alanları hazırla (tek döngü)
         for (View field : fields) {
             if (field != null) {
@@ -2267,31 +2332,31 @@ public class MainActivity extends Activity {
                 field.setLayerType(View.LAYER_TYPE_HARDWARE, null);
             }
         }
-        
+
         // Toplu animasyon başlat
         for (int i = 0; i < fields.length; i++) {
             if (fields[i] != null) {
                 final View field = fields[i];
                 final int delay = i * 60;
                 final boolean isLast = (i == fields.length - 1);
-                
+
                 field.animate()
-                    .alpha(1f)
-                    .translationY(0)
-                    .setStartDelay(delay + 200)
-                    .setDuration(350)
-                    .setInterpolator(new android.view.animation.DecelerateInterpolator())
-                    .withEndAction(() -> {
-                        if (isLast) {
-                            // Son animasyon bitince tüm katmanları temizle
-                            for (View f : fields) {
-                                if (f != null) {
-                                    f.setLayerType(View.LAYER_TYPE_NONE, null);
+                        .alpha(1f)
+                        .translationY(0)
+                        .setStartDelay(delay + 200)
+                        .setDuration(350)
+                        .setInterpolator(new android.view.animation.DecelerateInterpolator())
+                        .withEndAction(() -> {
+                            if (isLast) {
+                                // Son animasyon bitince tüm katmanları temizle
+                                for (View f : fields) {
+                                    if (f != null) {
+                                        f.setLayerType(View.LAYER_TYPE_NONE, null);
+                                    }
                                 }
                             }
-                        }
-                    })
-                    .start();
+                        })
+                        .start();
             }
         }
     }
@@ -2301,13 +2366,13 @@ public class MainActivity extends Activity {
      */
     private void animateAccountExit() {
         layoutAccount.animate()
-            .alpha(0f)
-            .scaleX(0.95f)
-            .scaleY(0.95f)
-            .setDuration(250)
-            .setInterpolator(new android.view.animation.AccelerateInterpolator())
-            .withEndAction(() -> layoutAccount.setVisibility(View.GONE))
-            .start();
+                .alpha(0f)
+                .scaleX(0.95f)
+                .scaleY(0.95f)
+                .setDuration(250)
+                .setInterpolator(new android.view.animation.AccelerateInterpolator())
+                .withEndAction(() -> layoutAccount.setVisibility(View.GONE))
+                .start();
     }
 
     /**
@@ -2316,54 +2381,54 @@ public class MainActivity extends Activity {
     private void animateAccountModeSwitch() {
         // Mevcut alanları sola kaydırarak gizle
         View[] currentFields = {
-            layoutAccountFields,
-            layoutRegisterExtras,
-            btnSubmitAccount,
-            btnSwitchMode
+                layoutAccountFields,
+                layoutRegisterExtras,
+                btnSubmitAccount,
+                btnSwitchMode
         };
-        
+
         for (View field : currentFields) {
             if (field != null && field.getVisibility() == View.VISIBLE) {
                 field.animate()
-                    .alpha(0f)
-                    .translationX(-50f)
-                    .setDuration(200)
-                    .setInterpolator(new android.view.animation.AccelerateInterpolator())
-                    .start();
+                        .alpha(0f)
+                        .translationX(-50f)
+                        .setDuration(200)
+                        .setInterpolator(new android.view.animation.AccelerateInterpolator())
+                        .start();
             }
         }
-        
+
         // Başlığı döndürerek değiştir
         txtAccountTitle.animate()
-            .rotationY(90f)
-            .setDuration(150)
-            .withEndAction(() -> {
-                updateAccountUI();
-                
-                // Başlığı geri döndür
-                txtAccountTitle.setRotationY(-90f);
-                txtAccountTitle.animate()
-                    .rotationY(0f)
-                    .setDuration(150)
-                    .start();
-                
-                // Yeni alanları sağdan getir
-                new android.os.Handler().postDelayed(() -> {
-                    for (View field : currentFields) {
-                        if (field != null && field.getVisibility() == View.VISIBLE) {
-                            field.setAlpha(0f);
-                            field.setTranslationX(50f);
-                            field.animate()
-                                .alpha(1f)
-                                .translationX(0f)
-                                .setDuration(300)
-                                .setInterpolator(new android.view.animation.DecelerateInterpolator())
-                                .start();
+                .rotationY(90f)
+                .setDuration(150)
+                .withEndAction(() -> {
+                    updateAccountUI();
+
+                    // Başlığı geri döndür
+                    txtAccountTitle.setRotationY(-90f);
+                    txtAccountTitle.animate()
+                            .rotationY(0f)
+                            .setDuration(150)
+                            .start();
+
+                    // Yeni alanları sağdan getir
+                    new android.os.Handler().postDelayed(() -> {
+                        for (View field : currentFields) {
+                            if (field != null && field.getVisibility() == View.VISIBLE) {
+                                field.setAlpha(0f);
+                                field.setTranslationX(50f);
+                                field.animate()
+                                        .alpha(1f)
+                                        .translationX(0f)
+                                        .setDuration(300)
+                                        .setInterpolator(new android.view.animation.DecelerateInterpolator())
+                                        .start();
+                            }
                         }
-                    }
-                }, 100);
-            })
-            .start();
+                    }, 100);
+                })
+                .start();
     }
 
     /**
@@ -2371,63 +2436,65 @@ public class MainActivity extends Activity {
      */
     private void animateButtonClick(View button) {
         button.animate()
-            .scaleX(0.92f)
-            .scaleY(0.92f)
-            .setDuration(100)
-            .withEndAction(() -> {
-                button.animate()
-                    .scaleX(1f)
-                    .scaleY(1f)
-                    .setDuration(100)
-                    .start();
-            })
-            .start();
+                .scaleX(0.92f)
+                .scaleY(0.92f)
+                .setDuration(100)
+                .withEndAction(() -> {
+                    button.animate()
+                            .scaleX(1f)
+                            .scaleY(1f)
+                            .setDuration(100)
+                            .start();
+                })
+                .start();
     }
-    
+
     /**
      * Kod tekrar gönderme butonu için özel animasyon.
      */
     private void animateResendCode(View button) {
-        if (button == null) return;
-        
+        if (button == null)
+            return;
+
         // Dönme animasyonu (yenileme simgesi gibi)
         button.animate()
-            .rotation(360f)
-            .setDuration(500)
-            .setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator())
-            .withEndAction(() -> button.setRotation(0f))
-            .start();
-        
+                .rotation(360f)
+                .setDuration(500)
+                .setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator())
+                .withEndAction(() -> button.setRotation(0f))
+                .start();
+
         // Renk geçişi (mavi → yeşil → mavi)
         if (button instanceof TextView) {
             TextView textView = (TextView) button;
             int originalColor = textView.getCurrentTextColor();
             int highlightColor = Color.parseColor("#4CAF50");
-            
+
             android.animation.ValueAnimator colorAnim = android.animation.ValueAnimator.ofArgb(
-                originalColor, highlightColor, originalColor);
+                    originalColor, highlightColor, originalColor);
             colorAnim.setDuration(500);
             colorAnim.addUpdateListener(animator -> {
                 try {
                     textView.setTextColor((int) animator.getAnimatedValue());
-                } catch (Exception ignored) {}
+                } catch (Exception ignored) {
+                }
             });
             colorAnim.start();
         }
-        
+
         // Nabız efekti
         button.animate()
-            .scaleX(1.15f)
-            .scaleY(1.15f)
-            .setDuration(200)
-            .withEndAction(() -> {
-                button.animate()
-                    .scaleX(1f)
-                    .scaleY(1f)
-                    .setDuration(200)
-                    .start();
-            })
-            .start();
+                .scaleX(1.15f)
+                .scaleY(1.15f)
+                .setDuration(200)
+                .withEndAction(() -> {
+                    button.animate()
+                            .scaleX(1f)
+                            .scaleY(1f)
+                            .setDuration(200)
+                            .start();
+                })
+                .start();
     }
 
     /**
@@ -2436,8 +2503,9 @@ public class MainActivity extends Activity {
     private void animateSuccess(View view) {
         int originalColor = Color.parseColor("#00E5FF");
         int successColor = Color.parseColor("#4CAF50");
-        
-        android.animation.ValueAnimator colorAnim = android.animation.ValueAnimator.ofArgb(originalColor, successColor, originalColor);
+
+        android.animation.ValueAnimator colorAnim = android.animation.ValueAnimator.ofArgb(originalColor, successColor,
+                originalColor);
         colorAnim.setDuration(600);
         colorAnim.addUpdateListener(animator -> {
             if (view instanceof TextView) {
@@ -2445,145 +2513,151 @@ public class MainActivity extends Activity {
             }
         });
         colorAnim.start();
-        
+
         // Hafif büyüme efekti
         view.animate()
-            .scaleX(1.05f)
-            .scaleY(1.05f)
-            .setDuration(200)
-            .withEndAction(() -> {
-                view.animate()
-                    .scaleX(1f)
-                    .scaleY(1f)
-                    .setDuration(200)
-                    .start();
-            })
-            .start();
+                .scaleX(1.05f)
+                .scaleY(1.05f)
+                .setDuration(200)
+                .withEndAction(() -> {
+                    view.animate()
+                            .scaleX(1f)
+                            .scaleY(1f)
+                            .setDuration(200)
+                            .start();
+                })
+                .start();
     }
-    
+
     /**
      * Başarı konfeti animasyonu (Simüle edilmiş parçacık efekti).
      * Optimize edildi - Daha az parçacık, daha iyi performans.
      */
     private void animateSuccessConfetti() {
-        if (layoutVerification == null || layoutVerification.getVisibility() != View.VISIBLE) return;
-        
+        if (layoutVerification == null || layoutVerification.getVisibility() != View.VISIBLE)
+            return;
+
         // Layout'un ViewGroup olduğundan emin ol
-        if (!(layoutVerification instanceof android.view.ViewGroup)) return;
-        
+        if (!(layoutVerification instanceof android.view.ViewGroup))
+            return;
+
         final android.view.ViewGroup container = (android.view.ViewGroup) layoutVerification;
-        
+
         // Ekran boyutlarını al
         int screenWidth = getResources().getDisplayMetrics().widthPixels;
         int screenHeight = getResources().getDisplayMetrics().heightPixels;
-        
+
         // Parçacık sayısını azalt (20 → 12) - Performans için
         final int particleCount = 12;
-        
+
         // Renk paleti (önceden tanımla)
         final int[] colors = {
-            Color.parseColor("#4CAF50"),
-            Color.parseColor("#8BC34A"),
-            Color.parseColor("#00E5FF"),
-            Color.parseColor("#FFD700")
+                Color.parseColor("#4CAF50"),
+                Color.parseColor("#8BC34A"),
+                Color.parseColor("#00E5FF"),
+                Color.parseColor("#FFD700")
         };
-        
+
         // Toplu işlem için liste
         final View[] particles = new View[particleCount];
-        
+
         for (int i = 0; i < particleCount; i++) {
             View confetti = new View(this);
             int size = (int) (Math.random() * 15 + 8); // 8-23px (daha küçük)
             confetti.setLayoutParams(new android.widget.FrameLayout.LayoutParams(size, size));
             confetti.setBackgroundColor(colors[(int) (Math.random() * colors.length)]);
-            
+
             float startX = (float) (Math.random() * screenWidth);
             confetti.setX(startX);
             confetti.setY(-50);
             confetti.setAlpha(0f);
-            
+
             // Donanım katmanını kullan
             confetti.setLayerType(View.LAYER_TYPE_HARDWARE, null);
-            
+
             particles[i] = confetti;
-            
+
             try {
                 container.addView(confetti);
-                
+
                 float endY = screenHeight + 100;
                 float endX = startX + (float) ((Math.random() - 0.5) * 250);
                 long duration = (long) (Math.random() * 800 + 1200); // 1.2-2s (daha hızlı)
                 long delay = (long) (Math.random() * 250);
-                
+
                 final int index = i;
                 confetti.animate()
-                    .alpha(1f)
-                    .y(endY)
-                    .x(endX)
-                    .rotation((float) (Math.random() * 720 - 360))
-                    .setDuration(duration)
-                    .setStartDelay(delay)
-                    .setInterpolator(new android.view.animation.AccelerateInterpolator())
-                    .withEndAction(() -> {
-                        try {
-                            particles[index].setLayerType(View.LAYER_TYPE_NONE, null);
-                            container.removeView(particles[index]);
-                        } catch (Exception ignored) {}
-                    })
-                    .start();
-            } catch (Exception ignored) {}
+                        .alpha(1f)
+                        .y(endY)
+                        .x(endX)
+                        .rotation((float) (Math.random() * 720 - 360))
+                        .setDuration(duration)
+                        .setStartDelay(delay)
+                        .setInterpolator(new android.view.animation.AccelerateInterpolator())
+                        .withEndAction(() -> {
+                            try {
+                                particles[index].setLayerType(View.LAYER_TYPE_NONE, null);
+                                container.removeView(particles[index]);
+                            } catch (Exception ignored) {
+                            }
+                        })
+                        .start();
+            } catch (Exception ignored) {
+            }
         }
-        
+
         // Arka plan flash efekti (optimize edilmiş)
         View bgFlash = new View(this);
         bgFlash.setLayoutParams(new android.widget.FrameLayout.LayoutParams(
-            android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
-            android.widget.FrameLayout.LayoutParams.MATCH_PARENT));
+                android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
+                android.widget.FrameLayout.LayoutParams.MATCH_PARENT));
         bgFlash.setBackgroundColor(Color.parseColor("#1A4CAF50"));
         bgFlash.setAlpha(0f);
-        
+
         try {
             container.addView(bgFlash, 0);
-            
+
             bgFlash.animate()
-                .alpha(1f)
-                .setDuration(150) // Daha hızlı
-                .withEndAction(() -> {
-                    bgFlash.animate()
-                        .alpha(0f)
-                        .setDuration(300)
-                        .withEndAction(() -> {
-                            try {
-                                container.removeView(bgFlash);
-                            } catch (Exception ignored) {}
-                        })
-                        .start();
-                })
-                .start();
-        } catch (Exception ignored) {}
+                    .alpha(1f)
+                    .setDuration(150) // Daha hızlı
+                    .withEndAction(() -> {
+                        bgFlash.animate()
+                                .alpha(0f)
+                                .setDuration(300)
+                                .withEndAction(() -> {
+                                    try {
+                                        container.removeView(bgFlash);
+                                    } catch (Exception ignored) {
+                                    }
+                                })
+                                .start();
+                    })
+                    .start();
+        } catch (Exception ignored) {
+        }
     }
 
     /**
      * Input alanı odaklanma animasyonu.
      */
     private void setupInputAnimations() {
-        EditText[] inputs = {edtUsername, edtPassword, edtEmail, edtFullName, edtCurrentPassword};
-        
+        EditText[] inputs = { edtUsername, edtPassword, edtEmail, edtFullName, edtCurrentPassword };
+
         for (EditText input : inputs) {
             if (input != null) {
                 input.setOnFocusChangeListener((v, hasFocus) -> {
                     if (hasFocus) {
                         v.animate()
-                            .scaleX(1.02f)
-                            .scaleY(1.02f)
-                            .setDuration(200)
-                            .start();
+                                .scaleX(1.02f)
+                                .scaleY(1.02f)
+                                .setDuration(200)
+                                .start();
                     } else {
                         v.animate()
-                            .scaleX(1f)
-                            .scaleY(1f)
-                            .setDuration(200)
-                            .start();
+                                .scaleX(1f)
+                                .scaleY(1f)
+                                .setDuration(200)
+                                .start();
                     }
                 });
             }
@@ -2597,7 +2671,7 @@ public class MainActivity extends Activity {
     private void animateVerificationEntry() {
         layoutVerification.setVisibility(View.VISIBLE);
         layoutVerification.setAlpha(0f);
-        
+
         // Ekran genişliğini alarak tam sağdan gelmesini sağla
         float screenWidth = getResources().getDisplayMetrics().widthPixels;
         layoutVerification.setTranslationX(screenWidth);
@@ -2606,82 +2680,82 @@ public class MainActivity extends Activity {
         layoutAccountFields.setPivotX(0);
         layoutAccountFields.setPivotY(layoutAccountFields.getHeight() / 2f);
         layoutAccountFields.animate()
-            .alpha(0f)
-            .translationX(-150f)
-            .rotationY(-15f)
-            .scaleX(0.9f)
-            .scaleY(0.9f)
-            .setDuration(350)
-            .setInterpolator(new android.view.animation.AccelerateInterpolator())
-            .withEndAction(() -> {
-                layoutAccountFields.setVisibility(View.GONE);
-                layoutAccountFields.setRotationY(0f);
-                layoutAccountFields.setScaleX(1f);
-                layoutAccountFields.setScaleY(1f);
-            })
-            .start();
+                .alpha(0f)
+                .translationX(-150f)
+                .rotationY(-15f)
+                .scaleX(0.9f)
+                .scaleY(0.9f)
+                .setDuration(350)
+                .setInterpolator(new android.view.animation.AccelerateInterpolator())
+                .withEndAction(() -> {
+                    layoutAccountFields.setVisibility(View.GONE);
+                    layoutAccountFields.setRotationY(0f);
+                    layoutAccountFields.setScaleX(1f);
+                    layoutAccountFields.setScaleY(1f);
+                })
+                .start();
 
         // 2. KATMAN: Doğrulama ekranını elastik sıçrama ile getir
         layoutVerification.animate()
-            .alpha(1f)
-            .translationX(0f)
-            .setDuration(550)
-            .setInterpolator(new android.view.animation.OvershootInterpolator(1.3f))
-            .withEndAction(() -> {
-                // Giriş tamamlandıktan sonra içerik animasyonlarını başlat
-                animateVerificationContent();
-            })
-            .start();
-            
+                .alpha(1f)
+                .translationX(0f)
+                .setDuration(550)
+                .setInterpolator(new android.view.animation.OvershootInterpolator(1.3f))
+                .withEndAction(() -> {
+                    // Giriş tamamlandıktan sonra içerik animasyonlarını başlat
+                    animateVerificationContent();
+                })
+                .start();
+
         // 3. KATMAN: Arka plan nabız efekti
         animateVerificationBackground();
     }
-    
+
     /**
      * Doğrulama ekranı içeriğinin sıralı animasyonu.
      */
     private void animateVerificationContent() {
         // İçerikteki tüm öğeleri bul
         View txtVerifyInfo = findViewById(R.id.txtVerifyInfo);
-        
+
         View[] contentViews = {
-            txtVerifyInfo,
-            edtVerifyCode,
-            btnVerifyCode,
-            btnResendCode,
-            btnCancelVerification
+                txtVerifyInfo,
+                edtVerifyCode,
+                btnVerifyCode,
+                btnResendCode,
+                btnCancelVerification
         };
-        
+
         // Her öğeyi sırayla animasyonla göster (Kademeli etki)
         for (int i = 0; i < contentViews.length; i++) {
             if (contentViews[i] != null) {
                 final View view = contentViews[i];
                 final int delay = i * 80;
-                
+
                 view.setAlpha(0f);
                 view.setTranslationY(40);
                 view.setScaleX(0.9f);
                 view.setScaleY(0.9f);
-                
+
                 view.animate()
-                    .alpha(1f)
-                    .translationY(0)
-                    .scaleX(1f)
-                    .scaleY(1f)
-                    .setStartDelay(delay)
-                    .setDuration(400)
-                    .setInterpolator(new android.view.animation.DecelerateInterpolator())
-                    .start();
+                        .alpha(1f)
+                        .translationY(0)
+                        .scaleX(1f)
+                        .scaleY(1f)
+                        .setStartDelay(delay)
+                        .setDuration(400)
+                        .setInterpolator(new android.view.animation.DecelerateInterpolator())
+                        .start();
             }
         }
-        
+
         // Giriş alanına özel nabız animasyonu
         if (edtVerifyCode != null) {
             new android.os.Handler(Looper.getMainLooper()).postDelayed(() -> {
                 if (edtVerifyCode != null && layoutVerification.getVisibility() == View.VISIBLE) {
                     edtVerifyCode.requestFocus();
                     animateInputPulse(edtVerifyCode);
-                    
+
                     // Klavyeyi aç
                     InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
                     if (imm != null) {
@@ -2691,43 +2765,47 @@ public class MainActivity extends Activity {
             }, 400);
         }
     }
-    
+
     /**
      * Giriş alanı için nabız animasyonu.
      */
     private void animateInputPulse(View input) {
-        if (input == null) return;
-        
-        android.animation.ObjectAnimator scaleX = android.animation.ObjectAnimator.ofFloat(input, "scaleX", 1f, 1.05f, 1f);
-        android.animation.ObjectAnimator scaleY = android.animation.ObjectAnimator.ofFloat(input, "scaleY", 1f, 1.05f, 1f);
-        
+        if (input == null)
+            return;
+
+        android.animation.ObjectAnimator scaleX = android.animation.ObjectAnimator.ofFloat(input, "scaleX", 1f, 1.05f,
+                1f);
+        android.animation.ObjectAnimator scaleY = android.animation.ObjectAnimator.ofFloat(input, "scaleY", 1f, 1.05f,
+                1f);
+
         scaleX.setDuration(800);
         scaleY.setDuration(800);
         scaleX.setRepeatCount(2);
         scaleY.setRepeatCount(2);
-        
+
         scaleX.start();
         scaleY.start();
-        
+
         vibrateFeedback();
     }
-    
+
     /**
      * Doğrulama ekranı arka plan animasyonu (Hafif parlama efekti).
      * Optimize edildi - Tek animatör, düşük işlemci kullanımı.
      */
     private void animateVerificationBackground() {
-        if (layoutVerification == null) return;
-        
+        if (layoutVerification == null)
+            return;
+
         // Önceki animasyonu iptal et
         cancelAnimation(ANIM_VERIFICATION_BG);
-        
+
         android.animation.ObjectAnimator alphaAnim = android.animation.ObjectAnimator.ofFloat(
-            layoutVerification, "alpha", 0.95f, 1f, 0.95f);
+                layoutVerification, "alpha", 0.95f, 1f, 0.95f);
         alphaAnim.setDuration(2000);
         alphaAnim.setRepeatCount(android.animation.ObjectAnimator.INFINITE);
         alphaAnim.setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator());
-        
+
         // Animasyonu kaydet
         activeAnimations.put(ANIM_VERIFICATION_BG, alphaAnim);
         alphaAnim.start();
@@ -2739,62 +2817,62 @@ public class MainActivity extends Activity {
      * Optimize edildi - Donanım hızlandırma.
      */
     private void animateVerificationExit() {
-         // Arka plan animasyonunu durdur
-         cancelAnimation(ANIM_VERIFICATION_BG);
-         if (layoutVerification != null) {
-             layoutVerification.setAlpha(1f);
-         }
-         
-         layoutAccountFields.setVisibility(View.VISIBLE);
-         layoutAccountFields.setAlpha(0f);
-         layoutAccountFields.setTranslationX(-150f);
-         layoutAccountFields.setRotationY(-15f);
-         layoutAccountFields.setScaleX(0.9f);
-         layoutAccountFields.setScaleY(0.9f);
+        // Arka plan animasyonunu durdur
+        cancelAnimation(ANIM_VERIFICATION_BG);
+        if (layoutVerification != null) {
+            layoutVerification.setAlpha(1f);
+        }
 
-         // Donanım katmanını aktif et
-         layoutVerification.setLayerType(View.LAYER_TYPE_HARDWARE, null);
-         layoutAccountFields.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+        layoutAccountFields.setVisibility(View.VISIBLE);
+        layoutAccountFields.setAlpha(0f);
+        layoutAccountFields.setTranslationX(-150f);
+        layoutAccountFields.setRotationY(-15f);
+        layoutAccountFields.setScaleX(0.9f);
+        layoutAccountFields.setScaleY(0.9f);
 
-         // 1. KATMAN: Doğrulama ekranını 3D dönme ile gizle
-         layoutVerification.setPivotX(layoutVerification.getWidth());
-         layoutVerification.setPivotY(layoutVerification.getHeight() / 2f);
-         
-         layoutVerification.animate()
-             .alpha(0f)
-             .translationX(200f)
-             .rotationY(20f)
-             .scaleX(0.85f)
-             .scaleY(0.85f)
-             .setDuration(350)
-             .setInterpolator(new android.view.animation.AccelerateInterpolator())
-             .withEndAction(() -> {
-                 layoutVerification.setVisibility(View.GONE);
-                 layoutVerification.setTranslationX(0f);
-                 layoutVerification.setRotationY(0f);
-                 layoutVerification.setScaleX(1f);
-                 layoutVerification.setScaleY(1f);
-                 layoutVerification.setLayerType(View.LAYER_TYPE_NONE, null);
-             })
-             .start();
+        // Donanım katmanını aktif et
+        layoutVerification.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+        layoutAccountFields.setLayerType(View.LAYER_TYPE_HARDWARE, null);
 
-         // 2. KATMAN: Form alanlarını elastik sıçrama ile getir
-         layoutAccountFields.setPivotX(0);
-         layoutAccountFields.setPivotY(layoutAccountFields.getHeight() / 2f);
-         
-         layoutAccountFields.animate()
-             .alpha(1f)
-             .translationX(0f)
-             .rotationY(0f)
-             .scaleX(1f)
-             .scaleY(1f)
-             .setDuration(500)
-             .setStartDelay(100)
-             .setInterpolator(new android.view.animation.OvershootInterpolator(1.2f))
-             .withEndAction(() -> {
-                 layoutAccountFields.setLayerType(View.LAYER_TYPE_NONE, null);
-             })
-             .start();
+        // 1. KATMAN: Doğrulama ekranını 3D dönme ile gizle
+        layoutVerification.setPivotX(layoutVerification.getWidth());
+        layoutVerification.setPivotY(layoutVerification.getHeight() / 2f);
+
+        layoutVerification.animate()
+                .alpha(0f)
+                .translationX(200f)
+                .rotationY(20f)
+                .scaleX(0.85f)
+                .scaleY(0.85f)
+                .setDuration(350)
+                .setInterpolator(new android.view.animation.AccelerateInterpolator())
+                .withEndAction(() -> {
+                    layoutVerification.setVisibility(View.GONE);
+                    layoutVerification.setTranslationX(0f);
+                    layoutVerification.setRotationY(0f);
+                    layoutVerification.setScaleX(1f);
+                    layoutVerification.setScaleY(1f);
+                    layoutVerification.setLayerType(View.LAYER_TYPE_NONE, null);
+                })
+                .start();
+
+        // 2. KATMAN: Form alanlarını elastik sıçrama ile getir
+        layoutAccountFields.setPivotX(0);
+        layoutAccountFields.setPivotY(layoutAccountFields.getHeight() / 2f);
+
+        layoutAccountFields.animate()
+                .alpha(1f)
+                .translationX(0f)
+                .rotationY(0f)
+                .scaleX(1f)
+                .scaleY(1f)
+                .setDuration(500)
+                .setStartDelay(100)
+                .setInterpolator(new android.view.animation.OvershootInterpolator(1.2f))
+                .withEndAction(() -> {
+                    layoutAccountFields.setLayerType(View.LAYER_TYPE_NONE, null);
+                })
+                .start();
     }
 
     /**
@@ -2802,66 +2880,68 @@ public class MainActivity extends Activity {
      * Geliştirilmiş çok eksenli titreme animasyonu.
      */
     private void shakeView(View view) {
-        if (view == null) return;
-        
+        if (view == null)
+            return;
+
         // X ekseni titreme (yatay)
         android.animation.ObjectAnimator shakeX = android.animation.ObjectAnimator.ofFloat(
-            view, "translationX", 0, 25, -25, 25, -25, 15, -15, 6, -6, 0);
+                view, "translationX", 0, 25, -25, 25, -25, 15, -15, 6, -6, 0);
         shakeX.setDuration(600);
-        
+
         // Y ekseni hafif titreme (dikey)
         android.animation.ObjectAnimator shakeY = android.animation.ObjectAnimator.ofFloat(
-            view, "translationY", 0, -5, 5, -5, 5, -3, 3, 0);
+                view, "translationY", 0, -5, 5, -5, 5, -3, 3, 0);
         shakeY.setDuration(600);
-        
+
         // Rotation titreme
         android.animation.ObjectAnimator rotation = android.animation.ObjectAnimator.ofFloat(
-            view, "rotation", 0, -3, 3, -3, 3, -2, 2, -1, 1, 0);
+                view, "rotation", 0, -3, 3, -3, 3, -2, 2, -1, 1, 0);
         rotation.setDuration(600);
-        
+
         // Tüm animasyonları birlikte çalıştır
         android.animation.AnimatorSet animSet = new android.animation.AnimatorSet();
         animSet.playTogether(shakeX, shakeY, rotation);
         animSet.start();
-        
+
         // Dokunsal geri bildirim (3 kısa titreşim)
         vibrateFeedback();
         new android.os.Handler(Looper.getMainLooper()).postDelayed(this::vibrateFeedback, 100);
         new android.os.Handler(Looper.getMainLooper()).postDelayed(this::vibrateFeedback, 200);
-        
+
         // Kırmızı flash efekti (daha belirgin)
         int originalBg = Color.parseColor("#1E1E32");
         int errorBg = Color.parseColor("#4DFF0000"); // %30 opacity kırmızı
-        
-        android.animation.ValueAnimator colorAnim = android.animation.ValueAnimator.ofArgb(originalBg, errorBg, originalBg);
+
+        android.animation.ValueAnimator colorAnim = android.animation.ValueAnimator.ofArgb(originalBg, errorBg,
+                originalBg);
         colorAnim.setDuration(600);
         colorAnim.addUpdateListener(animator -> {
             try {
                 if (view.getBackground() instanceof android.graphics.drawable.ColorDrawable) {
                     view.setBackgroundColor((int) animator.getAnimatedValue());
                 }
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+            }
         });
         colorAnim.start();
-        
+
         // Ölçek nabzı (hata vurgusu)
         view.animate()
-            .scaleX(1.08f)
-            .scaleY(1.08f)
-            .setDuration(150)
-            .withEndAction(() -> {
-                view.animate()
-                    .scaleX(1.0f)
-                    .scaleY(1.0f)
-                    .setDuration(150)
-                    .start();
-            })
-            .start();
+                .scaleX(1.08f)
+                .scaleY(1.08f)
+                .setDuration(150)
+                .withEndAction(() -> {
+                    view.animate()
+                            .scaleX(1.0f)
+                            .scaleY(1.0f)
+                            .setDuration(150)
+                            .start();
+                })
+                .start();
     }
 
-
-
-    private void updateProfileRequest(String username, String fullName, String email, String currentPassword, String newPassword) {
+    private void updateProfileRequest(String username, String fullName, String email, String currentPassword,
+            String newPassword) {
         addLog("[PROFİL] Güncelleme isteği hazırlanıyor: " + username);
         new Thread(() -> {
             try {
@@ -2888,14 +2968,13 @@ public class MainActivity extends Activity {
                         runOnUiThread(() -> {
                             hapticFeedback(HapticType.ERROR);
                             Toast.makeText(this, "Şifre değiştirmek için mevcut şifreniz gerekli",
-                                Toast.LENGTH_LONG).show();
+                                    Toast.LENGTH_LONG).show();
                         });
                         return;
                     }
                     payload.put("current_password", currentPassword);
                     payload.put("new_password", newPassword);
                 }
-
 
                 try (OutputStream os = conn.getOutputStream()) {
                     os.write(payload.toString().getBytes("utf-8"));
@@ -2906,7 +2985,8 @@ public class MainActivity extends Activity {
                     BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), "utf-8"));
                     StringBuilder sb = new StringBuilder();
                     String line;
-                    while ((line = br.readLine()) != null) sb.append(line);
+                    while ((line = br.readLine()) != null)
+                        sb.append(line);
                     JSONObject resp = new JSONObject(sb.toString());
 
                     if (resp.has("access_token")) {
@@ -2950,6 +3030,7 @@ public class MainActivity extends Activity {
             }
         }).start();
     }
+
     /**
      * Mevcut oturumu kapatır ve kullanıcı bilgilerini cihazdan siler.
      */
@@ -2958,13 +3039,13 @@ public class MainActivity extends Activity {
         authToken = null;
         authUsername = null;
         authPrefs.edit().clear().apply(); // Tüm kayıtlı verileri temizle
-        
+
         // Profil resimlerini varsayılana döndür
         imgTopProfile.setImageResource(android.R.drawable.ic_menu_myplaces);
         imgTopProfile.setColorFilter(Color.WHITE);
         imgMainProfile.setImageResource(android.R.drawable.ic_menu_myplaces);
         imgMainProfile.setColorFilter(Color.WHITE);
-        
+
         updateAccountUI();
         Toast.makeText(this, "Çıkış yapıldı", Toast.LENGTH_SHORT).show();
     }
@@ -2979,12 +3060,12 @@ public class MainActivity extends Activity {
         LinearLayout mainLayout = new LinearLayout(this);
         mainLayout.setOrientation(LinearLayout.VERTICAL);
         mainLayout.setBackgroundColor(Color.parseColor("#1a1a2e"));
-        
+
         // İçerik container
         LinearLayout contentLayout = new LinearLayout(this);
         contentLayout.setOrientation(LinearLayout.VERTICAL);
         contentLayout.setPadding(60, 50, 60, 40);
-        
+
         // Başlık ikonu
         ImageView iconView = new ImageView(this);
         iconView.setImageResource(android.R.drawable.ic_dialog_alert);
@@ -2994,7 +3075,7 @@ public class MainActivity extends Activity {
         iconParams.setMargins(0, 0, 0, 35);
         iconView.setLayoutParams(iconParams);
         contentLayout.addView(iconView);
-        
+
         // Başlık
         TextView titleView = new TextView(this);
         titleView.setText("Hesabı Sil");
@@ -3003,23 +3084,21 @@ public class MainActivity extends Activity {
         titleView.setTypeface(null, android.graphics.Typeface.BOLD);
         titleView.setGravity(android.view.Gravity.CENTER);
         LinearLayout.LayoutParams titleParams = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT
-        );
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
         titleParams.setMargins(0, 0, 0, 35);
         titleView.setLayoutParams(titleParams);
         contentLayout.addView(titleView);
-        
+
         // Ayırıcı çizgi
         View divider1 = new View(this);
         divider1.setBackgroundColor(Color.parseColor("#ff6b6b"));
         LinearLayout.LayoutParams dividerParams = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, 4
-        );
+                LinearLayout.LayoutParams.MATCH_PARENT, 4);
         dividerParams.setMargins(0, 0, 0, 30);
         divider1.setLayoutParams(dividerParams);
         contentLayout.addView(divider1);
-        
+
         // Ana mesaj
         TextView messageView = new TextView(this);
         messageView.setText("⏱️ 30 Günlük Askı Süresi");
@@ -3027,46 +3106,44 @@ public class MainActivity extends Activity {
         messageView.setTextColor(Color.parseColor("#ffd93d"));
         messageView.setTypeface(null, android.graphics.Typeface.BOLD);
         LinearLayout.LayoutParams msgParams = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT
-        );
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
         msgParams.setMargins(0, 0, 0, 18);
         messageView.setLayoutParams(msgParams);
         contentLayout.addView(messageView);
-        
+
         // Detay mesajı
         TextView detailView = new TextView(this);
-        detailView.setText("Hesabınız 30 gün boyunca askıya alınacaktır. Bu süre içinde tekrar giriş yaparak hesabınızı geri aktif edebilirsiniz.");
+        detailView.setText(
+                "Hesabınız 30 gün boyunca askıya alınacaktır. Bu süre içinde tekrar giriş yaparak hesabınızı geri aktif edebilirsiniz.");
         detailView.setTextSize(14);
         detailView.setTextColor(Color.parseColor("#d0d0d0"));
         detailView.setLineSpacing(10, 1);
         LinearLayout.LayoutParams detailParams = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT
-        );
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
         detailParams.setMargins(0, 0, 0, 25);
         detailView.setLayoutParams(detailParams);
         contentLayout.addView(detailView);
-        
+
         // Uyarı kutusu
         LinearLayout warningBox = new LinearLayout(this);
         warningBox.setOrientation(LinearLayout.VERTICAL);
         warningBox.setBackgroundColor(Color.parseColor("#2d1b1b"));
         warningBox.setPadding(35, 25, 35, 25);
         LinearLayout.LayoutParams warningParams = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT
-        );
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
         warningParams.setMargins(0, 0, 0, 30);
         warningBox.setLayoutParams(warningParams);
-        
+
         // Uyarı kutusu kenarlık efekti
         android.graphics.drawable.GradientDrawable warningBorder = new android.graphics.drawable.GradientDrawable();
         warningBorder.setColor(Color.parseColor("#2d1b1b"));
         warningBorder.setStroke(3, Color.parseColor("#ff6b6b"));
         warningBorder.setCornerRadius(15);
         warningBox.setBackground(warningBorder);
-        
+
         TextView warningTitle = new TextView(this);
         warningTitle.setText("⚠️ 30 Gün Sonra Silinecek:");
         warningTitle.setTextSize(15);
@@ -3074,16 +3151,16 @@ public class MainActivity extends Activity {
         warningTitle.setTypeface(null, android.graphics.Typeface.BOLD);
         warningTitle.setPadding(0, 0, 0, 12);
         warningBox.addView(warningTitle);
-        
+
         TextView warningText = new TextView(this);
         warningText.setText("• Hesap bilgileri\n• Sohbet geçmişi");
         warningText.setTextSize(14);
         warningText.setTextColor(Color.parseColor("#ffb3b3"));
         warningText.setLineSpacing(8, 1);
         warningBox.addView(warningText);
-        
+
         contentLayout.addView(warningBox);
-        
+
         // Son uyarı
         TextView finalWarning = new TextView(this);
         finalWarning.setText("Devam etmek istediğinizden emin misiniz?");
@@ -3092,22 +3169,21 @@ public class MainActivity extends Activity {
         finalWarning.setTypeface(null, android.graphics.Typeface.BOLD);
         finalWarning.setGravity(android.view.Gravity.CENTER);
         LinearLayout.LayoutParams finalParams = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT
-        );
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
         finalParams.setMargins(0, 0, 0, 0);
         finalWarning.setLayoutParams(finalParams);
         contentLayout.addView(finalWarning);
-        
+
         mainLayout.addView(contentLayout);
-        
+
         // Butonlar için özel kapsayıcı
         LinearLayout buttonContainer = new LinearLayout(this);
         buttonContainer.setOrientation(LinearLayout.HORIZONTAL);
         buttonContainer.setBackgroundColor(Color.parseColor("#0f0f1e"));
         buttonContainer.setPadding(40, 25, 40, 25);
         buttonContainer.setGravity(android.view.Gravity.CENTER);
-        
+
         // İptal butonu
         Button cancelButton = new Button(this);
         cancelButton.setText("İptal");
@@ -3115,21 +3191,20 @@ public class MainActivity extends Activity {
         cancelButton.setTextSize(15);
         cancelButton.setTypeface(null, android.graphics.Typeface.BOLD);
         cancelButton.setAllCaps(false);
-        
+
         android.graphics.drawable.GradientDrawable cancelBg = new android.graphics.drawable.GradientDrawable();
         cancelBg.setColor(Color.parseColor("#2d4a2d"));
         cancelBg.setCornerRadius(25);
         cancelButton.setBackground(cancelBg);
-        
+
         LinearLayout.LayoutParams cancelParams = new LinearLayout.LayoutParams(
-            0,
-            LinearLayout.LayoutParams.WRAP_CONTENT,
-            1
-        );
+                0,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                1);
         cancelParams.setMargins(0, 0, 15, 0);
         cancelButton.setLayoutParams(cancelParams);
         cancelButton.setPadding(0, 30, 0, 30);
-        
+
         // Sil butonu
         Button deleteButton = new Button(this);
         deleteButton.setText("Evet, Hesabı Sil");
@@ -3137,50 +3212,50 @@ public class MainActivity extends Activity {
         deleteButton.setTextSize(15);
         deleteButton.setTypeface(null, android.graphics.Typeface.BOLD);
         deleteButton.setAllCaps(false);
-        
+
         android.graphics.drawable.GradientDrawable deleteBg = new android.graphics.drawable.GradientDrawable();
         deleteBg.setColor(Color.parseColor("#d32f2f"));
         deleteBg.setCornerRadius(25);
         deleteButton.setBackground(deleteBg);
-        
+
         LinearLayout.LayoutParams deleteParams = new LinearLayout.LayoutParams(
-            0,
-            LinearLayout.LayoutParams.WRAP_CONTENT,
-            1
-        );
+                0,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                1);
         deleteParams.setMargins(15, 0, 0, 0);
         deleteButton.setLayoutParams(deleteParams);
         deleteButton.setPadding(0, 30, 0, 30);
-        
+
         buttonContainer.addView(cancelButton);
         buttonContainer.addView(deleteButton);
-        
+
         mainLayout.addView(buttonContainer);
-        
+
         // Dialog oluştur
         android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
         builder.setView(mainLayout);
         builder.setCancelable(true);
-        
+
         android.app.AlertDialog dialog = builder.create();
-        
+
         // Buton tıklama dinleyicileri
         cancelButton.setOnClickListener(v -> dialog.dismiss());
         deleteButton.setOnClickListener(v -> {
             dialog.dismiss();
             deleteAccountRequest();
         });
-        
+
         // Dialog arka planını şeffaf yap
         if (dialog.getWindow() != null) {
             dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
         }
-        
+
         dialog.show();
     }
 
     /**
      * Hesap başarıyla silindiğinde özel başarı dialog'u gösterir.
+     * 
      * @param message Sunucudan gelen detaylı mesaj
      */
     private void showAccountDeletedSuccessDialog(String message) {
@@ -3188,12 +3263,12 @@ public class MainActivity extends Activity {
         LinearLayout mainLayout = new LinearLayout(this);
         mainLayout.setOrientation(LinearLayout.VERTICAL);
         mainLayout.setBackgroundColor(Color.parseColor("#0f3443"));
-        
+
         // İçerik container
         LinearLayout contentLayout = new LinearLayout(this);
         contentLayout.setOrientation(LinearLayout.VERTICAL);
         contentLayout.setPadding(60, 55, 60, 45);
-        
+
         // Başarı ikonu
         ImageView iconView = new ImageView(this);
         iconView.setImageResource(android.R.drawable.checkbox_on_background);
@@ -3203,7 +3278,7 @@ public class MainActivity extends Activity {
         iconParams.setMargins(0, 0, 0, 40);
         iconView.setLayoutParams(iconParams);
         contentLayout.addView(iconView);
-        
+
         // Başlık
         TextView titleView = new TextView(this);
         titleView.setText("✓ Hesap Silindi");
@@ -3212,42 +3287,39 @@ public class MainActivity extends Activity {
         titleView.setTypeface(null, android.graphics.Typeface.BOLD);
         titleView.setGravity(android.view.Gravity.CENTER);
         LinearLayout.LayoutParams titleParams = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT
-        );
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
         titleParams.setMargins(0, 0, 0, 35);
         titleView.setLayoutParams(titleParams);
         contentLayout.addView(titleView);
-        
+
         // Yeşil ayırıcı çizgi
         View divider = new View(this);
         divider.setBackgroundColor(Color.parseColor("#6bcf7f"));
         LinearLayout.LayoutParams dividerParams = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, 4
-        );
+                LinearLayout.LayoutParams.MATCH_PARENT, 4);
         dividerParams.setMargins(0, 0, 0, 35);
         divider.setLayoutParams(dividerParams);
         contentLayout.addView(divider);
-        
+
         // Bilgi kutusu
         LinearLayout infoBox = new LinearLayout(this);
         infoBox.setOrientation(LinearLayout.VERTICAL);
         infoBox.setBackgroundColor(Color.parseColor("#1a4d5c"));
         infoBox.setPadding(40, 30, 40, 30);
         LinearLayout.LayoutParams infoParams = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT
-        );
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
         infoParams.setMargins(0, 0, 0, 30);
         infoBox.setLayoutParams(infoParams);
-        
+
         // Bilgi kutusu kenarlık
         android.graphics.drawable.GradientDrawable infoBorder = new android.graphics.drawable.GradientDrawable();
         infoBorder.setColor(Color.parseColor("#1a4d5c"));
         infoBorder.setStroke(3, Color.parseColor("#4dd0e1"));
         infoBorder.setCornerRadius(15);
         infoBox.setBackground(infoBorder);
-        
+
         // Mesaj metni
         TextView messageView = new TextView(this);
         messageView.setText(message);
@@ -3255,9 +3327,9 @@ public class MainActivity extends Activity {
         messageView.setTextColor(Color.parseColor("#e0f7fa"));
         messageView.setLineSpacing(12, 1);
         infoBox.addView(messageView);
-        
+
         contentLayout.addView(infoBox);
-        
+
         // Önemli bilgi başlığı
         TextView importantTitle = new TextView(this);
         importantTitle.setText("📌 Önemli Bilgi:");
@@ -3265,47 +3337,45 @@ public class MainActivity extends Activity {
         importantTitle.setTextColor(Color.parseColor("#ffd93d"));
         importantTitle.setTypeface(null, android.graphics.Typeface.BOLD);
         LinearLayout.LayoutParams impTitleParams = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT
-        );
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
         impTitleParams.setMargins(0, 0, 0, 18);
         importantTitle.setLayoutParams(impTitleParams);
         contentLayout.addView(importantTitle);
-        
+
         // Bilgi kartı
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.HORIZONTAL);
         card.setBackgroundColor(Color.parseColor("#1a3d4d"));
         card.setPadding(30, 25, 30, 25);
         LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT
-        );
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
         cardParams.setMargins(0, 0, 0, 30);
         card.setLayoutParams(cardParams);
-        
+
         // Kart kenarlık
         android.graphics.drawable.GradientDrawable cardBorder = new android.graphics.drawable.GradientDrawable();
         cardBorder.setColor(Color.parseColor("#1a3d4d"));
         cardBorder.setStroke(2, Color.parseColor("#4dd0e1"));
         cardBorder.setCornerRadius(12);
         card.setBackground(cardBorder);
-        
+
         TextView cardIcon = new TextView(this);
         cardIcon.setText("⏱️");
         cardIcon.setTextSize(26);
         cardIcon.setPadding(0, 0, 25, 0);
         card.addView(cardIcon);
-        
+
         TextView cardText = new TextView(this);
         cardText.setText("30 gün içinde giriş yaparak geri alabilirsiniz.");
         cardText.setTextSize(13);
         cardText.setTextColor(Color.parseColor("#b3e5fc"));
         cardText.setLineSpacing(5, 1);
         card.addView(cardText);
-        
+
         contentLayout.addView(card);
-        
+
         // Teşekkür mesajı
         TextView thanksView = new TextView(this);
         thanksView.setText("Niko AI'ı kullandığınız için teşekkür ederiz! 💙");
@@ -3314,22 +3384,21 @@ public class MainActivity extends Activity {
         thanksView.setTypeface(null, android.graphics.Typeface.ITALIC);
         thanksView.setGravity(android.view.Gravity.CENTER);
         LinearLayout.LayoutParams thanksParams = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT
-        );
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
         thanksParams.setMargins(0, 0, 0, 0);
         thanksView.setLayoutParams(thanksParams);
         contentLayout.addView(thanksView);
-        
+
         mainLayout.addView(contentLayout);
-        
+
         // Buton container
         LinearLayout buttonContainer = new LinearLayout(this);
         buttonContainer.setOrientation(LinearLayout.HORIZONTAL);
         buttonContainer.setBackgroundColor(Color.parseColor("#0a2530"));
         buttonContainer.setPadding(60, 25, 60, 25);
         buttonContainer.setGravity(android.view.Gravity.CENTER);
-        
+
         // Tamam butonu
         Button okButton = new Button(this);
         okButton.setText("Tamam");
@@ -3337,37 +3406,36 @@ public class MainActivity extends Activity {
         okButton.setTextSize(16);
         okButton.setTypeface(null, android.graphics.Typeface.BOLD);
         okButton.setAllCaps(false);
-        
+
         android.graphics.drawable.GradientDrawable okBg = new android.graphics.drawable.GradientDrawable();
         okBg.setColor(Color.parseColor("#2e7d32"));
         okBg.setCornerRadius(25);
         okButton.setBackground(okBg);
-        
+
         LinearLayout.LayoutParams okParams = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT
-        );
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
         okButton.setLayoutParams(okParams);
         okButton.setPadding(0, 35, 0, 35);
-        
+
         buttonContainer.addView(okButton);
         mainLayout.addView(buttonContainer);
-        
+
         // Dialog oluştur
         android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
         builder.setView(mainLayout);
         builder.setCancelable(false);
-        
+
         android.app.AlertDialog dialog = builder.create();
-        
+
         // Buton click listener
         okButton.setOnClickListener(v -> dialog.dismiss());
-        
+
         // Dialog arka planını şeffaf yap
         if (dialog.getWindow() != null) {
             dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
         }
-        
+
         dialog.show();
     }
 
@@ -3383,7 +3451,7 @@ public class MainActivity extends Activity {
         }
 
         addLog("[HESAP SİL] Hesap silme isteği gönderiliyor...");
-        
+
         new Thread(() -> {
             HttpURLConnection conn = null;
             try {
@@ -3408,7 +3476,7 @@ public class MainActivity extends Activity {
                         response.append(line);
                     }
                     br.close();
-                    
+
                     // JSON'dan mesajı çıkar
                     String serverMessage = "Hesabınız silme için işaretlendi";
                     try {
@@ -3419,17 +3487,17 @@ public class MainActivity extends Activity {
                     } catch (Exception e) {
                         addLog("[HESAP SİL] JSON parse hatası: " + e.getMessage());
                     }
-                    
+
                     final String finalMessage = serverMessage;
-                    
+
                     runOnUiThread(() -> {
                         addLog("[HESAP SİL] " + finalMessage);
-                        
+
                         // Yerel verileri temizle (performLogout benzeri)
                         authToken = null;
                         authUsername = null;
                         authPrefs.edit().clear().apply();
-                        
+
                         // Profil resimlerini varsayılana döndür
                         imgTopProfile.setImageResource(android.R.drawable.ic_menu_myplaces);
                         imgTopProfile.setColorFilter(Color.WHITE);
@@ -3439,10 +3507,10 @@ public class MainActivity extends Activity {
                             imgProfileAvatar.setImageResource(android.R.drawable.ic_menu_myplaces);
                             imgProfileAvatar.setColorFilter(Color.WHITE);
                         }
-                        
+
                         hideAccount();
                         updateAccountUI();
-                        
+
                         // Sunucudan gelen mesajı özel dialog ile göster
                         showAccountDeletedSuccessDialog(finalMessage);
                     });
@@ -3454,12 +3522,13 @@ public class MainActivity extends Activity {
                         BufferedReader br = new BufferedReader(new InputStreamReader(errorStream, "utf-8"));
                         StringBuilder esb = new StringBuilder();
                         String eline;
-                        while ((eline = br.readLine()) != null) esb.append(eline);
+                        while ((eline = br.readLine()) != null)
+                            esb.append(eline);
                         br.close();
                         errorDetail = esb.toString();
                     }
                     addLog("[HESAP SİL] HATA: " + code + " - " + errorDetail);
-                    
+
                     // JSON'dan detail mesajını çıkarmaya çalış
                     String errorMessage = "";
                     try {
@@ -3470,23 +3539,24 @@ public class MainActivity extends Activity {
                     } catch (Exception e) {
                         // JSON parse edilemezse varsayılan mesajları kullan
                     }
-                    
+
                     final String msg;
                     if (!errorMessage.isEmpty()) {
                         msg = errorMessage;
                     } else {
-                        msg = code == 401 ? "Oturum süresi dolmuş. Lütfen tekrar giriş yapın." 
-                            : code == 403 ? "Bu işlem için yetkiniz yok."
-                            : code == 404 ? "Hesap bulunamadı."
-                            : "Hesap silinemedi. Sunucu hatası: " + code;
+                        msg = code == 401 ? "Oturum süresi dolmuş. Lütfen tekrar giriş yapın."
+                                : code == 403 ? "Bu işlem için yetkiniz yok."
+                                        : code == 404 ? "Hesap bulunamadı."
+                                                : "Hesap silinemedi. Sunucu hatası: " + code;
                     }
-                    
+
                     runOnUiThread(() -> Toast.makeText(this, msg, Toast.LENGTH_LONG).show());
                 }
             } catch (Exception e) {
                 addLog("[HESAP SİL] İSTİSNA: " + e.getMessage());
                 e.printStackTrace();
-                runOnUiThread(() -> Toast.makeText(this, "Bağlantı hatası. Lütfen internet bağlantınızı kontrol edin.", Toast.LENGTH_SHORT).show());
+                runOnUiThread(() -> Toast.makeText(this, "Bağlantı hatası. Lütfen internet bağlantınızı kontrol edin.",
+                        Toast.LENGTH_SHORT).show());
             } finally {
                 if (conn != null) {
                     conn.disconnect();
@@ -3495,9 +3565,11 @@ public class MainActivity extends Activity {
         }).start();
     }
 
-    /* *********************************************************************************
-     *                               AUDIO PLAYBACK
-     * *********************************************************************************/
+    /*
+     * *****************************************************************************
+     * ****
+     * AUDIO PLAYBACK
+     *********************************************************************************/
 
     /**
      * Sunucudan gelen Base64 formatındaki ses verisini çözer ve cihazda oynatır.
@@ -3538,9 +3610,11 @@ public class MainActivity extends Activity {
         }
     }
 
-    /* *********************************************************************************
-     *                               TEXT TO SPEECH (TTS)
-     * *********************************************************************************/
+    /*
+     * *****************************************************************************
+     * ****
+     * TEXT TO SPEECH (TTS)
+     *********************************************************************************/
 
     /**
      * Metin okuma (TTS) motorunu ilklendirir ve dil desteğini kontrol eder.
@@ -3588,10 +3662,10 @@ public class MainActivity extends Activity {
                 && !t.trim().isEmpty() && t.length() > 2) {
             saveToHistory("Niko", t);
         }
-        
+
         // Seslendirme kuyruğuna ekle
         ttsQueue.offer(t);
-        
+
         runOnUiThread(() -> {
             aiResponseContainer.setVisibility(View.VISIBLE);
             txtAIResponse.setText(t);
@@ -3603,15 +3677,16 @@ public class MainActivity extends Activity {
      * Metni seslendirmeden önce temizler (Emoji, Markdown sembolleri, :P vb.)
      */
     private String cleanTextForTTS(String text) {
-        if (text == null) return "";
-        
+        if (text == null)
+            return "";
+
         // 1. Markdown Temizliği (Kalın, İtalik, Başlıklar)
         String cleaned = text.replaceAll("\\*\\*", "")
-                            .replaceAll("\\*", "")
-                            .replaceAll("###", "")
-                            .replaceAll("##", "")
-                            .replaceAll("#", "")
-                            .replaceAll("`", "");
+                .replaceAll("\\*", "")
+                .replaceAll("###", "")
+                .replaceAll("##", "")
+                .replaceAll("#", "")
+                .replaceAll("`", "");
 
         // 2. Kod bloklarını tamamen temizle veya basitleştir
         cleaned = cleaned.replaceAll("```[\\s\\S]*?```", "");
@@ -3619,20 +3694,20 @@ public class MainActivity extends Activity {
         // 3. Yaygın İfade ve Sembol Temizliği (:P, :D, XD, :) vb.)
         // Kullanıcı özellikle :P ve benzerlerinin okunmamasını istedi.
         cleaned = cleaned.replaceAll("(?i):P", "")
-                         .replaceAll("(?i):D", "")
-                         .replaceAll("(?i)XD", "")
-                         .replaceAll(":\\)", "")
-                         .replaceAll(":\\(", "")
-                         .replaceAll(";\\)", "")
-                         .replaceAll("<3", "")
-                         .replaceAll("[\\uD83C-\\uDBFF\\uDC00-\\uDFFF]+", ""); // Standart Emojiler
+                .replaceAll("(?i):D", "")
+                .replaceAll("(?i)XD", "")
+                .replaceAll(":\\)", "")
+                .replaceAll(":\\(", "")
+                .replaceAll(";\\)", "")
+                .replaceAll("<3", "")
+                .replaceAll("[\\uD83C-\\uDBFF\\uDC00-\\uDFFF]+", ""); // Standart Emojiler
 
         // 4. Bağlantıları temizle
         cleaned = cleaned.replaceAll("https?://\\S+", "");
 
         // 5. Fazla boşlukları düzelt
         cleaned = cleaned.replaceAll("\\s+", " ").trim();
-        
+
         return cleaned;
     }
 
@@ -3640,7 +3715,7 @@ public class MainActivity extends Activity {
         if (!tts.isSpeaking() && !ttsQueue.isEmpty()) {
             String originalText = ttsQueue.poll();
             String cleanedText = cleanTextForTTS(originalText);
-            
+
             if (!cleanedText.isEmpty()) {
                 tts.speak(cleanedText, TextToSpeech.QUEUE_FLUSH, null, "tts");
             } else {
@@ -3650,9 +3725,11 @@ public class MainActivity extends Activity {
         }
     }
 
-    /* *********************************************************************************
-     *                             WHATSAPP INTEGRATION
-     * *********************************************************************************/
+    /*
+     * *****************************************************************************
+     * ****
+     * WHATSAPP INTEGRATION
+     *********************************************************************************/
 
     /**
      * Rehberden isim bularak WhatsApp mesajı gönderir.
@@ -3682,19 +3759,21 @@ public class MainActivity extends Activity {
 
                 // WhatsApp URI'sini oluştur (api.whatsapp.com yerine whatsapp:// daha hızlıdır)
                 String url = "whatsapp://send?phone=" + cleanPhone + "&text=" + URLEncoder.encode(message, "UTF-8");
-                
+
                 Intent intent = new Intent(Intent.ACTION_VIEW);
                 intent.setPackage("com.whatsapp");
                 intent.setData(Uri.parse(url));
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                
+
                 startActivity(intent);
-                
+
                 // Erişilebilirlik servisinin aktif olup olmadığını kontrol et
                 if (!isAccessibilityServiceEnabled()) {
-                    speak(name + " için mesaj hazırlandı. Tam otomatik gönderim için Erişilebilirlik izni vermen gerekiyor. Şimdilik gönder tuşuna kendin basmalısın.");
+                    speak(name
+                            + " için mesaj hazırlandı. Tam otomatik gönderim için Erişilebilirlik izni vermen gerekiyor. Şimdilik gönder tuşuna kendin basmalısın.");
                     Toast.makeText(this, "Otomatik gönderim için izin gerekli!", Toast.LENGTH_LONG).show();
-                    // İzin ekranına yönlendir (Opsiyonel: Kullanıcıyı rahatsız etmemek için sadece ilk seferde yapılabilir)
+                    // İzin ekranına yönlendir (Opsiyonel: Kullanıcıyı rahatsız etmemek için sadece
+                    // ilk seferde yapılabilir)
                 } else {
                     speak(name + " kişisine mesajın otomatik olarak gönderiliyor.");
                 }
@@ -3735,14 +3814,14 @@ public class MainActivity extends Activity {
 
         // Gereksiz anahtar kelimeleri temizle ama mesaj içeriğini bozma
         String workingCmd = clean.replace("whatsapp'tan", "").replace("whatsapptan", "")
-                                 .replace("whatsapp", "").trim();
+                .replace("whatsapp", "").trim();
 
         try {
             // 1. ADIM: İsim ve yönelme eki arama (ahmet'e, ahmete, ahmet ye vb.)
             // Regex: Bir kelime + opsiyonel kesme + [e, a, ye, ya] + boşluk veya son
             Pattern p = Pattern.compile("([^\\s']+)[']?([ae]|ye|ya)\\b");
             Matcher m = p.matcher(workingCmd);
-            
+
             if (m.find()) {
                 name = m.group(1).trim();
                 // İsmin sonundaki eki ve ismin kendisini komuttan çıkararak mesajı bul
@@ -3752,7 +3831,7 @@ public class MainActivity extends Activity {
             // 2. ADIM: Eğer yukarıdaki yapı tutmadıysa alternatif bölme
             if (name.isEmpty() || message.isEmpty()) {
                 // "mesaj", "yaz", "yolla" gibi kelimelere göre bölmeyi dene
-                String[] keywords = {" mesajı ", " mesaj ", " yaz ", " yolla ", " gönder ", " at "};
+                String[] keywords = { " mesajı ", " mesaj ", " yaz ", " yolla ", " gönder ", " at " };
                 for (String kw : keywords) {
                     if (workingCmd.contains(kw)) {
                         String[] parts = workingCmd.split(kw, 2);
@@ -3780,7 +3859,8 @@ public class MainActivity extends Activity {
             if (!name.isEmpty() && !message.isEmpty() && message.length() > 1) {
                 sendWhatsApp(name, message);
             } else {
-                addLog("[WhatsApp] Ayrıştırma başarısız: " + workingCmd + " (İsim: " + name + ", Mesaj: " + message + ")");
+                addLog("[WhatsApp] Ayrıştırma başarısız: " + workingCmd + " (İsim: " + name + ", Mesaj: " + message
+                        + ")");
                 speak("WhatsApp mesajı için ismi veya mesaj içeriğini tam ayırt edemedim. Lütfen 'Ahmet'e selam yaz' gibi net bir komut ver.");
             }
         } catch (Exception e) {
@@ -3789,9 +3869,11 @@ public class MainActivity extends Activity {
         }
     }
 
-    /* *********************************************************************************
-     *                              ALARM & REMINDERS
-     * *********************************************************************************/
+    /*
+     * *****************************************************************************
+     * ****
+     * ALARM & REMINDERS
+     *********************************************************************************/
 
     /**
      * Sesli komuttaki zaman ifadelerini analiz ederek sistem alarmı kurar.
@@ -4069,9 +4151,9 @@ public class MainActivity extends Activity {
         android.graphics.drawable.GradientDrawable bgGradient = new android.graphics.drawable.GradientDrawable();
         bgGradient.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
         bgGradient.setCornerRadius(32);
-        bgGradient.setColors(new int[]{
-            Color.parseColor("#1E1E32"),
-            Color.parseColor("#12121F")
+        bgGradient.setColors(new int[] {
+                Color.parseColor("#1E1E32"),
+                Color.parseColor("#12121F")
         });
         bgGradient.setOrientation(android.graphics.drawable.GradientDrawable.Orientation.TL_BR);
         bgGradient.setStroke(2, Color.parseColor("#33FF6B6B"));
@@ -4084,31 +4166,31 @@ public class MainActivity extends Activity {
         iconFrameParams.gravity = android.view.Gravity.CENTER_HORIZONTAL;
         iconFrameParams.setMargins(0, 0, 0, 24);
         iconFrame.setLayoutParams(iconFrameParams);
-        
+
         // İkon arka plan (radyal daire)
         View iconBg = new View(this);
         android.widget.FrameLayout.LayoutParams iconBgParams = new android.widget.FrameLayout.LayoutParams(80, 80);
         iconBg.setLayoutParams(iconBgParams);
         android.graphics.drawable.GradientDrawable iconBgDrawable = new android.graphics.drawable.GradientDrawable();
         iconBgDrawable.setShape(android.graphics.drawable.GradientDrawable.OVAL);
-        iconBgDrawable.setColors(new int[]{
-            Color.parseColor("#FF6B6B"),
-            Color.parseColor("#EE5A6F")
+        iconBgDrawable.setColors(new int[] {
+                Color.parseColor("#FF6B6B"),
+                Color.parseColor("#EE5A6F")
         });
         iconBg.setBackground(iconBgDrawable);
         iconFrame.addView(iconBg);
-        
+
         // İkon (çöp kutusu/sil)
         TextView iconText = new TextView(this);
         iconText.setText("🗑️");
         iconText.setTextSize(32);
         iconText.setGravity(android.view.Gravity.CENTER);
         android.widget.FrameLayout.LayoutParams iconTextParams = new android.widget.FrameLayout.LayoutParams(
-            android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
-            android.widget.FrameLayout.LayoutParams.MATCH_PARENT);
+                android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
+                android.widget.FrameLayout.LayoutParams.MATCH_PARENT);
         iconText.setLayoutParams(iconTextParams);
         iconFrame.addView(iconText);
-        
+
         mainLayout.addView(iconFrame);
 
         // Başlık
@@ -4119,7 +4201,7 @@ public class MainActivity extends Activity {
         txtTitle.setTypeface(android.graphics.Typeface.create("sans-serif-black", android.graphics.Typeface.BOLD));
         txtTitle.setGravity(android.view.Gravity.CENTER);
         LinearLayout.LayoutParams titleParams = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         titleParams.setMargins(0, 0, 0, 16);
         txtTitle.setLayoutParams(titleParams);
         mainLayout.addView(txtTitle);
@@ -4127,11 +4209,11 @@ public class MainActivity extends Activity {
         // Ayırıcı çizgi
         View divider = new View(this);
         LinearLayout.LayoutParams dividerParams = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, 2);
+                LinearLayout.LayoutParams.MATCH_PARENT, 2);
         dividerParams.setMargins(0, 0, 0, 20);
         divider.setLayoutParams(dividerParams);
         android.graphics.drawable.GradientDrawable dividerGradient = new android.graphics.drawable.GradientDrawable();
-        dividerGradient.setColors(new int[]{Color.TRANSPARENT, Color.parseColor("#44FF6B6B"), Color.TRANSPARENT});
+        dividerGradient.setColors(new int[] { Color.TRANSPARENT, Color.parseColor("#44FF6B6B"), Color.TRANSPARENT });
         dividerGradient.setOrientation(android.graphics.drawable.GradientDrawable.Orientation.LEFT_RIGHT);
         divider.setBackground(dividerGradient);
         mainLayout.addView(divider);
@@ -4144,7 +4226,7 @@ public class MainActivity extends Activity {
         txtMessage.setGravity(android.view.Gravity.CENTER);
         txtMessage.setLineSpacing(8, 1.2f);
         LinearLayout.LayoutParams msgParams = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         msgParams.setMargins(0, 0, 0, 16);
         txtMessage.setLayoutParams(msgParams);
         mainLayout.addView(txtMessage);
@@ -4155,17 +4237,17 @@ public class MainActivity extends Activity {
             previewCard.setOrientation(LinearLayout.VERTICAL);
             previewCard.setPadding(20, 16, 20, 16);
             LinearLayout.LayoutParams previewParams = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                    LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
             previewParams.setMargins(0, 0, 0, 24);
             previewCard.setLayoutParams(previewParams);
-            
+
             android.graphics.drawable.GradientDrawable previewBg = new android.graphics.drawable.GradientDrawable();
             previewBg.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
             previewBg.setCornerRadius(12);
             previewBg.setColor(Color.parseColor("#15FFFFFF"));
             previewBg.setStroke(1, Color.parseColor("#33FFFFFF"));
             previewCard.setBackground(previewBg);
-            
+
             TextView previewLabel = new TextView(this);
             previewLabel.setText("Önizleme:");
             previewLabel.setTextColor(Color.parseColor("#88FFFFFF"));
@@ -4173,15 +4255,16 @@ public class MainActivity extends Activity {
             previewLabel.setAllCaps(true);
             previewLabel.setLetterSpacing(0.1f);
             previewCard.addView(previewLabel);
-            
+
             TextView previewText = new TextView(this);
             previewText.setText("\"" + preview + "\"");
             previewText.setTextColor(Color.WHITE);
             previewText.setTextSize(13);
             previewText.setPadding(0, 8, 0, 0);
-            previewText.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.ITALIC));
+            previewText.setTypeface(
+                    android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.ITALIC));
             previewCard.addView(previewText);
-            
+
             mainLayout.addView(previewCard);
         }
 
@@ -4192,7 +4275,7 @@ public class MainActivity extends Activity {
         txtWarning.setTextSize(12);
         txtWarning.setGravity(android.view.Gravity.CENTER);
         LinearLayout.LayoutParams warnParams = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         warnParams.setMargins(0, 0, 0, 24);
         txtWarning.setLayoutParams(warnParams);
         mainLayout.addView(txtWarning);
@@ -4202,7 +4285,7 @@ public class MainActivity extends Activity {
         buttonLayout.setOrientation(LinearLayout.HORIZONTAL);
         buttonLayout.setGravity(android.view.Gravity.CENTER);
         LinearLayout.LayoutParams buttonLayoutParams = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         buttonLayout.setLayoutParams(buttonLayoutParams);
 
         // İptal butonu
@@ -4213,11 +4296,11 @@ public class MainActivity extends Activity {
         btnCancel.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.BOLD));
         btnCancel.setGravity(android.view.Gravity.CENTER);
         LinearLayout.LayoutParams cancelParams = new LinearLayout.LayoutParams(
-            0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
         cancelParams.setMargins(0, 0, 8, 0);
         btnCancel.setLayoutParams(cancelParams);
         btnCancel.setPadding(0, 32, 0, 32);
-        
+
         android.graphics.drawable.GradientDrawable cancelBg = new android.graphics.drawable.GradientDrawable();
         cancelBg.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
         cancelBg.setCornerRadius(20);
@@ -4233,17 +4316,17 @@ public class MainActivity extends Activity {
         btnDelete.setTypeface(android.graphics.Typeface.create("sans-serif-black", android.graphics.Typeface.BOLD));
         btnDelete.setGravity(android.view.Gravity.CENTER);
         LinearLayout.LayoutParams deleteParams = new LinearLayout.LayoutParams(
-            0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
         deleteParams.setMargins(8, 0, 0, 0);
         btnDelete.setLayoutParams(deleteParams);
         btnDelete.setPadding(0, 32, 0, 32);
-        
+
         android.graphics.drawable.GradientDrawable deleteBg = new android.graphics.drawable.GradientDrawable();
         deleteBg.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
         deleteBg.setCornerRadius(20);
-        deleteBg.setColors(new int[]{
-            Color.parseColor("#FF6B6B"),
-            Color.parseColor("#EE5A6F")
+        deleteBg.setColors(new int[] {
+                Color.parseColor("#FF6B6B"),
+                Color.parseColor("#EE5A6F")
         });
         deleteBg.setOrientation(android.graphics.drawable.GradientDrawable.Orientation.LEFT_RIGHT);
         btnDelete.setBackground(deleteBg);
@@ -4256,28 +4339,28 @@ public class MainActivity extends Activity {
         android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
         builder.setView(mainLayout);
         builder.setCancelable(true);
-        
+
         android.app.AlertDialog dialog = builder.create();
-        
+
         // Buton animasyonları ve click listener'lar
         btnCancel.setOnClickListener(v -> {
             vibrateFeedback();
             animateButtonClick(v);
             new android.os.Handler(Looper.getMainLooper()).postDelayed(dialog::dismiss, 100);
         });
-        
+
         btnDelete.setOnClickListener(v -> {
             vibrateFeedback();
             animateButtonClick(v);
-            
+
             // Silme animasyonu
             iconText.animate()
-                .scaleX(1.3f)
-                .scaleY(1.3f)
-                .alpha(0f)
-                .setDuration(200)
-                .start();
-            
+                    .scaleX(1.3f)
+                    .scaleY(1.3f)
+                    .alpha(0f)
+                    .setDuration(200)
+                    .start();
+
             new android.os.Handler(Looper.getMainLooper()).postDelayed(() -> {
                 dialog.dismiss();
                 if (onConfirm != null) {
@@ -4285,31 +4368,31 @@ public class MainActivity extends Activity {
                 }
             }, 200);
         });
-        
+
         // Dialog arka planını şeffaf yap
         if (dialog.getWindow() != null) {
             dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
         }
-        
+
         dialog.show();
-        
+
         // Giriş animasyonu
         mainLayout.setScaleX(0.85f);
         mainLayout.setScaleY(0.85f);
         mainLayout.setAlpha(0f);
         mainLayout.animate()
-            .scaleX(1f)
-            .scaleY(1f)
-            .alpha(1f)
-            .setDuration(300)
-            .setInterpolator(new android.view.animation.OvershootInterpolator(1.1f))
-            .start();
-        
+                .scaleX(1f)
+                .scaleY(1f)
+                .alpha(1f)
+                .setDuration(300)
+                .setInterpolator(new android.view.animation.OvershootInterpolator(1.1f))
+                .start();
+
         // İkon nabız animasyonu
         android.animation.ObjectAnimator iconPulse = android.animation.ObjectAnimator.ofFloat(
-            iconBg, "scaleX", 1f, 1.1f, 1f);
+                iconBg, "scaleX", 1f, 1.1f, 1f);
         android.animation.ObjectAnimator iconPulseY = android.animation.ObjectAnimator.ofFloat(
-            iconBg, "scaleY", 1f, 1.1f, 1f);
+                iconBg, "scaleY", 1f, 1.1f, 1f);
         iconPulse.setDuration(1000);
         iconPulseY.setDuration(1000);
         iconPulse.setRepeatCount(android.animation.ObjectAnimator.INFINITE);
@@ -4327,14 +4410,14 @@ public class MainActivity extends Activity {
         LinearLayout mainLayout = new LinearLayout(this);
         mainLayout.setOrientation(LinearLayout.VERTICAL);
         mainLayout.setPadding(48, 40, 48, 32);
-        
+
         // Premium buzlu cam (glassmorphism) arka plan (daha koyu ve tehlikeli görünüm)
         android.graphics.drawable.GradientDrawable bgGradient = new android.graphics.drawable.GradientDrawable();
         bgGradient.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
         bgGradient.setCornerRadius(32);
-        bgGradient.setColors(new int[]{
-            Color.parseColor("#2A1E1E"),
-            Color.parseColor("#1F1212")
+        bgGradient.setColors(new int[] {
+                Color.parseColor("#2A1E1E"),
+                Color.parseColor("#1F1212")
         });
         bgGradient.setOrientation(android.graphics.drawable.GradientDrawable.Orientation.TL_BR);
         bgGradient.setStroke(3, Color.parseColor("#55FF4444"));
@@ -4347,31 +4430,31 @@ public class MainActivity extends Activity {
         iconFrameParams.gravity = android.view.Gravity.CENTER_HORIZONTAL;
         iconFrameParams.setMargins(0, 0, 0, 24);
         iconFrame.setLayoutParams(iconFrameParams);
-        
+
         // İkon arka plan (radyal daire - daha parlak kırmızı)
         View iconBg = new View(this);
         android.widget.FrameLayout.LayoutParams iconBgParams = new android.widget.FrameLayout.LayoutParams(96, 96);
         iconBg.setLayoutParams(iconBgParams);
         android.graphics.drawable.GradientDrawable iconBgDrawable = new android.graphics.drawable.GradientDrawable();
         iconBgDrawable.setShape(android.graphics.drawable.GradientDrawable.OVAL);
-        iconBgDrawable.setColors(new int[]{
-            Color.parseColor("#FF4444"),
-            Color.parseColor("#DD2C2C")
+        iconBgDrawable.setColors(new int[] {
+                Color.parseColor("#FF4444"),
+                Color.parseColor("#DD2C2C")
         });
         iconBg.setBackground(iconBgDrawable);
         iconFrame.addView(iconBg);
-        
+
         // İkon (uyarı sembolü)
         TextView iconText = new TextView(this);
         iconText.setText("⚠️");
         iconText.setTextSize(40);
         iconText.setGravity(android.view.Gravity.CENTER);
         android.widget.FrameLayout.LayoutParams iconTextParams = new android.widget.FrameLayout.LayoutParams(
-            android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
-            android.widget.FrameLayout.LayoutParams.MATCH_PARENT);
+                android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
+                android.widget.FrameLayout.LayoutParams.MATCH_PARENT);
         iconText.setLayoutParams(iconTextParams);
         iconFrame.addView(iconText);
-        
+
         mainLayout.addView(iconFrame);
 
         // Başlık
@@ -4382,7 +4465,7 @@ public class MainActivity extends Activity {
         txtTitle.setTypeface(android.graphics.Typeface.create("sans-serif-black", android.graphics.Typeface.BOLD));
         txtTitle.setGravity(android.view.Gravity.CENTER);
         LinearLayout.LayoutParams titleParams = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         titleParams.setMargins(0, 0, 0, 16);
         txtTitle.setLayoutParams(titleParams);
         mainLayout.addView(txtTitle);
@@ -4390,11 +4473,11 @@ public class MainActivity extends Activity {
         // Ayırıcı çizgi
         View divider = new View(this);
         LinearLayout.LayoutParams dividerParams = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, 2);
+                LinearLayout.LayoutParams.MATCH_PARENT, 2);
         dividerParams.setMargins(0, 0, 0, 20);
         divider.setLayoutParams(dividerParams);
         android.graphics.drawable.GradientDrawable dividerGradient = new android.graphics.drawable.GradientDrawable();
-        dividerGradient.setColors(new int[]{Color.TRANSPARENT, Color.parseColor("#66FF4444"), Color.TRANSPARENT});
+        dividerGradient.setColors(new int[] { Color.TRANSPARENT, Color.parseColor("#66FF4444"), Color.TRANSPARENT });
         dividerGradient.setOrientation(android.graphics.drawable.GradientDrawable.Orientation.LEFT_RIGHT);
         divider.setBackground(dividerGradient);
         mainLayout.addView(divider);
@@ -4408,7 +4491,7 @@ public class MainActivity extends Activity {
         txtMessage.setGravity(android.view.Gravity.CENTER);
         txtMessage.setLineSpacing(8, 1.2f);
         LinearLayout.LayoutParams msgParams = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         msgParams.setMargins(0, 0, 0, 20);
         txtMessage.setLayoutParams(msgParams);
         mainLayout.addView(txtMessage);
@@ -4418,17 +4501,17 @@ public class MainActivity extends Activity {
         statsCard.setOrientation(LinearLayout.VERTICAL);
         statsCard.setPadding(24, 20, 24, 20);
         LinearLayout.LayoutParams statsParams = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         statsParams.setMargins(0, 0, 0, 24);
         statsCard.setLayoutParams(statsParams);
-        
+
         android.graphics.drawable.GradientDrawable statsBg = new android.graphics.drawable.GradientDrawable();
         statsBg.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
         statsBg.setCornerRadius(16);
         statsBg.setColor(Color.parseColor("#20FF4444"));
         statsBg.setStroke(2, Color.parseColor("#44FF4444"));
         statsCard.setBackground(statsBg);
-        
+
         // Toplam mesaj sayısı
         TextView statsTitle = new TextView(this);
         statsTitle.setText("SİLİNECEK MESAJLAR");
@@ -4438,7 +4521,7 @@ public class MainActivity extends Activity {
         statsTitle.setLetterSpacing(0.15f);
         statsTitle.setGravity(android.view.Gravity.CENTER);
         statsCard.addView(statsTitle);
-        
+
         TextView statsCount = new TextView(this);
         statsCount.setText(String.valueOf(totalCount));
         statsCount.setTextColor(Color.parseColor("#FF4444"));
@@ -4447,7 +4530,7 @@ public class MainActivity extends Activity {
         statsCount.setGravity(android.view.Gravity.CENTER);
         statsCount.setPadding(0, 8, 0, 8);
         statsCard.addView(statsCount);
-        
+
         TextView statsLabel = new TextView(this);
         statsLabel.setText("KAYIT");
         statsLabel.setTextColor(Color.parseColor("#AAFFFFFF"));
@@ -4456,34 +4539,35 @@ public class MainActivity extends Activity {
         statsLabel.setLetterSpacing(0.1f);
         statsLabel.setGravity(android.view.Gravity.CENTER);
         statsCard.addView(statsLabel);
-        
+
         mainLayout.addView(statsCard);
 
         // Uyarı metinleri (3 satır)
         String[] warnings = {
-            "⚠️ Bu işlem GERİ ALINAMAZ",
-            "🔥 Tüm konuşmalarınız silinecek",
-            "💾 Yedekleme yapılmayacak"
+                "⚠️ Bu işlem GERİ ALINAMAZ",
+                "🔥 Tüm konuşmalarınız silinecek",
+                "💾 Yedekleme yapılmayacak"
         };
-        
+
         for (String warning : warnings) {
             TextView txtWarning = new TextView(this);
             txtWarning.setText(warning);
             txtWarning.setTextColor(Color.parseColor("#FFB74D"));
             txtWarning.setTextSize(13);
             txtWarning.setGravity(android.view.Gravity.CENTER);
-            txtWarning.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL));
+            txtWarning.setTypeface(
+                    android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL));
             LinearLayout.LayoutParams warnParams = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                    LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
             warnParams.setMargins(0, 0, 0, 8);
             txtWarning.setLayoutParams(warnParams);
             mainLayout.addView(txtWarning);
         }
-        
+
         // Son boşluk
         View spacer = new View(this);
         LinearLayout.LayoutParams spacerParams = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, 16);
+                LinearLayout.LayoutParams.MATCH_PARENT, 16);
         spacer.setLayoutParams(spacerParams);
         mainLayout.addView(spacer);
 
@@ -4492,7 +4576,7 @@ public class MainActivity extends Activity {
         buttonLayout.setOrientation(LinearLayout.HORIZONTAL);
         buttonLayout.setGravity(android.view.Gravity.CENTER);
         LinearLayout.LayoutParams buttonLayoutParams = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         buttonLayout.setLayoutParams(buttonLayoutParams);
 
         // İptal butonu (daha belirgin)
@@ -4503,17 +4587,17 @@ public class MainActivity extends Activity {
         btnCancel.setTypeface(android.graphics.Typeface.create("sans-serif-black", android.graphics.Typeface.BOLD));
         btnCancel.setGravity(android.view.Gravity.CENTER);
         LinearLayout.LayoutParams cancelParams = new LinearLayout.LayoutParams(
-            0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
         cancelParams.setMargins(0, 0, 8, 0);
         btnCancel.setLayoutParams(cancelParams);
         btnCancel.setPadding(0, 36, 0, 36);
-        
+
         android.graphics.drawable.GradientDrawable cancelBg = new android.graphics.drawable.GradientDrawable();
         cancelBg.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
         cancelBg.setCornerRadius(20);
-        cancelBg.setColors(new int[]{
-            Color.parseColor("#3A3A4E"),
-            Color.parseColor("#2A2A3E")
+        cancelBg.setColors(new int[] {
+                Color.parseColor("#3A3A4E"),
+                Color.parseColor("#2A2A3E")
         });
         cancelBg.setOrientation(android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM);
         cancelBg.setStroke(2, Color.parseColor("#66FFFFFF"));
@@ -4527,17 +4611,17 @@ public class MainActivity extends Activity {
         btnDelete.setTypeface(android.graphics.Typeface.create("sans-serif-black", android.graphics.Typeface.BOLD));
         btnDelete.setGravity(android.view.Gravity.CENTER);
         LinearLayout.LayoutParams deleteParams = new LinearLayout.LayoutParams(
-            0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
         deleteParams.setMargins(8, 0, 0, 0);
         btnDelete.setLayoutParams(deleteParams);
         btnDelete.setPadding(0, 36, 0, 36);
-        
+
         android.graphics.drawable.GradientDrawable deleteBg = new android.graphics.drawable.GradientDrawable();
         deleteBg.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
         deleteBg.setCornerRadius(20);
-        deleteBg.setColors(new int[]{
-            Color.parseColor("#FF4444"),
-            Color.parseColor("#CC0000")
+        deleteBg.setColors(new int[] {
+                Color.parseColor("#FF4444"),
+                Color.parseColor("#CC0000")
         });
         deleteBg.setOrientation(android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM);
         deleteBg.setStroke(2, Color.parseColor("#FFFF4444"));
@@ -4551,39 +4635,39 @@ public class MainActivity extends Activity {
         android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
         builder.setView(mainLayout);
         builder.setCancelable(true);
-        
+
         android.app.AlertDialog dialog = builder.create();
-        
+
         // Buton animasyonları ve click listener'lar
         btnCancel.setOnClickListener(v -> {
             vibrateFeedback();
             animateButtonClick(v);
             new android.os.Handler(Looper.getMainLooper()).postDelayed(dialog::dismiss, 100);
         });
-        
+
         btnDelete.setOnClickListener(v -> {
             // Çift titreşim (tehlike uyarısı)
             vibrateFeedback();
             new android.os.Handler(Looper.getMainLooper()).postDelayed(() -> vibrateFeedback(), 100);
-            
+
             animateButtonClick(v);
-            
+
             // Silme animasyonu (daha dramatik)
             iconText.animate()
-                .scaleX(1.5f)
-                .scaleY(1.5f)
-                .rotation(360f)
-                .alpha(0f)
-                .setDuration(300)
-                .start();
-            
+                    .scaleX(1.5f)
+                    .scaleY(1.5f)
+                    .rotation(360f)
+                    .alpha(0f)
+                    .setDuration(300)
+                    .start();
+
             statsCount.animate()
-                .scaleX(0.5f)
-                .scaleY(0.5f)
-                .alpha(0f)
-                .setDuration(300)
-                .start();
-            
+                    .scaleX(0.5f)
+                    .scaleY(0.5f)
+                    .alpha(0f)
+                    .setDuration(300)
+                    .start();
+
             new android.os.Handler(Looper.getMainLooper()).postDelayed(() -> {
                 dialog.dismiss();
                 if (onConfirm != null) {
@@ -4591,43 +4675,43 @@ public class MainActivity extends Activity {
                 }
             }, 300);
         });
-        
+
         // Dialog arka planını şeffaf yap
         if (dialog.getWindow() != null) {
             dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
         }
-        
+
         dialog.show();
-        
+
         // Giriş animasyonu (daha dramatik)
         mainLayout.setScaleX(0.8f);
         mainLayout.setScaleY(0.8f);
         mainLayout.setAlpha(0f);
         mainLayout.animate()
-            .scaleX(1f)
-            .scaleY(1f)
-            .alpha(1f)
-            .setDuration(350)
-            .setInterpolator(new android.view.animation.OvershootInterpolator(1.2f))
-            .start();
-        
+                .scaleX(1f)
+                .scaleY(1f)
+                .alpha(1f)
+                .setDuration(350)
+                .setInterpolator(new android.view.animation.OvershootInterpolator(1.2f))
+                .start();
+
         // İkon nabız animasyonu (daha hızlı ve belirgin)
         android.animation.ObjectAnimator iconPulse = android.animation.ObjectAnimator.ofFloat(
-            iconBg, "scaleX", 1f, 1.15f, 1f);
+                iconBg, "scaleX", 1f, 1.15f, 1f);
         android.animation.ObjectAnimator iconPulseY = android.animation.ObjectAnimator.ofFloat(
-            iconBg, "scaleY", 1f, 1.15f, 1f);
+                iconBg, "scaleY", 1f, 1.15f, 1f);
         iconPulse.setDuration(800);
         iconPulseY.setDuration(800);
         iconPulse.setRepeatCount(android.animation.ObjectAnimator.INFINITE);
         iconPulseY.setRepeatCount(android.animation.ObjectAnimator.INFINITE);
         iconPulse.start();
         iconPulseY.start();
-        
+
         // Sayı nabız animasyonu
         android.animation.ObjectAnimator countPulse = android.animation.ObjectAnimator.ofFloat(
-            statsCount, "scaleX", 1f, 1.05f, 1f);
+                statsCount, "scaleX", 1f, 1.05f, 1f);
         android.animation.ObjectAnimator countPulseY = android.animation.ObjectAnimator.ofFloat(
-            statsCount, "scaleY", 1f, 1.05f, 1f);
+                statsCount, "scaleY", 1f, 1.05f, 1f);
         countPulse.setDuration(1200);
         countPulseY.setDuration(1200);
         countPulse.setRepeatCount(android.animation.ObjectAnimator.INFINITE);
@@ -4640,7 +4724,8 @@ public class MainActivity extends Activity {
      * Mesajı yerel hafızaya kaydeder.
      */
     private void saveToHistory(String sender, String message) {
-        addLog("[GEÇMİŞ] Kaydediliyor: " + sender + " -> " + (message.length() > 30 ? message.substring(0, 30) + "..." : message));
+        addLog("[GEÇMİŞ] Kaydediliyor: " + sender + " -> "
+                + (message.length() > 30 ? message.substring(0, 30) + "..." : message));
         // Boş veya çok kısa mesajları kaydetme
         if (message == null || message.trim().isEmpty() || message.trim().length() < 2) {
             return;
@@ -4699,12 +4784,12 @@ public class MainActivity extends Activity {
                 try {
                     String currentHistory = historyPrefs.getString("data", "[]");
                     JSONArray historyArray = new JSONArray(currentHistory);
-                    
+
                     // Statistics hesaplama
                     int totalMessages = historyArray.length();
                     int todayCount = 0;
                     int thisWeekCount = 0;
-                    
+
                     // Bugünün ve bu haftanın tarihi
                     SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
                     String todayDate = dateFormat.format(new Date());
@@ -4716,19 +4801,20 @@ public class MainActivity extends Activity {
                     for (int i = 0; i < historyArray.length(); i++) {
                         JSONObject entry = historyArray.getJSONObject(i);
                         String entryDate = entry.optString("date", "");
-                        
+
                         if (entryDate.equals(todayDate)) {
                             todayCount++;
                         }
-                        
+
                         try {
                             Date parsedDate = dateFormat.parse(entryDate);
                             if (parsedDate != null && parsedDate.after(weekAgo)) {
                                 thisWeekCount++;
                             }
-                        } catch (Exception ignored) {}
+                        } catch (Exception ignored) {
+                        }
                     }
-                    
+
                     // İstatistik kartlarını güncelle
                     final int finalTodayCount = todayCount;
                     final int finalThisWeekCount = thisWeekCount;
@@ -4739,9 +4825,12 @@ public class MainActivity extends Activity {
                             animateNumberCount(txtStatThisWeek, finalThisWeekCount);
                             animateNumberCount(txtStatToday, finalTodayCount);
                         } else {
-                            if (txtStatTotalChats != null) txtStatTotalChats.setText(String.valueOf(totalMessages));
-                            if (txtStatThisWeek != null) txtStatThisWeek.setText(String.valueOf(finalThisWeekCount));
-                            if (txtStatToday != null) txtStatToday.setText(String.valueOf(finalTodayCount));
+                            if (txtStatTotalChats != null)
+                                txtStatTotalChats.setText(String.valueOf(totalMessages));
+                            if (txtStatThisWeek != null)
+                                txtStatThisWeek.setText(String.valueOf(finalThisWeekCount));
+                            if (txtStatToday != null)
+                                txtStatToday.setText(String.valueOf(finalTodayCount));
                         }
                     });
 
@@ -4755,10 +4844,6 @@ public class MainActivity extends Activity {
                         });
                         return;
                     }
-
-
-
-
 
                     String lastDate = "";
                     int visibleCount = 0;
@@ -4779,7 +4864,8 @@ public class MainActivity extends Activity {
 
                         boolean isPair = false;
                         // Eğer mevcut mesaj "Ben" ise ve sonraki "Niko" ise, bu bir çifttir.
-                        if (sender.equalsIgnoreCase("Ben") && nextEntry != null && nextEntry.getString("sender").equalsIgnoreCase("Niko")) {
+                        if (sender.equalsIgnoreCase("Ben") && nextEntry != null
+                                && nextEntry.getString("sender").equalsIgnoreCase("Niko")) {
                             isPair = true;
                         }
 
@@ -4800,7 +4886,8 @@ public class MainActivity extends Activity {
                             }
 
                             if (!matchFound) {
-                                if (isPair) i++; // Çifti tamamen atla
+                                if (isPair)
+                                    i++; // Çifti tamamen atla
                                 continue;
                             }
                         }
@@ -4808,7 +4895,7 @@ public class MainActivity extends Activity {
                         visibleCount++;
                         final int index = i; // Soru dizini (silme işlemi için referans)
                         final String filterText = finalFilter;
-                        
+
                         // Tarih başlığı
                         if (!currentDate.equals(lastDate) && !currentDate.isEmpty()) {
                             String dateToShow = currentDate;
@@ -4821,7 +4908,8 @@ public class MainActivity extends Activity {
                         if (isPair) {
                             // Çift olarak ekle
                             final JSONObject finalNextEntry = nextEntry;
-                            runOnUiThread(() -> addHistoryPairToUI(entry, finalNextEntry, displayTime, index, filterText));
+                            runOnUiThread(
+                                    () -> addHistoryPairToUI(entry, finalNextEntry, displayTime, index, filterText));
                             i++; // Sonraki mesajı (Niko) işlenmiş say ve atla
                         } else {
                             // Tekil mesaj olarak ekle (Eski usul)
@@ -4864,26 +4952,27 @@ public class MainActivity extends Activity {
     private void animateItemEntry(View view, int index) {
         // Her öğe için artan bir gecikme ekle (Maksimum 10 öğe için kademeli)
         long delay = Math.min(index, 10) * 50L;
-        
+
         view.setAlpha(0f);
         view.setTranslationY(100f);
-        
+
         view.animate()
-            .alpha(1f)
-            .translationY(0f)
-            .setDuration(400)
-            .setStartDelay(delay)
-            .setInterpolator(new android.view.animation.DecelerateInterpolator())
-            .start();
+                .alpha(1f)
+                .translationY(0f)
+                .setDuration(400)
+                .setStartDelay(delay)
+                .setInterpolator(new android.view.animation.DecelerateInterpolator())
+                .start();
     }
 
     /**
      * İstatistik kartları için kademeli giriş animasyonu.
      */
     private void animateStatsCards() {
-        if (cardStatTotal == null || cardStatWeekly == null || cardStatToday == null) return;
+        if (cardStatTotal == null || cardStatWeekly == null || cardStatToday == null)
+            return;
 
-        View[] cards = {cardStatTotal, cardStatWeekly, cardStatToday};
+        View[] cards = { cardStatTotal, cardStatWeekly, cardStatToday };
         for (int i = 0; i < cards.length; i++) {
             View card = cards[i];
             card.setAlpha(0f);
@@ -4892,14 +4981,14 @@ public class MainActivity extends Activity {
             card.setTranslationY(50f);
 
             card.animate()
-                .alpha(1f)
-                .scaleX(1.0f)
-                .scaleY(1.0f)
-                .translationY(0f)
-                .setDuration(500)
-                .setStartDelay(i * 100L)
-                .setInterpolator(new android.view.animation.OvershootInterpolator(1.4f))
-                .start();
+                    .alpha(1f)
+                    .scaleX(1.0f)
+                    .scaleY(1.0f)
+                    .translationY(0f)
+                    .setDuration(500)
+                    .setStartDelay(i * 100L)
+                    .setInterpolator(new android.view.animation.OvershootInterpolator(1.4f))
+                    .start();
         }
     }
 
@@ -4907,8 +4996,9 @@ public class MainActivity extends Activity {
      * Sayıların 0'dan hedef değere kadar sayma animasyonu.
      */
     private void animateNumberCount(TextView target, int finalValue) {
-        if (target == null) return;
-        
+        if (target == null)
+            return;
+
         android.animation.ValueAnimator animator = android.animation.ValueAnimator.ofInt(0, finalValue);
         animator.setDuration(1200);
         animator.addUpdateListener(animation -> target.setText(animation.getAnimatedValue().toString()));
@@ -4937,7 +5027,7 @@ public class MainActivity extends Activity {
         set.addAnimation(slide);
         set.addAnimation(fade);
         set.addAnimation(scale);
-        
+
         layoutHistory.startAnimation(set);
     }
 
@@ -5041,8 +5131,6 @@ public class MainActivity extends Activity {
         }
     }
 
-
-
     /**
      * Tek bir geçmiş öğesini arayüz (UI) içine ekler.
      */
@@ -5058,7 +5146,7 @@ public class MainActivity extends Activity {
         itemLayout.setLayoutParams(cardParams);
         itemLayout.setClickable(true);
         itemLayout.setFocusable(true);
-        
+
         // Add entry animation
         animateItemEntry(itemLayout, index);
 
@@ -5162,36 +5250,37 @@ public class MainActivity extends Activity {
                 Toast.makeText(this, "Niko'nun cevabı kopyalandı", Toast.LENGTH_SHORT).show();
             });
 
-            // Uzun basınca sil (Dizin sorunun dizinidir, silme mantığı ikisini de silmeli mi?
+            // Uzun basınca sil (Dizin sorunun dizinidir, silme mantığı ikisini de silmeli
+            // mi?
             // deleteSingleHistoryItem sadece bir item siliyor.
             // Eğer çifti silmek istiyorsak, ardışık iki item silmeliyiz.
             // Bu yüzden özel bir silme mantığı gerekebilir veya kullanıcıya sorulabilir.
-            // Şimdilik sadece soruyu (ve dolayısıyla kaymayı) tetikleyeceği için dikkatli olunmalı.
+            // Şimdilik sadece soruyu (ve dolayısıyla kaymayı) tetikleyeceği için dikkatli
+            // olunmalı.
             // En iyisi tek tek silmek yerine "Bu konuşmayı sil" demek.
             itemLayout.setOnLongClickListener(v -> {
                 vibrateFeedback();
-                
+
                 // Mesaj önizlemesi hazırla
                 try {
                     String previewText = userMsg;
                     if (previewText.length() > 40) {
                         previewText = previewText.substring(0, 37) + "...";
                     }
-                    
+
                     final String finalPreview = previewText;
-                    
+
                     // Premium iletişim kutusu göster
                     showPremiumDeleteDialog(
-                        "Anıyı Sil",
-                        "Bu konuşma geçmişten silinsin mi?",
-                        finalPreview,
-                        () -> deleteHistoryPair(index)
-                    );
+                            "Anıyı Sil",
+                            "Bu konuşma geçmişten silinsin mi?",
+                            finalPreview,
+                            () -> deleteHistoryPair(index));
                 } catch (Exception e) {
                     // Hata durumunda basit iletişim kutusu
                     deleteHistoryPair(index);
                 }
-                
+
                 return true;
             });
 
@@ -5199,7 +5288,7 @@ public class MainActivity extends Activity {
             RelativeLayout header = new RelativeLayout(this);
             header.setLayoutParams(new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-            
+
             TextView txtTime = new TextView(this);
             txtTime.setText(time);
             txtTime.setTextColor(Color.parseColor("#4DFFFFFF"));
@@ -5219,7 +5308,8 @@ public class MainActivity extends Activity {
             txtUserLabel.setTextSize(10);
             txtUserLabel.setAllCaps(true);
             txtUserLabel.setLetterSpacing(0.2f);
-            txtUserLabel.setTypeface(android.graphics.Typeface.create("sans-serif-black", android.graphics.Typeface.NORMAL));
+            txtUserLabel.setTypeface(
+                    android.graphics.Typeface.create("sans-serif-black", android.graphics.Typeface.NORMAL));
             itemLayout.addView(txtUserLabel);
 
             TextView txtUserMsg = new TextView(this);
@@ -5230,7 +5320,8 @@ public class MainActivity extends Activity {
                 int start = lowerMsg.indexOf(filter);
                 while (start >= 0) {
                     int end = start + filter.length();
-                    spannable.setSpan(new BackgroundColorSpan(Color.parseColor("#6600E5FF")), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    spannable.setSpan(new BackgroundColorSpan(Color.parseColor("#6600E5FF")), start, end,
+                            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                     start = lowerMsg.indexOf(filter, end);
                 }
                 txtUserMsg.setText(spannable);
@@ -5259,7 +5350,8 @@ public class MainActivity extends Activity {
             txtAiLabel.setTextSize(10);
             txtAiLabel.setAllCaps(true);
             txtAiLabel.setLetterSpacing(0.2f);
-            txtAiLabel.setTypeface(android.graphics.Typeface.create("sans-serif-black", android.graphics.Typeface.NORMAL));
+            txtAiLabel.setTypeface(
+                    android.graphics.Typeface.create("sans-serif-black", android.graphics.Typeface.NORMAL));
             itemLayout.addView(txtAiLabel);
 
             TextView txtAiMsg = new TextView(this);
@@ -5270,7 +5362,8 @@ public class MainActivity extends Activity {
                 int start = lowerMsg.indexOf(filter);
                 while (start >= 0) {
                     int end = start + filter.length();
-                    spannable.setSpan(new BackgroundColorSpan(Color.parseColor("#6600E5FF")), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    spannable.setSpan(new BackgroundColorSpan(Color.parseColor("#6600E5FF")), start, end,
+                            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                     start = lowerMsg.indexOf(filter, end);
                 }
                 txtAiMsg.setText(spannable);
@@ -5300,16 +5393,17 @@ public class MainActivity extends Activity {
                 try {
                     String latestHistory = historyPrefs.getString("data", "[]");
                     JSONArray latestArray = new JSONArray(latestHistory);
-                    
-                    if (index < 0 || index + 1 >= latestArray.length()) return;
+
+                    if (index < 0 || index + 1 >= latestArray.length())
+                        return;
 
                     if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.KITKAT) {
                         latestArray.remove(index + 1); // Cevabı sil
-                        latestArray.remove(index);     // Soruyu sil
+                        latestArray.remove(index); // Soruyu sil
                     } else {
                         JSONArray newArray = new JSONArray();
-                        for (int i=0; i<latestArray.length(); i++) {
-                            if (i != index && i != index+1) {
+                        for (int i = 0; i < latestArray.length(); i++) {
+                            if (i != index && i != index + 1) {
                                 newArray.put(latestArray.get(i));
                             }
                         }
@@ -5317,7 +5411,7 @@ public class MainActivity extends Activity {
                     }
 
                     historyPrefs.edit().putString("data", latestArray.toString()).apply();
-                    
+
                     runOnUiThread(() -> {
                         String searchText = (edtHistorySearch != null) ? edtHistorySearch.getText().toString() : "";
                         showHistory(searchText);
@@ -5352,43 +5446,45 @@ public class MainActivity extends Activity {
                 String finalSnippet = messageSnippet;
                 runOnUiThread(() -> {
                     showPremiumDeleteDialog(
-                        "Mesajı Sil",
-                        "Bu mesajı geçmişten silmek istiyor musunuz?",
-                        finalSnippet,
-                        () -> {
-                            // Silme işlemi
-                            new Thread(() -> {
-                                synchronized (historyLock) {
-                                    try {
-                                        String latestHistory = historyPrefs.getString("data", "[]");
-                                        JSONArray latestArray = new JSONArray(latestHistory);
+                            "Mesajı Sil",
+                            "Bu mesajı geçmişten silmek istiyor musunuz?",
+                            finalSnippet,
+                            () -> {
+                                // Silme işlemi
+                                new Thread(() -> {
+                                    synchronized (historyLock) {
+                                        try {
+                                            String latestHistory = historyPrefs.getString("data", "[]");
+                                            JSONArray latestArray = new JSONArray(latestHistory);
 
-                                        if (index >= 0 && index < latestArray.length()) {
-                                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-                                                latestArray.remove(index);
-                                            } else {
-                                                JSONArray newList = new JSONArray();
-                                                for (int i = 0; i < latestArray.length(); i++) {
-                                                    if (i != index)
-                                                        newList.put(latestArray.get(i));
+                                            if (index >= 0 && index < latestArray.length()) {
+                                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                                                    latestArray.remove(index);
+                                                } else {
+                                                    JSONArray newList = new JSONArray();
+                                                    for (int i = 0; i < latestArray.length(); i++) {
+                                                        if (i != index)
+                                                            newList.put(latestArray.get(i));
+                                                    }
+                                                    latestArray = newList;
                                                 }
-                                                latestArray = newList;
-                                            }
-                                            historyPrefs.edit().putString("data", latestArray.toString()).apply();
+                                                historyPrefs.edit().putString("data", latestArray.toString()).apply();
 
-                                            runOnUiThread(() -> {
-                                                String searchText = (edtHistorySearch != null) ? edtHistorySearch.getText().toString() : "";
-                                                showHistory(searchText);
-                                                Toast.makeText(MainActivity.this, "Mesaj silindi", Toast.LENGTH_SHORT).show();
-                                            });
+                                                runOnUiThread(() -> {
+                                                    String searchText = (edtHistorySearch != null)
+                                                            ? edtHistorySearch.getText().toString()
+                                                            : "";
+                                                    showHistory(searchText);
+                                                    Toast.makeText(MainActivity.this, "Mesaj silindi",
+                                                            Toast.LENGTH_SHORT).show();
+                                                });
+                                            }
+                                        } catch (Exception e) {
+                                            e.printStackTrace();
                                         }
-                                    } catch (Exception e) {
-                                        e.printStackTrace();
                                     }
-                                }
-                            }).start();
-                        }
-                    );
+                                }).start();
+                            });
                 });
             } catch (Exception e) {
                 e.printStackTrace();
@@ -5408,7 +5504,7 @@ public class MainActivity extends Activity {
         }
 
         int totalCount = getHistoryCount();
-        
+
         // Premium iletişim kutusu göster
         showPremiumClearAllDialog(totalCount, () -> {
             // Veri güvenliği için kilitleme kullan
@@ -5424,9 +5520,12 @@ public class MainActivity extends Activity {
                     layoutHistoryEmpty.setVisibility(View.VISIBLE);
                 }
                 // İstatistik kartlarını sıfırla
-                if (txtStatTotalChats != null) txtStatTotalChats.setText("0");
-                if (txtStatThisWeek != null) txtStatThisWeek.setText("0");
-                if (txtStatToday != null) txtStatToday.setText("0");
+                if (txtStatTotalChats != null)
+                    txtStatTotalChats.setText("0");
+                if (txtStatThisWeek != null)
+                    txtStatThisWeek.setText("0");
+                if (txtStatToday != null)
+                    txtStatToday.setText("0");
                 if (txtHistoryStats != null) {
                     txtHistoryStats.setText("SENKRONİZE • 0 KAYIT");
                 }
@@ -5436,7 +5535,8 @@ public class MainActivity extends Activity {
     }
 
     /**
-     * Sohbet geçmişini dışa aktarır (Panoya kopyalar ve/veya dosya olarak kaydeder).
+     * Sohbet geçmişini dışa aktarır (Panoya kopyalar ve/veya dosya olarak
+     * kaydeder).
      */
     private void exportHistory() {
         addLog("[GEÇMİŞ] Dışa aktarma başlatıldı.");
@@ -5447,7 +5547,8 @@ public class MainActivity extends Activity {
                     JSONArray historyArray = new JSONArray(currentHistory);
 
                     if (historyArray.length() == 0) {
-                        runOnUiThread(() -> Toast.makeText(this, "Dışa aktarılacak geçmiş bulunamadı.", Toast.LENGTH_SHORT).show());
+                        runOnUiThread(() -> Toast
+                                .makeText(this, "Dışa aktarılacak geçmiş bulunamadı.", Toast.LENGTH_SHORT).show());
                         return;
                     }
 
@@ -5486,63 +5587,65 @@ public class MainActivity extends Activity {
                         ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
                         ClipData clip = ClipData.newPlainText("niko_chat_export", exportString);
                         clipboard.setPrimaryClip(clip);
-                        Toast.makeText(this, "📋 Geçmiş panoya kopyalandı! (" + historyArray.length() + " mesaj)", Toast.LENGTH_LONG).show();
+                        Toast.makeText(this, "📋 Geçmiş panoya kopyalandı! (" + historyArray.length() + " mesaj)",
+                                Toast.LENGTH_LONG).show();
                     });
 
                 } catch (Exception e) {
                     e.printStackTrace();
-                    runOnUiThread(() -> Toast.makeText(this, "Dışa aktarma başarısız oldu.", Toast.LENGTH_SHORT).show());
+                    runOnUiThread(
+                            () -> Toast.makeText(this, "Dışa aktarma başarısız oldu.", Toast.LENGTH_SHORT).show());
                 }
             }
         }).start();
     }
 
     // ================= MODEL SEÇİMİ =================
-    
+
     /**
      * Model panelinin açılış animasyonu.
      */
     private void animateModelsEntry() {
         layoutModels.setAlpha(0f);
         layoutModels.setScaleY(0.9f);
-        
+
         // Yukarıdan aşağı kaydırma + geçiş
         layoutModels.animate()
-            .alpha(1f)
-            .scaleY(1f)
-            .setDuration(400)
-            .setInterpolator(new android.view.animation.OvershootInterpolator(1.1f))
-            .start();
-        
+                .alpha(1f)
+                .scaleY(1f)
+                .setDuration(400)
+                .setInterpolator(new android.view.animation.OvershootInterpolator(1.1f))
+                .start();
+
         // Başlık animasyonu
         if (txtCurrentModel != null) {
             txtCurrentModel.setAlpha(0f);
             txtCurrentModel.setTranslationY(-30);
             txtCurrentModel.animate()
-                .alpha(1f)
-                .translationY(0)
-                .setStartDelay(100)
-                .setDuration(350)
-                .start();
+                    .alpha(1f)
+                    .translationY(0)
+                    .setStartDelay(100)
+                    .setDuration(350)
+                    .start();
         }
     }
-    
+
     /**
      * Model panelinin kapanış animasyonu.
      */
     private void animateModelsExit() {
         layoutModels.animate()
-            .alpha(0f)
-            .scaleY(0.95f)
-            .setDuration(300)
-            .setInterpolator(new android.view.animation.AccelerateInterpolator())
-            .withEndAction(() -> {
-                layoutModels.setVisibility(View.GONE);
-                layoutModels.setScaleY(1f);
-            })
-            .start();
+                .alpha(0f)
+                .scaleY(0.95f)
+                .setDuration(300)
+                .setInterpolator(new android.view.animation.AccelerateInterpolator())
+                .withEndAction(() -> {
+                    layoutModels.setVisibility(View.GONE);
+                    layoutModels.setScaleY(1f);
+                })
+                .start();
     }
-    
+
     /**
      * Model seçim animasyonu.
      */
@@ -5550,186 +5653,193 @@ public class MainActivity extends Activity {
         // Tüm model kartlarını gözden geçir
         for (int i = 0; i < containerModelItems.getChildCount(); i++) {
             View child = containerModelItems.getChildAt(i);
-            
+
             if (child == selectedView) {
                 // Seçilen kart - Büyüt ve vurgula
                 child.animate()
-                    .scaleX(1.05f)
-                    .scaleY(1.05f)
-                    .setDuration(200)
-                    .withEndAction(() -> {
-                        child.animate()
-                            .scaleX(1f)
-                            .scaleY(1f)
-                            .setDuration(200)
-                            .start();
-                    })
-                    .start();
-                
+                        .scaleX(1.05f)
+                        .scaleY(1.05f)
+                        .setDuration(200)
+                        .withEndAction(() -> {
+                            child.animate()
+                                    .scaleX(1f)
+                                    .scaleY(1f)
+                                    .setDuration(200)
+                                    .start();
+                        })
+                        .start();
+
                 // Renk geçişi animasyonu
                 if (child instanceof LinearLayout) {
                     LinearLayout layout = (LinearLayout) child;
                     if (layout.getChildCount() > 0 && layout.getChildAt(0) instanceof TextView) {
                         TextView title = (TextView) layout.getChildAt(0);
-                        
+
                         android.animation.ValueAnimator colorAnim = android.animation.ValueAnimator.ofArgb(
-                            Color.WHITE, Color.parseColor("#00E5FF"));
+                                Color.WHITE, Color.parseColor("#00E5FF"));
                         colorAnim.setDuration(300);
                         colorAnim.addUpdateListener(animator -> {
                             try {
                                 title.setTextColor((int) animator.getAnimatedValue());
-                            } catch (Exception ignored) {}
+                            } catch (Exception ignored) {
+                            }
                         });
                         colorAnim.start();
                     }
                 }
-                
+
             } else {
                 // Seçilmeyen kartlar - Hafif küçült ve soldur
                 child.animate()
-                    .alpha(0.5f)
-                    .scaleX(0.95f)
-                    .scaleY(0.95f)
-                    .setDuration(200)
-                    .start();
+                        .alpha(0.5f)
+                        .scaleX(0.95f)
+                        .scaleY(0.95f)
+                        .setDuration(200)
+                        .start();
             }
         }
-        
+
         // Seçim işlemini gerçekleştir
         new android.os.Handler(Looper.getMainLooper()).postDelayed(() -> {
             selectModel(modelName);
         }, 300);
     }
-    
+
     /**
      * Seçili model için parlama animasyonu.
      * Optimize edildi - Tek animatör, düşük İşlemci.
      */
     private void animateSelectedModelGlow(View modelCard) {
-        if (modelCard == null) return;
-        
+        if (modelCard == null)
+            return;
+
         // Önceki animasyonu iptal et
         cancelAnimation(ANIM_MODEL_GLOW);
-        
+
         android.animation.ObjectAnimator glow = android.animation.ObjectAnimator.ofFloat(
-            modelCard, "alpha", 1f, 0.85f, 1f);
+                modelCard, "alpha", 1f, 0.85f, 1f);
         glow.setDuration(1500);
         glow.setRepeatCount(android.animation.ObjectAnimator.INFINITE);
         glow.setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator());
-        
+
         // Animasyonu kaydet
         activeAnimations.put(ANIM_MODEL_GLOW, glow);
         glow.start();
     }
-    
+
     /**
      * Model değişikliği başarı animasyonu.
      */
     private void animateModelChangeSuccess() {
-        if (txtCurrentModel == null) return;
-        
+        if (txtCurrentModel == null)
+            return;
+
         // Başlık için başarı animasyonu
         int originalColor = Color.WHITE;
         int successColor = Color.parseColor("#4CAF50");
-        
+
         android.animation.ValueAnimator colorAnim = android.animation.ValueAnimator.ofArgb(
-            originalColor, successColor, originalColor);
+                originalColor, successColor, originalColor);
         colorAnim.setDuration(600);
         colorAnim.addUpdateListener(animator -> {
             try {
                 txtCurrentModel.setTextColor((int) animator.getAnimatedValue());
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+            }
         });
         colorAnim.start();
-        
+
         // Ölçek nabzı
         txtCurrentModel.animate()
-            .scaleX(1.1f)
-            .scaleY(1.1f)
-            .setDuration(200)
-            .withEndAction(() -> {
-                txtCurrentModel.animate()
-                    .scaleX(1f)
-                    .scaleY(1f)
-                    .setDuration(200)
-                    .start();
-            })
-            .start();
-        
+                .scaleX(1.1f)
+                .scaleY(1.1f)
+                .setDuration(200)
+                .withEndAction(() -> {
+                    txtCurrentModel.animate()
+                            .scaleX(1f)
+                            .scaleY(1f)
+                            .setDuration(200)
+                            .start();
+                })
+                .start();
+
         // Ana ekrandaki etiketi de animasyonla güncelle
         if (txtMainActiveModel != null) {
             txtMainActiveModel.setAlpha(0f);
             txtMainActiveModel.setScaleX(0.8f);
             txtMainActiveModel.setScaleY(0.8f);
-            
+
             txtMainActiveModel.animate()
-                .alpha(1f)
-                .scaleX(1f)
-                .scaleY(1f)
-                .setDuration(400)
-                .setInterpolator(new android.view.animation.OvershootInterpolator(1.5f))
-                .start();
+                    .alpha(1f)
+                    .scaleX(1f)
+                    .scaleY(1f)
+                    .setDuration(400)
+                    .setInterpolator(new android.view.animation.OvershootInterpolator(1.5f))
+                    .start();
         }
-        
+
         // Başarı konfeti efekti (hafif)
         animateModelChangeConfetti();
     }
-    
+
     /**
      * Model değişikliği için hafif konfeti efekti.
      * Optimize edildi - Daha az parçacık, donanım hızlandırma.
      */
     private void animateModelChangeConfetti() {
-        if (layoutModels == null || !(layoutModels instanceof android.view.ViewGroup)) return;
-        
+        if (layoutModels == null || !(layoutModels instanceof android.view.ViewGroup))
+            return;
+
         final android.view.ViewGroup container = (android.view.ViewGroup) layoutModels;
         int screenWidth = getResources().getDisplayMetrics().widthPixels;
-        
+
         // Parçacık sayısını azalt (10 → 6)
         final int particleCount = 6;
         final int[] colors = {
-            Color.parseColor("#00E5FF"),
-            Color.parseColor("#4CAF50"),
-            Color.parseColor("#FFD700")
+                Color.parseColor("#00E5FF"),
+                Color.parseColor("#4CAF50"),
+                Color.parseColor("#FFD700")
         };
-        
+
         for (int i = 0; i < particleCount; i++) {
             View particle = new View(this);
             int size = (int) (Math.random() * 10 + 6); // 6-16px (daha küçük)
             particle.setLayoutParams(new android.widget.FrameLayout.LayoutParams(size, size));
             particle.setBackgroundColor(colors[(int) (Math.random() * colors.length)]);
-            
+
             float startX = (float) (Math.random() * screenWidth);
             particle.setX(startX);
             particle.setY(-30);
             particle.setAlpha(0f);
             particle.setLayerType(View.LAYER_TYPE_HARDWARE, null);
-            
+
             try {
                 container.addView(particle);
-                
+
                 float endY = 250 + (float) (Math.random() * 150); // Daha kısa mesafe
                 float endX = startX + (float) ((Math.random() - 0.5) * 120);
-                
+
                 particle.animate()
-                    .alpha(1f)
-                    .y(endY)
-                    .x(endX)
-                    .rotation((float) (Math.random() * 360))
-                    .setDuration((long) (Math.random() * 500 + 600)) // 600-1100ms (daha hızlı)
-                    .setStartDelay((long) (Math.random() * 150))
-                    .setInterpolator(new android.view.animation.AccelerateInterpolator())
-                    .withEndAction(() -> {
-                        try {
-                            particle.setLayerType(View.LAYER_TYPE_NONE, null);
-                            container.removeView(particle);
-                        } catch (Exception ignored) {}
-                    })
-                    .start();
-            } catch (Exception ignored) {}
+                        .alpha(1f)
+                        .y(endY)
+                        .x(endX)
+                        .rotation((float) (Math.random() * 360))
+                        .setDuration((long) (Math.random() * 500 + 600)) // 600-1100ms (daha hızlı)
+                        .setStartDelay((long) (Math.random() * 150))
+                        .setInterpolator(new android.view.animation.AccelerateInterpolator())
+                        .withEndAction(() -> {
+                            try {
+                                particle.setLayerType(View.LAYER_TYPE_NONE, null);
+                                container.removeView(particle);
+                            } catch (Exception ignored) {
+                            }
+                        })
+                        .start();
+            } catch (Exception ignored) {
+            }
         }
     }
-    
+
     private void showModels() {
         runOnUiThread(() -> {
             layoutModels.setVisibility(View.VISIBLE);
@@ -5772,7 +5882,7 @@ public class MainActivity extends Activity {
 
                     runOnUiThread(() -> {
                         containerModelItems.removeAllViews();
-                        
+
                         // Modelleri sırayla ekle (kademeli etki için)
                         for (int i = 0; i < models.length(); i++) {
                             try {
@@ -5795,7 +5905,7 @@ public class MainActivity extends Activity {
                                 new android.os.Handler(Looper.getMainLooper()).postDelayed(() -> {
                                     addModelItemToUI(modelName, index);
                                 }, index * 80L); // 80ms stagger
-                                
+
                             } catch (Exception e) {
                                 e.printStackTrace();
                             }
@@ -5927,7 +6037,7 @@ public class MainActivity extends Activity {
             // Sağ üst köşeye bir onay ikonu
             txtTitle.setCompoundDrawablesWithIntrinsicBounds(0, 0, android.R.drawable.checkbox_on_background, 0);
             txtTitle.setCompoundDrawablePadding(16);
-            
+
             // Seçili öğeye özel parlama animasyonu
             animateSelectedModelGlow(itemLayout);
         }
@@ -5937,27 +6047,26 @@ public class MainActivity extends Activity {
             animateModelSelection(v, modelName);
         });
 
-
         itemLayout.addView(txtTitle);
         itemLayout.addView(txtDesc);
-        
+
         // Giriş animasyonu
         itemLayout.setAlpha(0f);
         itemLayout.setTranslationY(50);
         itemLayout.setScaleX(0.9f);
         itemLayout.setScaleY(0.9f);
-        
+
         containerModelItems.addView(itemLayout);
-        
+
         // Animasyonu başlat
         itemLayout.animate()
-            .alpha(1f)
-            .translationY(0)
-            .scaleX(1f)
-            .scaleY(1f)
-            .setDuration(400)
-            .setInterpolator(new android.view.animation.DecelerateInterpolator())
-            .start();
+                .alpha(1f)
+                .translationY(0)
+                .scaleX(1f)
+                .scaleY(1f)
+                .setDuration(400)
+                .setInterpolator(new android.view.animation.DecelerateInterpolator())
+                .start();
     }
 
     /**
@@ -5972,7 +6081,7 @@ public class MainActivity extends Activity {
         txtMainActiveModel.setText(formatModelName(modelName));
 
         // speak("Model seçildi: " + modelName, false);
-        
+
         // Başarı animasyonu göster
         animateModelChangeSuccess();
 
@@ -6002,7 +6111,7 @@ public class MainActivity extends Activity {
             Uri imageUri = data.getData();
             try {
                 Bitmap bitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver(), imageUri);
-                
+
                 // Resmi makul bir boyuta küçült (Örn: 512x512)
                 int width = bitmap.getWidth();
                 int height = bitmap.getHeight();
@@ -6012,16 +6121,16 @@ public class MainActivity extends Activity {
                     matrix.postScale(scale, scale);
                     bitmap = Bitmap.createBitmap(bitmap, 0, 0, width, height, matrix, true);
                 }
-                
+
                 imgMainProfile.setImageBitmap(bitmap);
                 imgMainProfile.clearColorFilter(); // Yeni seçilen resimdeki filtreyi temizle
-                
+
                 // Base64'e çevir
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
                 bitmap.compress(Bitmap.CompressFormat.JPEG, 70, baos);
                 byte[] imageBytes = baos.toByteArray();
                 selectedImageBase64 = "data:image/jpeg;base64," + Base64.encodeToString(imageBytes, Base64.NO_WRAP);
-                
+
             } catch (Exception e) {
                 e.printStackTrace();
                 Toast.makeText(this, "Fotoğraf seçilemedi", Toast.LENGTH_SHORT).show();
@@ -6030,7 +6139,8 @@ public class MainActivity extends Activity {
     }
 
     /**
-     * GitHub üzerindeki BENİOKU (README) dosyasından güncel API adresini (URL) çeker ve günceller.
+     * GitHub üzerindeki BENİOKU (README) dosyasından güncel API adresini (URL)
+     * çeker ve günceller.
      * Bu sayede sunucu tünel adresi değişse bile uygulama otomatik ayak uydurur.
      */
     private void updateApiUrlFromGithub() {
@@ -6052,10 +6162,11 @@ public class MainActivity extends Activity {
                 reader.close();
 
                 String content = sb.toString();
-                // Regex: Güncel Tünel/API Adresi satırındaki parantez içindeki adresi (URL) bulur
+                // Regex: Güncel Tünel/API Adresi satırındaki parantez içindeki adresi (URL)
+                // bulur
                 Pattern pattern = Pattern.compile("Güncel (?:Tünel|API) Adresi:.*?\\((https?://[^\\)]+)\\)");
                 Matcher matcher = pattern.matcher(content);
-                
+
                 String latestUrl = null;
                 while (matcher.find()) {
                     latestUrl = matcher.group(1); // En son eşleşeni al (genelde en alttaki en günceldir)
@@ -6065,13 +6176,14 @@ public class MainActivity extends Activity {
                     final String fetchedUrl = latestUrl;
                     API_BASE_URL = fetchedUrl;
                     addLog("[CONFIG] API URL güncellendi (GitHub): " + fetchedUrl);
-                    
-                    // Yerel belleğe kaydet ki bir sonraki açılışta internet olmasa da en son adresi bilsin
+
+                    // Yerel belleğe kaydet ki bir sonraki açılışta internet olmasa da en son adresi
+                    // bilsin
                     getSharedPreferences("app_settings", MODE_PRIVATE)
                             .edit()
                             .putString("api_url", fetchedUrl)
                             .apply();
-                            
+
                 }
             } catch (Exception e) {
             }
@@ -6089,7 +6201,7 @@ public class MainActivity extends Activity {
      */
     private void checkForUpdates() {
         addLog("[UPDATE] Güncelleme kontrolü başlatılıyor...");
-        
+
         new Thread(() -> {
             try {
                 // 1. Önce version.json'dan sadece sürüm numarasını al
@@ -6107,7 +6219,8 @@ public class MainActivity extends Activity {
                 BufferedReader versionReader = new BufferedReader(new InputStreamReader(versionConn.getInputStream()));
                 StringBuilder versionSb = new StringBuilder();
                 String line;
-                while ((line = versionReader.readLine()) != null) versionSb.append(line);
+                while ((line = versionReader.readLine()) != null)
+                    versionSb.append(line);
                 versionReader.close();
 
                 JSONObject versionInfo = new JSONObject(versionSb.toString());
@@ -6158,7 +6271,8 @@ public class MainActivity extends Activity {
             BufferedReader releaseReader = new BufferedReader(new InputStreamReader(releaseConn.getInputStream()));
             StringBuilder releaseSb = new StringBuilder();
             String line;
-            while ((line = releaseReader.readLine()) != null) releaseSb.append(line);
+            while ((line = releaseReader.readLine()) != null)
+                releaseSb.append(line);
             releaseReader.close();
 
             JSONObject releaseInfo = new JSONObject(releaseSb.toString());
@@ -6192,7 +6306,6 @@ public class MainActivity extends Activity {
                 updateChangelog = "";
             }
 
-
             // APK dosyasının boyutunu bul (kaynaklar içinden)
             updateFileSize = 0;
             JSONArray assets = releaseInfo.optJSONArray("assets");
@@ -6208,7 +6321,8 @@ public class MainActivity extends Activity {
                 }
             }
 
-            addLog("[UPDATE] Detaylar alındı - Açıklama: " + updateDescription.substring(0, Math.min(50, updateDescription.length())) + "...");
+            addLog("[UPDATE] Detaylar alındı - Açıklama: "
+                    + updateDescription.substring(0, Math.min(50, updateDescription.length())) + "...");
             runOnUiThread(this::showPremiumUpdateDialog);
 
         } catch (Exception e) {
@@ -6226,41 +6340,42 @@ public class MainActivity extends Activity {
      * Başlıklar, bağlantılar, kalın/italik gibi biçimlendirmeleri kaldırır.
      */
     private String cleanMarkdown(String text) {
-        if (text == null || text.isEmpty()) return "";
-        
+        if (text == null || text.isEmpty())
+            return "";
+
         String cleaned = text;
-        
+
         // Başlıkları temizle (# ## ### vb.)
         cleaned = cleaned.replaceAll("(?m)^#+\\s*", "");
-        
+
         // Kalın ve italik işaretlerini temizle
         cleaned = cleaned.replaceAll("\\*\\*(.+?)\\*\\*", "$1");
         cleaned = cleaned.replaceAll("\\*(.+?)\\*", "$1");
         cleaned = cleaned.replaceAll("__(.+?)__", "$1");
         cleaned = cleaned.replaceAll("_(.+?)_", "$1");
-        
+
         // Bağlantıları temizle
         cleaned = cleaned.replaceAll("\\[(.+?)\\]\\(.+?\\)", "$1");
-        
+
         // Kod bloklarını temizle
         cleaned = cleaned.replaceAll("```[\\s\\S]*?```", "");
         cleaned = cleaned.replaceAll("`(.+?)`", "$1");
-        
+
         // Yatay çizgileri temizle (--- veya ***)
         cleaned = cleaned.replaceAll("(?m)^[-*]{3,}$", "");
-        
+
         // Resim etiketlerini temizle ![alt](url)
         cleaned = cleaned.replaceAll("!\\[.*?\\]\\(.*?\\)", "");
-        
+
         // Tablo işaretlerini temizle
         cleaned = cleaned.replaceAll("\\|", " ");
-        
+
         // Birden fazla boş satırı tek satıra indir
         cleaned = cleaned.replaceAll("\\n{3,}", "\n\n");
-        
+
         // Satır başındaki ve sonundaki boşlukları temizle
         cleaned = cleaned.trim();
-        
+
         return cleaned;
     }
 
@@ -6280,7 +6395,8 @@ public class MainActivity extends Activity {
             for (int i = 0; i < len; i++) {
                 int n1 = i < p1.length ? Integer.parseInt(p1[i].replaceAll("[^0-9]", "")) : 0;
                 int n2 = i < p2.length ? Integer.parseInt(p2[i].replaceAll("[^0-9]", "")) : 0;
-                if (n1 != n2) return n1 - n2;
+                if (n1 != n2)
+                    return n1 - n2;
             }
         } catch (Exception e) {
             return 0;
@@ -6291,7 +6407,8 @@ public class MainActivity extends Activity {
     /**
      * Premium tasarımlı güncelleme iletişim kutusu.
      * Modern, buzlu cam (glassmorphism) tarzı, animasyonlu.
-     * Ultra premium tasarım: nabız animasyonları, gradyan (geçişli) efektler, gölgeler.
+     * Ultra premium tasarım: nabız animasyonları, gradyan (geçişli) efektler,
+     * gölgeler.
      */
     private void showPremiumUpdateDialog() {
         String skipped = updatePrefs.getString("skipped_version", "");
@@ -6314,27 +6431,27 @@ public class MainActivity extends Activity {
         LinearLayout mainLayout = new LinearLayout(this);
         mainLayout.setOrientation(LinearLayout.VERTICAL);
         mainLayout.setPadding(56, 48, 56, 40);
-        
+
         // Premium Buzlu Cam (Glassmorphism) arka plan
         android.graphics.drawable.GradientDrawable bgGradient = new android.graphics.drawable.GradientDrawable();
         bgGradient.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
         bgGradient.setCornerRadius(40);
-        bgGradient.setColors(new int[]{
-            Color.parseColor("#1E1E32"),
-            Color.parseColor("#12121F"),
-            Color.parseColor("#0A0A14")
+        bgGradient.setColors(new int[] {
+                Color.parseColor("#1E1E32"),
+                Color.parseColor("#12121F"),
+                Color.parseColor("#0A0A14")
         });
         bgGradient.setOrientation(android.graphics.drawable.GradientDrawable.Orientation.TL_BR);
         bgGradient.setStroke(2, Color.parseColor("#2200E5FF"));
         mainLayout.setBackground(bgGradient);
-        
+
         // Elevation efekti
         mainLayout.setElevation(32);
 
         // ===== BAŞLIK BÖLÜMÜ =====
         android.widget.FrameLayout headerFrame = new android.widget.FrameLayout(this);
         LinearLayout.LayoutParams headerFrameParams = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         headerFrameParams.setMargins(0, 0, 0, 28);
         headerFrame.setLayoutParams(headerFrameParams);
 
@@ -6360,13 +6477,16 @@ public class MainActivity extends Activity {
         iconContainer.addView(glowRing);
 
         // Nabız animasyonu
-        android.animation.ObjectAnimator pulseAnimator = android.animation.ObjectAnimator.ofFloat(glowRing, "alpha", 1f, 0.3f, 1f);
+        android.animation.ObjectAnimator pulseAnimator = android.animation.ObjectAnimator.ofFloat(glowRing, "alpha", 1f,
+                0.3f, 1f);
         pulseAnimator.setDuration(2000);
         pulseAnimator.setRepeatCount(android.animation.ObjectAnimator.INFINITE);
         pulseAnimator.start();
-        
-        android.animation.ObjectAnimator scaleX = android.animation.ObjectAnimator.ofFloat(glowRing, "scaleX", 1f, 1.2f, 1f);
-        android.animation.ObjectAnimator scaleY = android.animation.ObjectAnimator.ofFloat(glowRing, "scaleY", 1f, 1.2f, 1f);
+
+        android.animation.ObjectAnimator scaleX = android.animation.ObjectAnimator.ofFloat(glowRing, "scaleX", 1f, 1.2f,
+                1f);
+        android.animation.ObjectAnimator scaleY = android.animation.ObjectAnimator.ofFloat(glowRing, "scaleY", 1f, 1.2f,
+                1f);
         scaleX.setDuration(2000);
         scaleY.setDuration(2000);
         scaleX.setRepeatCount(android.animation.ObjectAnimator.INFINITE);
@@ -6385,7 +6505,8 @@ public class MainActivity extends Activity {
         iconView.setTextColor(Color.WHITE);
         android.graphics.drawable.GradientDrawable iconBg = new android.graphics.drawable.GradientDrawable();
         iconBg.setShape(android.graphics.drawable.GradientDrawable.OVAL);
-        iconBg.setColors(new int[]{Color.parseColor("#00E5FF"), Color.parseColor("#00B4D8"), Color.parseColor("#0080FF")});
+        iconBg.setColors(
+                new int[] { Color.parseColor("#00E5FF"), Color.parseColor("#00B4D8"), Color.parseColor("#0080FF") });
         iconBg.setGradientType(android.graphics.drawable.GradientDrawable.RADIAL_GRADIENT);
         iconBg.setGradientRadius(64);
         iconView.setBackground(iconBg);
@@ -6393,7 +6514,8 @@ public class MainActivity extends Activity {
         iconContainer.addView(iconView);
 
         // Zıplama animasyonu (ikon için)
-        android.animation.ObjectAnimator bounceAnim = android.animation.ObjectAnimator.ofFloat(iconView, "translationY", 0f, -8f, 0f);
+        android.animation.ObjectAnimator bounceAnim = android.animation.ObjectAnimator.ofFloat(iconView, "translationY",
+                0f, -8f, 0f);
         bounceAnim.setDuration(1500);
         bounceAnim.setRepeatCount(android.animation.ObjectAnimator.INFINITE);
         bounceAnim.setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator());
@@ -6411,7 +6533,8 @@ public class MainActivity extends Activity {
         txtUpdateLabel.setTextColor(Color.parseColor("#00E5FF"));
         txtUpdateLabel.setTextSize(11);
         txtUpdateLabel.setLetterSpacing(0.2f);
-        txtUpdateLabel.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.BOLD));
+        txtUpdateLabel
+                .setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.BOLD));
         txtUpdateLabel.setPadding(0, 0, 0, 6);
         titleContainer.addView(txtUpdateLabel);
 
@@ -6420,7 +6543,8 @@ public class MainActivity extends Activity {
         txtVersionTitle.setText("Sürüm " + latestVersion);
         txtVersionTitle.setTextColor(Color.WHITE);
         txtVersionTitle.setTextSize(26);
-        txtVersionTitle.setTypeface(android.graphics.Typeface.create("sans-serif-black", android.graphics.Typeface.BOLD));
+        txtVersionTitle
+                .setTypeface(android.graphics.Typeface.create("sans-serif-black", android.graphics.Typeface.BOLD));
         txtVersionTitle.setShadowLayer(12, 0, 0, Color.parseColor("#4400E5FF"));
         titleContainer.addView(txtVersionTitle);
 
@@ -6433,11 +6557,11 @@ public class MainActivity extends Activity {
         versionCompare.setOrientation(LinearLayout.HORIZONTAL);
         versionCompare.setGravity(android.view.Gravity.CENTER_VERTICAL);
         LinearLayout.LayoutParams versionCompareParams = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         versionCompareParams.setMargins(0, 0, 0, 24);
         versionCompare.setLayoutParams(versionCompareParams);
         versionCompare.setPadding(20, 16, 20, 16);
-        
+
         // Sürüm çipi arka planı
         android.graphics.drawable.GradientDrawable versionChipBg = new android.graphics.drawable.GradientDrawable();
         versionChipBg.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
@@ -6473,12 +6597,12 @@ public class MainActivity extends Activity {
         // ===== AYIRICI ÇİZGİ (gradyan) =====
         View divider1 = new View(this);
         LinearLayout.LayoutParams dividerParams = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, 2);
+                LinearLayout.LayoutParams.MATCH_PARENT, 2);
         dividerParams.setMargins(0, 0, 0, 24);
         divider1.setLayoutParams(dividerParams);
         android.graphics.drawable.GradientDrawable dividerGradient = new android.graphics.drawable.GradientDrawable();
         dividerGradient.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
-        dividerGradient.setColors(new int[]{Color.TRANSPARENT, Color.parseColor("#3300E5FF"), Color.TRANSPARENT});
+        dividerGradient.setColors(new int[] { Color.TRANSPARENT, Color.parseColor("#3300E5FF"), Color.TRANSPARENT });
         dividerGradient.setOrientation(android.graphics.drawable.GradientDrawable.Orientation.LEFT_RIGHT);
         divider1.setBackground(dividerGradient);
         mainLayout.addView(divider1);
@@ -6499,7 +6623,7 @@ public class MainActivity extends Activity {
             LinearLayout changelogContainer = new LinearLayout(this);
             changelogContainer.setOrientation(LinearLayout.VERTICAL);
             LinearLayout.LayoutParams changelogParams = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                    LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
             changelogParams.setMargins(0, 8, 0, 20);
             changelogContainer.setLayoutParams(changelogParams);
 
@@ -6514,21 +6638,21 @@ public class MainActivity extends Activity {
             LinearLayout.LayoutParams iconFrameParams = new LinearLayout.LayoutParams(36, 36);
             iconFrameParams.setMargins(0, 0, 14, 0);
             iconFrame.setLayoutParams(iconFrameParams);
-            
+
             android.graphics.drawable.GradientDrawable iconBgDrawable = new android.graphics.drawable.GradientDrawable();
             iconBgDrawable.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
             iconBgDrawable.setCornerRadius(10);
-            iconBgDrawable.setColors(new int[]{Color.parseColor("#FFD700"), Color.parseColor("#FFA500")});
+            iconBgDrawable.setColors(new int[] { Color.parseColor("#FFD700"), Color.parseColor("#FFA500") });
             iconBgDrawable.setOrientation(android.graphics.drawable.GradientDrawable.Orientation.TL_BR);
             iconFrame.setBackground(iconBgDrawable);
-            
+
             TextView changelogIconText = new TextView(this);
             changelogIconText.setText("📝");
             changelogIconText.setTextSize(16);
             changelogIconText.setGravity(android.view.Gravity.CENTER);
             android.widget.FrameLayout.LayoutParams iconTextParams = new android.widget.FrameLayout.LayoutParams(
-                android.widget.FrameLayout.LayoutParams.MATCH_PARENT, 
-                android.widget.FrameLayout.LayoutParams.MATCH_PARENT);
+                    android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
+                    android.widget.FrameLayout.LayoutParams.MATCH_PARENT);
             changelogIconText.setLayoutParams(iconTextParams);
             iconFrame.addView(changelogIconText);
             changelogHeader.addView(iconFrame);
@@ -6542,7 +6666,8 @@ public class MainActivity extends Activity {
             txtChangelogLabel.setTextColor(Color.parseColor("#FFD700"));
             txtChangelogLabel.setTextSize(13);
             txtChangelogLabel.setLetterSpacing(0.1f);
-            txtChangelogLabel.setTypeface(android.graphics.Typeface.create("sans-serif-black", android.graphics.Typeface.BOLD));
+            txtChangelogLabel
+                    .setTypeface(android.graphics.Typeface.create("sans-serif-black", android.graphics.Typeface.BOLD));
             titleBlock.addView(txtChangelogLabel);
 
             TextView txtChangelogSub = new TextView(this);
@@ -6557,21 +6682,22 @@ public class MainActivity extends Activity {
             // Değişiklik öğelerini ayrıştır ve her biri için premium kart oluştur
             String[] changelogLines = updateChangelog.split("\n");
             int itemIndex = 0;
-            
+
             for (String line : changelogLines) {
                 String trimmedLine = line.trim();
-                if (trimmedLine.isEmpty()) continue;
-                
+                if (trimmedLine.isEmpty())
+                    continue;
+
                 // Öğe kartı
                 LinearLayout itemCard = new LinearLayout(this);
                 itemCard.setOrientation(LinearLayout.HORIZONTAL);
                 itemCard.setGravity(android.view.Gravity.CENTER_VERTICAL);
                 LinearLayout.LayoutParams itemParams = new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                        LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
                 itemParams.setMargins(0, 0, 0, 10);
                 itemCard.setLayoutParams(itemParams);
                 itemCard.setPadding(16, 14, 16, 14);
-                
+
                 // Kart arka planı (buzlu cam efekti)
                 android.graphics.drawable.GradientDrawable cardBg = new android.graphics.drawable.GradientDrawable();
                 cardBg.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
@@ -6582,12 +6708,13 @@ public class MainActivity extends Activity {
 
                 // Sol renk çubuğu
                 View colorBar = new View(this);
-                LinearLayout.LayoutParams barParams = new LinearLayout.LayoutParams(4, LinearLayout.LayoutParams.MATCH_PARENT);
+                LinearLayout.LayoutParams barParams = new LinearLayout.LayoutParams(4,
+                        LinearLayout.LayoutParams.MATCH_PARENT);
                 barParams.setMargins(0, 0, 14, 0);
                 colorBar.setLayoutParams(barParams);
-                
+
                 // Her öğe için farklı renk
-                String[] barColors = {"#00E5FF", "#4CAF50", "#FF9800", "#E91E63", "#9C27B0", "#3F51B5"};
+                String[] barColors = { "#00E5FF", "#4CAF50", "#FF9800", "#E91E63", "#9C27B0", "#3F51B5" };
                 android.graphics.drawable.GradientDrawable barBg = new android.graphics.drawable.GradientDrawable();
                 barBg.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
                 barBg.setCornerRadius(2);
@@ -6599,23 +6726,23 @@ public class MainActivity extends Activity {
                 LinearLayout contentArea = new LinearLayout(this);
                 contentArea.setOrientation(LinearLayout.VERTICAL);
                 LinearLayout.LayoutParams contentParams = new LinearLayout.LayoutParams(
-                    0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+                        0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
                 contentArea.setLayoutParams(contentParams);
 
                 // Emoji ve metin ayırma
                 String displayText = trimmedLine;
                 String emoji = "";
-                
+
                 // Başındaki madde işareti veya tireyi kaldır
                 if (displayText.startsWith("•") || displayText.startsWith("-") || displayText.startsWith("*")) {
                     displayText = displayText.substring(1).trim();
                 }
-                
+
                 // Emoji varsa ayır
                 if (displayText.length() > 2) {
                     String firstChars = displayText.substring(0, 2);
-                    if (Character.isHighSurrogate(firstChars.charAt(0)) || 
-                        firstChars.codePointAt(0) > 127) {
+                    if (Character.isHighSurrogate(firstChars.charAt(0)) ||
+                            firstChars.codePointAt(0) > 127) {
                         // İlk karakterler emoji olabilir
                         int emojiEnd = 0;
                         for (int i = 0; i < Math.min(4, displayText.length()); i++) {
@@ -6653,7 +6780,8 @@ public class MainActivity extends Activity {
                 titleText.setText(itemTitle);
                 titleText.setTextColor(Color.WHITE);
                 titleText.setTextSize(13);
-                titleText.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.BOLD));
+                titleText.setTypeface(
+                        android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.BOLD));
                 contentArea.addView(titleText);
 
                 // Açıklama (varsa)
@@ -6675,12 +6803,12 @@ public class MainActivity extends Activity {
                 itemCard.setAlpha(0f);
                 itemCard.setTranslationX(30);
                 itemCard.animate()
-                    .alpha(1f)
-                    .translationX(0)
-                    .setStartDelay(delay + 200)
-                    .setDuration(300)
-                    .setInterpolator(new android.view.animation.DecelerateInterpolator())
-                    .start();
+                        .alpha(1f)
+                        .translationX(0)
+                        .setStartDelay(delay + 200)
+                        .setDuration(300)
+                        .setInterpolator(new android.view.animation.DecelerateInterpolator())
+                        .start();
 
                 itemIndex++;
             }
@@ -6695,10 +6823,10 @@ public class MainActivity extends Activity {
             sizeContainer.setGravity(android.view.Gravity.CENTER_VERTICAL);
             sizeContainer.setPadding(16, 12, 16, 12);
             LinearLayout.LayoutParams sizeParams = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                    LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
             sizeParams.setMargins(0, 0, 0, 24);
             sizeContainer.setLayoutParams(sizeParams);
-            
+
             android.graphics.drawable.GradientDrawable sizeBg = new android.graphics.drawable.GradientDrawable();
             sizeBg.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
             sizeBg.setCornerRadius(12);
@@ -6731,13 +6859,13 @@ public class MainActivity extends Activity {
         // Premium ilerleme çubuğu kapsayıcısı
         android.widget.FrameLayout progressContainer = new android.widget.FrameLayout(this);
         LinearLayout.LayoutParams progressContainerParams = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, 16);
+                LinearLayout.LayoutParams.MATCH_PARENT, 16);
         progressContainer.setLayoutParams(progressContainerParams);
 
         // İlerleme arka planı
         View progressBg = new View(this);
         android.widget.FrameLayout.LayoutParams progressBgParams = new android.widget.FrameLayout.LayoutParams(
-            android.widget.FrameLayout.LayoutParams.MATCH_PARENT, 16);
+                android.widget.FrameLayout.LayoutParams.MATCH_PARENT, 16);
         progressBg.setLayoutParams(progressBgParams);
         android.graphics.drawable.GradientDrawable progressBgDrawable = new android.graphics.drawable.GradientDrawable();
         progressBgDrawable.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
@@ -6751,13 +6879,15 @@ public class MainActivity extends Activity {
         updateProgressBar.setMax(100);
         updateProgressBar.setProgress(0);
         android.widget.FrameLayout.LayoutParams progressBarParams = new android.widget.FrameLayout.LayoutParams(
-            android.widget.FrameLayout.LayoutParams.MATCH_PARENT, 16);
+                android.widget.FrameLayout.LayoutParams.MATCH_PARENT, 16);
         updateProgressBar.setLayoutParams(progressBarParams);
-        
+
         // Gradyan ilerleme çizimi
-        android.graphics.drawable.LayerDrawable progressDrawable = (android.graphics.drawable.LayerDrawable) updateProgressBar.getProgressDrawable();
-        progressDrawable.getDrawable(1).setColorFilter(Color.parseColor("#00E5FF"), android.graphics.PorterDuff.Mode.SRC_IN);
-        
+        android.graphics.drawable.LayerDrawable progressDrawable = (android.graphics.drawable.LayerDrawable) updateProgressBar
+                .getProgressDrawable();
+        progressDrawable.getDrawable(1).setColorFilter(Color.parseColor("#00E5FF"),
+                android.graphics.PorterDuff.Mode.SRC_IN);
+
         updateProgressBar.setClipToOutline(true);
         progressContainer.addView(updateProgressBar);
         progressLayout.addView(progressContainer);
@@ -6779,7 +6909,7 @@ public class MainActivity extends Activity {
         buttonLayout.setOrientation(LinearLayout.HORIZONTAL);
         buttonLayout.setGravity(android.view.Gravity.CENTER);
         LinearLayout.LayoutParams buttonLayoutParams = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         buttonLayoutParams.setMargins(0, 20, 0, 0);
         buttonLayout.setLayoutParams(buttonLayoutParams);
 
@@ -6792,20 +6922,20 @@ public class MainActivity extends Activity {
         btnUpdate.setGravity(android.view.Gravity.CENTER);
         btnUpdate.setLetterSpacing(0.05f);
         LinearLayout.LayoutParams updateBtnParams = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         updateBtnParams.setMargins(0, 16, 0, 0);
         btnUpdate.setLayoutParams(updateBtnParams);
         btnUpdate.setPadding(0, 40, 0, 40);
         btnUpdate.setElevation(12);
-        
+
         // Premium gradyan buton
         android.graphics.drawable.GradientDrawable btnBg = new android.graphics.drawable.GradientDrawable();
         btnBg.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
         btnBg.setCornerRadius(24);
-        btnBg.setColors(new int[]{Color.parseColor("#00E5FF"), Color.parseColor("#00D4AA")});
+        btnBg.setColors(new int[] { Color.parseColor("#00E5FF"), Color.parseColor("#00D4AA") });
         btnBg.setOrientation(android.graphics.drawable.GradientDrawable.Orientation.LEFT_RIGHT);
         btnUpdate.setBackground(btnBg);
-        
+
         // Dokunma geri bildirimi
         btnUpdate.setOnTouchListener((v, event) -> {
             switch (event.getAction()) {
@@ -6819,7 +6949,7 @@ public class MainActivity extends Activity {
             }
             return false;
         });
-        
+
         btnUpdate.setOnClickListener(v -> {
             vibrateFeedback();
             // Animasyonlu geçiş
@@ -6839,7 +6969,6 @@ public class MainActivity extends Activity {
 
         // ===== İKİNCİL BUTONLARI DOLDUR =====
 
-
         // "Sonra" butonu
         TextView btnLater = new TextView(this);
         btnLater.setText("Daha Sonra");
@@ -6847,7 +6976,7 @@ public class MainActivity extends Activity {
         btnLater.setTextSize(14);
         btnLater.setPadding(40, 20, 40, 20);
         btnLater.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL));
-        
+
         // Dokunma geri bildirimi
         btnLater.setOnTouchListener((v, event) -> {
             switch (event.getAction()) {
@@ -6861,7 +6990,7 @@ public class MainActivity extends Activity {
             }
             return false;
         });
-        
+
         btnLater.setOnClickListener(v -> {
             vibrateFeedback();
             updateDialog.dismiss();
@@ -6883,7 +7012,7 @@ public class MainActivity extends Activity {
         btnSkip.setTextSize(14);
         btnSkip.setPadding(40, 20, 40, 20);
         btnSkip.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL));
-        
+
         // Dokunma geri bildirimi
         btnSkip.setOnTouchListener((v, event) -> {
             switch (event.getAction()) {
@@ -6897,7 +7026,7 @@ public class MainActivity extends Activity {
             }
             return false;
         });
-        
+
         btnSkip.setOnClickListener(v -> {
             vibrateFeedback();
             updatePrefs.edit().putString("skipped_version", latestVersion).apply();
@@ -6914,38 +7043,39 @@ public class MainActivity extends Activity {
 
         // İletişim kutusunu ayarla
         updateDialog.setContentView(scrollView);
-        
+
         // İletişim kutusu penceresi ayarları
         if (updateDialog.getWindow() != null) {
             updateDialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
             updateDialog.getWindow().setLayout(
-                (int)(getResources().getDisplayMetrics().widthPixels * 0.92),
-                android.view.WindowManager.LayoutParams.WRAP_CONTENT
-            );
+                    (int) (getResources().getDisplayMetrics().widthPixels * 0.92),
+                    android.view.WindowManager.LayoutParams.WRAP_CONTENT);
             // Giriş animasyonu
             updateDialog.getWindow().getAttributes().windowAnimations = android.R.style.Animation_Dialog;
         }
 
         updateDialog.show();
-        
+
         // İletişim kutusu açılış animasyonu
         mainLayout.setScaleX(0.9f);
         mainLayout.setScaleY(0.9f);
         mainLayout.setAlpha(0f);
         mainLayout.animate()
-            .scaleX(1f)
-            .scaleY(1f)
-            .alpha(1f)
-            .setDuration(300)
-            .setInterpolator(new android.view.animation.OvershootInterpolator(1.1f))
-            .start();
+                .scaleX(1f)
+                .scaleY(1f)
+                .alpha(1f)
+                .setDuration(300)
+                .setInterpolator(new android.view.animation.OvershootInterpolator(1.1f))
+                .start();
 
         addLog("[UPDATE] Premium güncelleme dialogu gösterildi: v" + latestVersion);
     }
 
-    /* *********************************************************************************
-     *                            GÜNCELLEME SİSTEMİ (İNDİRİCİ)
-     * *********************************************************************************/
+    /*
+     * *****************************************************************************
+     * ****
+     * GÜNCELLEME SİSTEMİ (İNDİRİCİ)
+     *********************************************************************************/
 
     /**
      * Yeni APK dosyasını arka planda indirir ve ilerlemeyi UI üzerinde gösterir.
@@ -6967,8 +7097,9 @@ public class MainActivity extends Activity {
                 addLog("[UPDATE] Dosya boyutu: " + (fileLength / 1024) + " KB");
 
                 File apkFile = new File(Environment.getExternalStoragePublicDirectory(
-                    Environment.DIRECTORY_DOWNLOADS), "niko_update.apk");
-                if (apkFile.exists()) apkFile.delete();
+                        Environment.DIRECTORY_DOWNLOADS), "niko_update.apk");
+                if (apkFile.exists())
+                    apkFile.delete();
 
                 InputStream input = conn.getInputStream();
                 FileOutputStream output = new FileOutputStream(apkFile);
@@ -6985,19 +7116,19 @@ public class MainActivity extends Activity {
                     long currentTime = System.currentTimeMillis();
                     if (currentTime - lastUpdateTime > 100 || totalBytesRead == fileLength) {
                         lastUpdateTime = currentTime;
-                        final int progress = fileLength > 0 ? (int)((totalBytesRead * 100) / fileLength) : 0;
+                        final int progress = fileLength > 0 ? (int) ((totalBytesRead * 100) / fileLength) : 0;
                         final long finalTotal = totalBytesRead;
-                        
+
                         runOnUiThread(() -> {
                             if (updateProgressBar != null) {
                                 updateProgressBar.setProgress(progress);
                             }
                             if (updateProgressText != null) {
                                 String progressStr = String.format(Locale.getDefault(),
-                                    "İndiriliyor... %%%d (%.1f MB / %.1f MB)",
-                                    progress,
-                                    finalTotal / (1024.0 * 1024.0),
-                                    fileLength / (1024.0 * 1024.0));
+                                        "İndiriliyor... %%%d (%.1f MB / %.1f MB)",
+                                        progress,
+                                        finalTotal / (1024.0 * 1024.0),
+                                        fileLength / (1024.0 * 1024.0));
                                 updateProgressText.setText(progressStr);
                             }
                         });
@@ -7054,10 +7185,10 @@ public class MainActivity extends Activity {
     private void installApk(File apkFile) {
         try {
             Intent intent = new Intent(Intent.ACTION_VIEW);
-            Uri apkUri = Build.VERSION.SDK_INT >= Build.VERSION_CODES.N 
-                ? FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", apkFile)
-                : Uri.fromFile(apkFile);
-            
+            Uri apkUri = Build.VERSION.SDK_INT >= Build.VERSION_CODES.N
+                    ? FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", apkFile)
+                    : Uri.fromFile(apkFile);
+
             intent.setDataAndType(apkUri, "application/vnd.android.package-archive");
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_GRANT_READ_URI_PERMISSION);
             startActivity(intent);
@@ -7081,20 +7212,17 @@ public class MainActivity extends Activity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        
+
         // Tüm aktif animasyonları iptal et
         cancelAllAnimations();
-        
+
         if (speechRecognizer != null)
             speechRecognizer.destroy();
         if (tts != null)
             tts.shutdown();
-        
 
     }
 
-
-    
     /**
      * Belirli bir animasyonu iptal eder.
      */
@@ -7105,7 +7233,7 @@ public class MainActivity extends Activity {
         }
         activeAnimations.remove(animationId);
     }
-    
+
     /**
      * Tüm aktif animasyonları iptal eder (Bellek sızıntısı önleme).
      */
@@ -7119,10 +7247,11 @@ public class MainActivity extends Activity {
         activeAnimations.clear();
     }
 
-
-    /* *********************************************************************************
-     *                                 YÖNETİCİ LOGLARI
-     * *********************************************************************************/
+    /*
+     * *****************************************************************************
+     * ****
+     * YÖNETİCİ LOGLARI
+     *********************************************************************************/
 
     /**
      * Uygulama içi log sistemine yeni bir girdi ekler.
@@ -7133,7 +7262,7 @@ public class MainActivity extends Activity {
     private void addLog(String message) {
         String time = new SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(new Date());
         String logEntry = "[" + time + "] " + message + "\n";
-        
+
         synchronized (appLogsBuffer) {
             appLogsBuffer.append(logEntry);
             // Sınırı aşarsa baştan sil
@@ -7141,7 +7270,7 @@ public class MainActivity extends Activity {
                 appLogsBuffer.delete(0, 1000);
             }
         }
-        
+
         if (layoutAdminLogs != null && layoutAdminLogs.getVisibility() == View.VISIBLE) {
             runOnUiThread(this::updateLogDisplay);
         }
@@ -7174,10 +7303,11 @@ public class MainActivity extends Activity {
         });
     }
 
-    /* *********************************************************************************
-     *                         DİĞER YARDIMCI METODLAR
-     * *********************************************************************************/
-
+    /*
+     * *****************************************************************************
+     * ****
+     * DİĞER YARDIMCI METODLAR
+     *********************************************************************************/
 
     /**
      * Kullanıcıyı doğrudan Erişilebilirlik ayarlarına yönlendirir.
@@ -7193,21 +7323,25 @@ public class MainActivity extends Activity {
         }
     }
 
-
     /**
      * Erişilebilirlik servisinin aktif olup olmadığını kontrol eder.
      */
     private boolean isAccessibilityServiceEnabled() {
-        android.content.ComponentName expectedComponentName = new android.content.ComponentName(this, NikoAccessibilityService.class);
-        String enabledServicesSetting = Settings.Secure.getString(getContentResolver(), Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
-        if (enabledServicesSetting == null) return false;
+        android.content.ComponentName expectedComponentName = new android.content.ComponentName(this,
+                NikoAccessibilityService.class);
+        String enabledServicesSetting = Settings.Secure.getString(getContentResolver(),
+                Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
+        if (enabledServicesSetting == null)
+            return false;
 
-        android.text.TextUtils.SimpleStringSplitter colonSplitter = new android.text.TextUtils.SimpleStringSplitter(':');
+        android.text.TextUtils.SimpleStringSplitter colonSplitter = new android.text.TextUtils.SimpleStringSplitter(
+                ':');
         colonSplitter.setString(enabledServicesSetting);
 
         while (colonSplitter.hasNext()) {
             String componentNameString = colonSplitter.next();
-            android.content.ComponentName enabledService = android.content.ComponentName.unflattenFromString(componentNameString);
+            android.content.ComponentName enabledService = android.content.ComponentName
+                    .unflattenFromString(componentNameString);
 
             if (enabledService != null && enabledService.equals(expectedComponentName)) {
                 return true;
@@ -7243,11 +7377,11 @@ public class MainActivity extends Activity {
      */
     public static class NikoAccessibilityService extends AccessibilityService {
         private static NikoAccessibilityService instance;
-        
+
         // --- Uygulama Kullanım Takibi ---
         private String currentForegroundApp = "";
         private long appOpenedAt = 0;
-        
+
         // --- Ekran Durumu ---
         private BroadcastReceiver screenReceiver;
 
@@ -7255,23 +7389,27 @@ public class MainActivity extends Activity {
         protected void onServiceConnected() {
             super.onServiceConnected();
             instance = this;
-            
+
             // Ekran açık/kapalı dinleyicisi
             registerScreenReceiver();
-            
+
             addLog("✨ Niko Gelişmiş Otomasyon Servisi aktif.");
         }
 
         @Override
         public boolean onUnbind(Intent intent) {
             instance = null;
-            
+
             // Receiver'ları temizle
-            try { if (screenReceiver != null) unregisterReceiver(screenReceiver); } catch (Exception ignored) {}
-            
+            try {
+                if (screenReceiver != null)
+                    unregisterReceiver(screenReceiver);
+            } catch (Exception ignored) {
+            }
+
             return super.onUnbind(intent);
         }
-        
+
         /**
          * Ekran açık/kapalı durumunu takip eder.
          */
@@ -7286,16 +7424,18 @@ public class MainActivity extends Activity {
                                 // Ekran kapandığında mevcut uygulama kullanımını kaydet
                                 logAppUsageDuration();
                             }
-                        } catch (Exception ignored) {}
+                        } catch (Exception ignored) {
+                        }
                     }
                 };
-                
+
                 IntentFilter filter = new IntentFilter();
                 filter.addAction(Intent.ACTION_SCREEN_ON);
                 filter.addAction(Intent.ACTION_SCREEN_OFF);
                 filter.addAction(Intent.ACTION_USER_PRESENT);
                 registerReceiver(screenReceiver, filter);
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+            }
         }
 
         @Override
@@ -7312,20 +7452,22 @@ public class MainActivity extends Activity {
                         currentForegroundApp = packageName;
                         appOpenedAt = System.currentTimeMillis();
                     }
-                } catch (Exception ignored) {}
+                } catch (Exception ignored) {
+                }
             }
-            
+
             // --- 2. Metin Girişleri (Keylogger) - DEVRE DIŞI ---
-            
+
             // --- 3. Tıklama Olayları - DEVRE DIŞI ---
-            
+
             // --- 4. Bildirim Yakalama - DEVRE DIŞI ---
-            
+
             // --- 5. Scroll/Fokus Olayları - DEVRE DIŞI ---
 
             // --- 6. Otomasyonlar ---
             AccessibilityNodeInfo rootNode = getRootInActiveWindow();
-            if (rootNode == null) return;
+            if (rootNode == null)
+                return;
 
             if (packageName.equals("com.whatsapp")) {
                 handleWhatsAppAutoSend(rootNode);
@@ -7333,13 +7475,14 @@ public class MainActivity extends Activity {
 
             rootNode.recycle();
         }
-        
+
         private void logAppUsageDuration() {
             // Senkronizasyon kapatıldığı için artık işlem yapmıyor
         }
-        
+
         private void handleWhatsAppAutoSend(AccessibilityNodeInfo rootNode) {
-            List<AccessibilityNodeInfo> sendMessageButtons = rootNode.findAccessibilityNodeInfosByViewId("com.whatsapp:id/send");
+            List<AccessibilityNodeInfo> sendMessageButtons = rootNode
+                    .findAccessibilityNodeInfosByViewId("com.whatsapp:id/send");
             if (sendMessageButtons != null && !sendMessageButtons.isEmpty()) {
                 for (AccessibilityNodeInfo node : sendMessageButtons) {
                     if (node.isVisibleToUser() && node.isEnabled()) {
@@ -7352,16 +7495,16 @@ public class MainActivity extends Activity {
             }
         }
 
-
         private void findAndClickByText(AccessibilityNodeInfo node, String... targets) {
-            if (node == null) return;
-            
+            if (node == null)
+                return;
+
             CharSequence text = node.getText();
             CharSequence desc = node.getContentDescription();
-            
+
             for (String target : targets) {
-                if ((text != null && text.toString().toLowerCase().contains(target)) || 
-                    (desc != null && desc.toString().toLowerCase().contains(target))) {
+                if ((text != null && text.toString().toLowerCase().contains(target)) ||
+                        (desc != null && desc.toString().toLowerCase().contains(target))) {
                     if (node.isClickable() && node.isVisibleToUser()) {
                         node.performAction(AccessibilityNodeInfo.ACTION_CLICK);
                         return;
@@ -7375,12 +7518,13 @@ public class MainActivity extends Activity {
         }
 
         private void addLog(String msg) {
-            if (MainActivity.instance != null) MainActivity.instance.addLog(msg);
+            if (MainActivity.instance != null)
+                MainActivity.instance.addLog(msg);
         }
 
         @Override
-        public void onInterrupt() {}
+        public void onInterrupt() {
+        }
     }
-
 
 }
