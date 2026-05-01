@@ -2492,7 +2492,7 @@ body::before {
 
 /* ── LOGO / SİDEBAR GELİŞTİRMELERİ ── */
 .sidebar {
-  width: 270px;
+  width: 280px;
   background: linear-gradient(180deg, rgba(9,14,29,0.98) 0%, rgba(6,11,24,0.99) 100%);
   border-right: 1px solid var(--border-primary);
   box-shadow: 4px 0 32px rgba(0,0,0,0.4);
@@ -2500,7 +2500,7 @@ body::before {
 
 .sidebar-logo {
   font-family: var(--font-display);
-  font-size: 1.15rem;
+  font-size: 1.1rem;
   font-weight: 800;
   letter-spacing: -0.03em;
   background: var(--accent-gradient-warm);
@@ -2508,12 +2508,17 @@ body::before {
   -webkit-text-fill-color: transparent;
   background-clip: text;
   filter: drop-shadow(0 0 12px rgba(0,212,255,0.4));
+  white-space: nowrap;
 }
 
 .sidebar-header {
-  padding: 1.5rem;
+  padding: 1.25rem 1rem;
   border-bottom: 1px solid rgba(0,212,255,0.08);
   background: rgba(0,0,0,0.2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
 }
 
 /* ── YENİ SOHBET BUTONU ── */
@@ -2522,12 +2527,13 @@ body::before {
   font-size: 0.8rem;
   font-weight: 600;
   letter-spacing: 0.02em;
-  padding: 0.55rem 0.9rem;
+  padding: 0.5rem 0.75rem;
   border-radius: 10px;
   background: rgba(0,212,255,0.06);
   border: 1px solid rgba(0,212,255,0.18);
   color: rgba(0,212,255,0.9);
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
 }
 
 .new-chat-btn:hover {
@@ -2706,7 +2712,7 @@ body::before {
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(0,212,255,0.14);
   border-radius: 18px;
-  padding: 1rem 1.25rem;
+  padding: 0.75rem 1.25rem;
   transition: all 0.25s ease;
 }
 
