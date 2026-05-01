@@ -55,7 +55,6 @@ coverage.xml
 *.sqlite3
 
 # User data (sensitive)
-users.json
 history/*.json
 device_data/
 
