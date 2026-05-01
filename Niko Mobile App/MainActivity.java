@@ -7223,12 +7223,35 @@ public class MainActivity extends Activity {
             try {
                 URL url = new URL(GITHUB_APK_URL);
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setInstanceFollowRedirects(false); // Manuel yönlendirme takibi
                 conn.setConnectTimeout(30000);
                 conn.setReadTimeout(30000);
-                conn.connect();
+                
+                int status = conn.getResponseCode();
+                boolean redirect = false;
+                if (status != HttpURLConnection.HTTP_OK) {
+                    if (status == HttpURLConnection.HTTP_MOVED_TEMP
+                        || status == HttpURLConnection.HTTP_MOVED_PERM
+                        || status == HttpURLConnection.HTTP_SEE_OTHER) {
+                        redirect = true;
+                    }
+                }
+
+                if (redirect) {
+                    // Yönlendirme adresini al (Location header)
+                    String newUrl = conn.getHeaderField("Location");
+                    addLog("[UPDATE] Yönlendiriliyor: " + newUrl);
+                    conn = (HttpURLConnection) new URL(newUrl).openConnection();
+                    conn.setConnectTimeout(30000);
+                    conn.setReadTimeout(30000);
+                    status = conn.getResponseCode();
+                }
+
+                if (status != HttpURLConnection.HTTP_OK) {
+                    throw new Exception("Sunucu hatası: " + status);
+                }
 
                 int fileLength = conn.getContentLength();
-                addLog("[UPDATE] Dosya boyutu: " + (fileLength / 1024) + " KB");
 
                 File apkFile = new File(Environment.getExternalStoragePublicDirectory(
                         Environment.DIRECTORY_DOWNLOADS), "niko_update.apk");
