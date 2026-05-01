@@ -303,7 +303,7 @@ public class MainActivity extends Activity {
     // --- Ağ ve Güncellemeler ---
 
     /** Merkezi API sunucu adresi */
-    private static String API_BASE_URL = "";
+    private static String API_BASE_URL = "https://niko-with-gemini.vercel.app";
 
     private static final String GITHUB_VERSION_URL = "https://raw.githubusercontent.com/Memati8383/niko-with-gemini/refs/heads/main/version.json";
     private static final String GITHUB_APK_URL = "https://github.com/Memati8383/niko-with-gemini/releases/latest/download/niko.apk";
@@ -6166,7 +6166,7 @@ public class MainActivity extends Activity {
         new Thread(() -> {
             try {
                 // GitHub üzerinden BENİOKU (README) dosyasının ham halini al
-                URL url = new URL("https://raw.githubusercontent.com/Memati8383/Niko-AI/main/README.md");
+                URL url = new URL("https://raw.githubusercontent.com/Memati8383/niko-with-gemini/main/README.md");
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("GET");
                 conn.setConnectTimeout(10000);
