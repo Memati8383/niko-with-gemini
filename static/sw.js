@@ -3,8 +3,8 @@
  * Provides offline caching and improved performance
  */
 
-const CACHE_NAME = 'niko-ai-cache-v1';
-const STATIC_CACHE_NAME = 'niko-ai-static-v1';
+const CACHE_NAME = 'niko-ai-cache-v2';
+const STATIC_CACHE_NAME = 'niko-ai-static-v2';
 
 // Static assets to cache immediately on install
 const STATIC_ASSETS = [

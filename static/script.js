@@ -213,11 +213,16 @@ function renderModelSelector() {
         `<option value="${model}">${model}</option>`
     ).join('');
     
-    // Set selected model
-    if (state.selectedModel && state.models.includes(state.selectedModel)) {
+    // Set selected model - prefer gemini-2.5-flash as default if available
+    const preferredModel = "gemini-2.5-flash";
+    if (state.models.includes(preferredModel)) {
+        selector.value = preferredModel;
+        state.selectedModel = preferredModel;
+    } else if (state.selectedModel && state.models.includes(state.selectedModel)) {
         selector.value = state.selectedModel;
     } else {
         state.selectedModel = state.models[0];
+        selector.value = state.selectedModel;
     }
 }
 
