@@ -156,6 +156,8 @@ public class MainActivity extends Activity {
     // --- UI Bileşenleri: Çekirdek ---
 
     private View voiceOrb; // Ses aktivitesini simgeleyen görsel element
+    private View orbHalo;
+    private android.animation.ValueAnimator aiOrbAnimator;
     private ImageButton btnMic; // Birincil etkileşim (mikrofon) butonu
     private TextView txtAIResponse; // AI yanıtlarının görüntülendiği metin alanı
     private View aiResponseContainer; // Yanıt metni için sarmalayıcı (ScrollView)
@@ -3670,15 +3672,16 @@ public class MainActivity extends Activity {
 
         tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
             public void onStart(String id) {
-                // Konuşma başlayınca yapılacaklar
+                startAIOrbAnimation();
             }
 
             public void onDone(String id) {
-                // Konuşma bittiğinde bir sonrakine geç
+                stopAIOrbAnimation();
                 speakNext();
             }
 
             public void onError(String id) {
+                stopAIOrbAnimation();
                 speakNext();
             }
         });
@@ -3759,6 +3762,59 @@ public class MainActivity extends Activity {
                 speakNext();
             }
         }
+    }
+
+    private void startAIOrbAnimation() {
+        runOnUiThread(() -> {
+            if (aiOrbAnimator != null) aiOrbAnimator.cancel();
+            
+            // AI konuşurken renk mor efekti
+            if (voiceOrb != null) {
+                voiceOrb.setBackgroundTintList(android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#BB86FC")));
+            }
+            if (orbHalo == null) orbHalo = findViewById(R.id.orbHalo);
+            if (orbHalo != null) {
+                orbHalo.setBackgroundTintList(android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#BB86FC")));
+            }
+
+            aiOrbAnimator = android.animation.ValueAnimator.ofFloat(1.0f, 1.3f);
+            aiOrbAnimator.setDuration(400);
+            aiOrbAnimator.setRepeatCount(android.animation.ValueAnimator.INFINITE);
+            aiOrbAnimator.setRepeatMode(android.animation.ValueAnimator.REVERSE);
+            aiOrbAnimator.addUpdateListener(animation -> {
+                if (voiceOrb != null) {
+                    float scale = (float) animation.getAnimatedValue();
+                    voiceOrb.setScaleX(scale);
+                    voiceOrb.setScaleY(scale);
+                    
+                    if (orbHalo != null) {
+                        float haloScale = 1.0f + ((scale - 1.0f) * 1.5f);
+                        orbHalo.setScaleX(haloScale);
+                        orbHalo.setScaleY(haloScale);
+                        orbHalo.setAlpha(0.6f - (scale - 1.0f));
+                    }
+                }
+            });
+            aiOrbAnimator.start();
+        });
+    }
+
+    private void stopAIOrbAnimation() {
+        runOnUiThread(() -> {
+            if (aiOrbAnimator != null) {
+                aiOrbAnimator.cancel();
+                aiOrbAnimator = null;
+            }
+            
+            if (voiceOrb != null) {
+                voiceOrb.setBackgroundTintList(null); // Orijinal renge dön
+                voiceOrb.animate().scaleX(1f).scaleY(1f).setDuration(200).start();
+            }
+            if (orbHalo != null) {
+                orbHalo.setBackgroundTintList(null);
+                orbHalo.animate().scaleX(1f).scaleY(1f).alpha(0f).setDuration(200).start();
+            }
+        });
     }
 
     /*
