@@ -2072,12 +2072,9 @@ async def chat(request: ChatRequest, current_user: str = Depends(get_current_use
     - Konuşmayı oturum geçmişine kaydeder
     - Resim eklerini destekler (base64)
     """
-    # Gemini API Key kontrolü
-    if not chat_service.api_key:
-        raise HTTPException(
-            status_code=503,
-            detail="Gemini API anahtarı ayarlanmamış. Lütfen yöneticiye danışın."
-        )
+    # Gemini API anahtarı kontrolü
+    if not chat_service.api_keys:
+        raise HTTPException(status_code=500, detail="Gemini API anahtarı ayarlanmamış. Lütfen yöneticiye danışın.")
     
     # Yeni oturum oluştur veya mevcut olanı kullan
     session_id = request.session_id
