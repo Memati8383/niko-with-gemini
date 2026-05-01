@@ -16,6 +16,10 @@
 
 ---
 
+## 🌐 Güncel API Adresi: (https://niko-with-gemini.vercel.app)
+
+---
+
 ## 📝 Hakkında
 
 Niko AI, tamamen bulut tabanlı ve serverless (sunucusuz) mimariye geçiş yapmış, gelişmiş Türkçe sesli komut desteği sunan bir kişisel yapay zeka asistanıdır. Google Gemini API (`google-genai`) altyapısı sayesinde yerel donanım bağımlılığı olmadan, Vercel gibi platformlarda saniyeler içinde yayına alınabilir.

@@ -1094,13 +1094,26 @@ class ChatService:
         self.default_model = os.getenv("DEFAULT_MODEL", "gemini-1.5-flash")
         self.client = None
         if self.api_key:
-            # En yeni modeller (2.5 gibi) için v1beta kullanımı önerilir
-            self.client = genai.Client(api_key=self.api_key, http_options={'api_version': 'v1beta'})
+            # Otomatik versiyon seçimi için http_options'ı kaldırıyoruz
+            self.client = genai.Client(api_key=self.api_key)
         self.timeout = 120.0
     
     async def get_models(self) -> List[str]:
-        """Mevcut Gemini modellerini getir."""
-        return ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"]
+        """Mevcut Gemini modellerini API'den dinamik olarak getir."""
+        if not self.client:
+            return ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash"]
+        try:
+            # API'den gerçek modelleri listele
+            models = []
+            for m in self.client.models.list():
+                # Sadece içerik üretebilen modelleri al
+                if "generateContent" in m.supported_methods:
+                    name = m.name.replace("models/", "")
+                    models.append(name)
+            return models if models else ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash"]
+        except Exception as e:
+            logger.error(f"Model listesi alınamadı: {e}")
+            return ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash", "gemini-2.5-flash"]
     
     async def check_ollama_available(self) -> bool:
         """Gemini API anahtarının mevcut olup olmadığını kontrol et."""
@@ -1119,17 +1132,19 @@ class ChatService:
 
         selected_model_name = model or self.default_model
         
-        # models/ ön ekini temizle (google-genai v2 kendisi ekler, çiftleme olmasın)
+        # models/ ön ekini temizle
         if selected_model_name.startswith("models/"):
             selected_model_name = selected_model_name.replace("models/", "")
 
-        # Yanlış model isimlerini düzelt (Llama/Gemma için Flash'a dön)
-        if "llama" in selected_model_name.lower() or "gemma" in selected_model_name.lower():
+        # Özel yönlendirmeler
+        lower_name = selected_model_name.lower()
+        if "llama" in lower_name or "gemma" in lower_name:
             selected_model_name = "gemini-1.5-flash"
         
-        # 2.5 Flash desteğini koru
-        if "2.5-flash" in selected_model_name:
-            selected_model_name = "gemini-2.5-flash"
+        # Eğer 2.5 Flash ise ve hata veriyorsa 2.0'a düşmeyi denebilir (isteğe bağlı)
+        # Şimdilik kullanıcının istediği ismi koruyoruz.
+        
+        addLog(f"[AI] Gemini isteği: {selected_model_name}")
 
         try:
             # Resim desteği (images listesi base64 formatında)
