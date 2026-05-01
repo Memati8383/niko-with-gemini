@@ -1728,7 +1728,6 @@ async def test_route():
 async def verify_page():
     """E-posta doğrulama sayfasını sun"""
     logger.info("Serving verify.html")
-    static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
     return FileResponse(os.path.join(static_dir, "verify.html"))
 
 
