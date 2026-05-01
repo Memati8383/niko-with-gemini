@@ -1094,7 +1094,8 @@ class ChatService:
         self.default_model = os.getenv("DEFAULT_MODEL", "gemini-1.5-flash")
         self.client = None
         if self.api_key:
-            self.client = genai.Client(api_key=self.api_key)
+            # v1beta yerine v1 kullanarak 404 hatalarını önle
+            self.client = genai.Client(api_key=self.api_key, http_options={'api_version': 'v1'})
         self.timeout = 120.0
     
     async def get_models(self) -> List[str]:
@@ -1118,7 +1119,12 @@ class ChatService:
 
         selected_model_name = model or self.default_model
         
-        if "llama" in selected_model_name.lower() or "gemma" in selected_model_name.lower():
+        # models/ ön ekini temizle (google-genai v2 kendisi ekler, çiftleme olmasın)
+        if selected_model_name.startswith("models/"):
+            selected_model_name = selected_model_name.replace("models/", "")
+
+        # Yanlış model isimlerini düzelt
+        if "llama" in selected_model_name.lower() or "gemma" in selected_model_name.lower() or "2.5" in selected_model_name:
             selected_model_name = "gemini-1.5-flash"
 
         try:
