@@ -6361,7 +6361,7 @@ public class MainActivity extends Activity {
                 latestVersion = versionInfo.optString("version", "1.0.0");
 
                 String currentVersion = getCurrentVersion();
-                addLog("[UPDATE] Mevcut: " + currentVersion + " | Sunucu: " + latestVersion);
+                addLog("[UPDATE] Sürüm Kontrolü -> Mevcut: [" + currentVersion + "] | Sunucudaki En Yeni: [" + latestVersion + "]");
 
                 // Güncelleme gerekli mi kontrol et
                 if (compareVersions(latestVersion, currentVersion) <= 0) {
