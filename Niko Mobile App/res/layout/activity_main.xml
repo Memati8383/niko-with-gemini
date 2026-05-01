@@ -201,64 +201,86 @@
     </LinearLayout>
 
     <!-- KATMANLAR (GEÇMİŞ, MODELLER VE HESAP) -->
-    <!-- HESAP / GİRİŞ PANELİ: Kullanıcı girişi, kayıt olma ve profil yönetimi -->
+    <!-- HESAP / GİRİŞ PANELİ: Premium Blue Glassmorphism (Site Uyumlu) -->
     <LinearLayout
         android:id="@+id/layoutAccount"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="@drawable/auth_overlay_bg"
         android:orientation="vertical"
-        android:padding="28dp"
+        android:gravity="center"
+        android:padding="20dp"
         android:visibility="gone"
         android:clickable="true"
         android:focusable="true">
 
+        <!-- Kapatma butonu üst sağ köşe -->
         <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="32dp">
+            android:layout_marginBottom="12dp">
 
+            <ImageButton
+                android:id="@+id/btnCloseAccount"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_alignParentEnd="true"
+                android:background="@drawable/auth_close_btn_bg"
+                android:padding="12dp"
+                android:scaleType="centerInside"
+                android:src="@android:drawable/ic_menu_close_clear_cancel"
+                android:tint="#8899BB" />
+        </RelativeLayout>
+
+        <!-- ANA KART: Glassmorphism Auth Card -->
+        <LinearLayout
+            android:id="@+id/authCardContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/auth_card_bg"
+            android:orientation="vertical"
+            android:paddingHorizontal="28dp"
+            android:paddingTop="36dp"
+            android:paddingBottom="32dp"
+            android:elevation="16dp">
+
+            <!-- LOGO VE BAŞLIK: Merkezi tasarım -->
             <LinearLayout
-                android:layout_width="wrap_content"
+                android:id="@+id/authHeaderSection"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical">
+                android:orientation="vertical"
+                android:gravity="center_horizontal"
+                android:layout_marginBottom="28dp">
 
+
+
+                <!-- Başlık -->
                 <TextView
                     android:id="@+id/txtAccountTitle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="🤖 Niko AI"
-                    android:textColor="#FFFFFF"
-                    android:textSize="32sp"
-                    android:letterSpacing="-0.02"
-                    android:fontFamily="sans-serif-black" />
+                    android:text="Niko AI"
+                    android:textColor="#93c5fd"
+                    android:textSize="26sp"
+                    android:letterSpacing="-0.03"
+                    android:fontFamily="sans-serif-black"
+                    android:layout_marginBottom="4dp" />
+
 
             </LinearLayout>
 
-            <ImageButton
-                android:id="@+id/btnCloseAccount"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:layout_alignParentEnd="true"
-                android:layout_centerVertical="true"
-                android:background="@drawable/auth_input_bg"
-                android:padding="12dp"
-                android:scaleType="centerInside"
-                android:src="@android:drawable/ic_menu_close_clear_cancel"
-                android:tint="#FFFFFF" />
-        </RelativeLayout>
-
-        <ScrollView
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:overScrollMode="never"
-            android:scrollbars="none">
-
-            <LinearLayout
+            <!-- Kart içi kaydırılabilir alan -->
+            <ScrollView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical">
+                android:overScrollMode="never"
+                android:scrollbars="none">
+
+              <LinearLayout
+                  android:layout_width="match_parent"
+                  android:layout_height="wrap_content"
+                  android:orientation="vertical">
 
                 <!-- Profile Avatar Selection (Visible in edit mode) -->
                 <RelativeLayout
@@ -308,77 +330,78 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Kullanıcı Adı"
-                        android:textColor="#a0a0b0"
+                        android:text="KULLANICI ADI"
+                        android:textColor="#6b7a99"
                         android:textSize="12sp"
-                        android:layout_marginBottom="8dp"
-                        android:fontFamily="sans-serif-medium" />
+                        android:letterSpacing="0.03"
+                        android:layout_marginBottom="7dp"
+                        android:fontFamily="sans-serif-bold" />
 
-                    <!-- Kullanıcı adı giriş kutusu -->
                     <EditText
                         android:id="@+id/edtUsername"
                         android:layout_width="match_parent"
-                        android:layout_height="56dp"
-                        android:layout_marginBottom="16dp"
+                        android:layout_height="52dp"
+                        android:layout_marginBottom="18dp"
                         android:background="@drawable/auth_input_bg"
-                        android:hint="Kullanıcı adınızı girin"
-                        android:textColorHint="#505060"
-                        android:textColor="#FFFFFF"
-                        android:paddingHorizontal="20dp"
+                        android:hint="kullanici_adiniz"
+                        android:textColorHint="#4a5568"
+                        android:textColor="#f0f4ff"
+                        android:paddingHorizontal="16dp"
                         android:inputType="text"
-                        android:fontFamily="sans-serif-medium"
-                        android:textSize="15sp" />
+                        android:fontFamily="sans-serif"
+                        android:textSize="14sp" />
 
                     <TextView
                         android:id="@+id/txtCurrentPasswordLabel"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Mevcut Şifre (Değişiklik İçin)"
-                        android:textColor="#a0a0b0"
+                        android:text="MEVCUT ŞİFRE"
+                        android:textColor="#6b7a99"
                         android:textSize="12sp"
-                        android:layout_marginBottom="8dp"
-                        android:fontFamily="sans-serif-medium"
+                        android:letterSpacing="0.03"
+                        android:layout_marginBottom="7dp"
+                        android:fontFamily="sans-serif-bold"
                         android:visibility="gone" />
 
                     <EditText
                         android:id="@+id/edtCurrentPassword"
                         android:layout_width="match_parent"
-                        android:layout_height="56dp"
-                        android:layout_marginBottom="16dp"
+                        android:layout_height="52dp"
+                        android:layout_marginBottom="18dp"
                         android:background="@drawable/auth_input_bg"
-                        android:hint="Mevcut şifrenizi girin"
-                        android:textColorHint="#505060"
-                        android:textColor="#FFFFFF"
-                        android:paddingHorizontal="20dp"
+                        android:hint="••••••••"
+                        android:textColorHint="#4a5568"
+                        android:textColor="#f0f4ff"
+                        android:paddingHorizontal="16dp"
                         android:inputType="textPassword"
-                        android:fontFamily="sans-serif-medium"
-                        android:textSize="15sp"
+                        android:fontFamily="sans-serif"
+                        android:textSize="14sp"
                         android:visibility="gone" />
 
                     <TextView
                         android:id="@+id/txtPasswordLabel"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Şifre"
-                        android:textColor="#a0a0b0"
+                        android:text="ŞİFRE"
+                        android:textColor="#6b7a99"
                         android:textSize="12sp"
-                        android:layout_marginBottom="8dp"
-                        android:fontFamily="sans-serif-medium" />
+                        android:letterSpacing="0.03"
+                        android:layout_marginBottom="7dp"
+                        android:fontFamily="sans-serif-bold" />
 
-                    <!-- Şifre giriş kutusu -->
                     <EditText
                         android:id="@+id/edtPassword"
                         android:layout_width="match_parent"
-                        android:layout_height="56dp"
-                        android:layout_marginBottom="16dp"
+                        android:layout_height="52dp"
+                        android:layout_marginBottom="18dp"
                         android:background="@drawable/auth_input_bg"
-                        android:hint="Şifrenizi girin"
-                        android:textColorHint="#505060"
-                        android:textColor="#FFFFFF"
-                        android:paddingHorizontal="20dp"
+                        android:hint="••••••••"
+                        android:textColorHint="#4a5568"
+                        android:textColor="#f0f4ff"
+                        android:paddingHorizontal="16dp"
                         android:inputType="textPassword"
-                        android:fontFamily="sans-serif-medium"
-                        android:textSize="15sp" />
+                        android:fontFamily="sans-serif"
+                        android:textSize="14sp" />
 
                     <!-- KAYIT EKSTRA ALANLARI: Sadece kayıt olma modunda görünür -->
                     <LinearLayout
@@ -391,78 +414,80 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="E-posta"
-                            android:textColor="#a0a0b0"
+                            android:text="E-POSTA"
+                            android:textColor="#6b7a99"
                             android:textSize="12sp"
-                            android:layout_marginBottom="8dp"
-                            android:fontFamily="sans-serif-medium" />
+                            android:letterSpacing="0.03"
+                            android:layout_marginBottom="7dp"
+                            android:fontFamily="sans-serif-bold" />
 
-                        <!-- E-posta giriş kutusu -->
                         <EditText
                             android:id="@+id/edtEmail"
                             android:layout_width="match_parent"
-                            android:layout_height="56dp"
-                            android:layout_marginBottom="16dp"
+                            android:layout_height="52dp"
+                            android:layout_marginBottom="18dp"
                             android:background="@drawable/auth_input_bg"
                             android:hint="ornek@email.com"
-                            android:textColorHint="#505060"
-                            android:textColor="#FFFFFF"
-                            android:paddingHorizontal="20dp"
+                            android:textColorHint="#4a5568"
+                            android:textColor="#f0f4ff"
+                            android:paddingHorizontal="16dp"
                             android:inputType="textEmailAddress"
-                            android:fontFamily="sans-serif-medium"
-                            android:textSize="15sp" />
+                            android:fontFamily="sans-serif"
+                            android:textSize="14sp" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Ad Soyad"
-                            android:textColor="#a0a0b0"
+                            android:text="AD SOYAD"
+                            android:textColor="#6b7a99"
                             android:textSize="12sp"
-                            android:layout_marginBottom="8dp"
-                            android:fontFamily="sans-serif-medium" />
+                            android:letterSpacing="0.03"
+                            android:layout_marginBottom="7dp"
+                            android:fontFamily="sans-serif-bold" />
 
-                        <!-- İsim soyisim giriş kutusu -->
                         <EditText
                             android:id="@+id/edtFullName"
                             android:layout_width="match_parent"
-                            android:layout_height="56dp"
-                            android:layout_marginBottom="16dp"
+                            android:layout_height="52dp"
+                            android:layout_marginBottom="18dp"
                             android:background="@drawable/auth_input_bg"
                             android:hint="Adınız ve soyadınız"
-                            android:textColorHint="#505060"
-                            android:textColor="#FFFFFF"
-                            android:paddingHorizontal="20dp"
+                            android:textColorHint="#4a5568"
+                            android:textColor="#f0f4ff"
+                            android:paddingHorizontal="16dp"
                             android:inputType="textPersonName"
-                            android:fontFamily="sans-serif-medium"
-                            android:textSize="15sp" />
+                            android:fontFamily="sans-serif"
+                            android:textSize="14sp" />
                     </LinearLayout>
 
                     <!-- Giriş veya Kayıt formunu gönderen buton -->
                     <Button
                         android:id="@+id/btnSubmitAccount"
                         android:layout_width="match_parent"
-                        android:layout_height="56dp"
-                        android:layout_marginTop="8dp"
+                        android:layout_height="52dp"
+                        android:layout_marginTop="6dp"
                         android:background="@drawable/auth_button_bg"
                         android:text="Giriş Yap"
                         android:textColor="#FFFFFF"
                         android:textAllCaps="false"
                         android:fontFamily="sans-serif-bold"
-                        android:textSize="16sp"
-                        android:elevation="4dp" />
+                        android:textSize="15sp"
+                        android:letterSpacing="0.01"
+                        android:elevation="8dp"
+                        android:stateListAnimator="@null" />
 
                     <!-- Giriş/Kayıt modları arası geçiş -->
                     <TextView
                         android:id="@+id/btnSwitchMode"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="24dp"
+                        android:layout_marginTop="20dp"
                         android:gravity="center"
                         android:text="Hesabınız yok mu? Kayıt Olun"
-                        android:textColor="#6366f1"
-                        android:textSize="14sp"
-                        android:fontFamily="sans-serif-bold"
-                        android:padding="8dp" />
+                        android:textColor="#6b7a99"
+                        android:textSize="13sp"
+                        android:fontFamily="sans-serif-medium"
+                        android:padding="6dp" />
                 </LinearLayout>
 
                 <!-- DOĞRULAMA KODU PANELİ: Kayıt sonrası görünür -->
@@ -478,68 +503,70 @@
                         android:id="@+id/txtVerifyInfo"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="E-posta adresinize gönderilen 6 haneli kodu girin."
-                        android:textColor="#a0a0b0"
-                        android:textSize="14sp"
+                        android:text="E-posta adresinize gönderilen 6 haneli doğrulama kodunu girin."
+                        android:textColor="#6b7a99"
+                        android:textSize="13sp"
                         android:layout_marginBottom="24dp"
                         android:fontFamily="sans-serif-medium"
+                        android:lineSpacingExtra="3dp"
                         android:gravity="center" />
 
                     <!-- Doğrulama kodu giriş alanı -->
                     <EditText
                         android:id="@+id/edtVerifyCode"
                         android:layout_width="match_parent"
-                        android:layout_height="56dp"
-                        android:layout_marginBottom="16dp"
-                        android:background="@drawable/auth_input_bg"
-                        android:hint="Doğrulama Kodu"
-                        android:textColorHint="#505060"
-                        android:textColor="#FFFFFF"
-                        android:paddingHorizontal="20dp"
+                        android:layout_height="58dp"
+                        android:layout_marginBottom="18dp"
+                        android:background="@drawable/auth_verify_input_bg"
+                        android:hint="000000"
+                        android:textColorHint="#334155"
+                        android:textColor="#93c5fd"
+                        android:paddingHorizontal="16dp"
                         android:inputType="number"
                         android:maxLength="6"
                         android:gravity="center"
-                        android:letterSpacing="0.2"
-                        android:fontFamily="sans-serif-medium"
-                        android:textSize="18sp" />
+                        android:letterSpacing="0.3"
+                        android:fontFamily="sans-serif-bold"
+                        android:textSize="22sp" />
 
                     <!-- Doğrulama kodunu onaylayan buton -->
                     <Button
                         android:id="@+id/btnVerifyCode"
                         android:layout_width="match_parent"
-                        android:layout_height="56dp"
+                        android:layout_height="52dp"
                         android:background="@drawable/auth_button_bg"
-                        android:text="Doğrula ve Kayıt Ol"
+                        android:text="Doğrula"
                         android:textColor="#FFFFFF"
                         android:textAllCaps="false"
                         android:fontFamily="sans-serif-bold"
-                        android:textSize="16sp"
-                        android:elevation="4dp" />
+                        android:textSize="15sp"
+                        android:elevation="8dp"
+                        android:stateListAnimator="@null" />
 
                     <!-- Doğrulama kodunu tekrar isteyen buton -->
                     <TextView
                         android:id="@+id/btnResendCode"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp"
+                        android:layout_marginTop="14dp"
                         android:gravity="center"
                         android:text="Kodu Tekrar Gönder"
-                        android:textColor="#6366f1"
-                        android:textSize="14sp"
+                        android:textColor="#60a5fa"
+                        android:textSize="13sp"
                         android:fontFamily="sans-serif-bold"
-                        android:padding="8dp" />
+                        android:padding="6dp" />
 
                     <TextView
                         android:id="@+id/btnCancelVerification"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
+                        android:layout_marginTop="6dp"
                         android:gravity="center"
                         android:text="İptal"
-                        android:textColor="#eb4d4b"
-                        android:textSize="14sp"
-                        android:fontFamily="sans-serif-bold"
-                        android:padding="8dp" />
+                        android:textColor="#f87171"
+                        android:textSize="13sp"
+                        android:fontFamily="sans-serif-medium"
+                        android:padding="6dp" />
                 </LinearLayout>
 
                 <!-- GİRİŞ YAPILMIŞ DURUM: Ultra Premium profil özeti ekranı -->
@@ -606,7 +633,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@admin"
-                        android:textColor="#6366f1"
+                        android:textColor="#60a5fa"
                         android:textSize="14sp"
                         android:fontFamily="sans-serif-medium"
                         android:layout_marginBottom="24dp" />
@@ -627,7 +654,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="HESAP BİLGİLERİ"
-                            android:textColor="#6366f1"
+                            android:textColor="#60a5fa"
                             android:textSize="11sp"
                             android:letterSpacing="0.15"
                             android:fontFamily="sans-serif-bold"
@@ -664,7 +691,7 @@
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:text="KULLANICI"
-                                    android:textColor="#7A8090"
+                                    android:textColor="#6b7a99"
                                     android:textSize="10sp"
                                     android:letterSpacing="0.12"
                                     android:fontFamily="sans-serif-medium" />
@@ -717,7 +744,7 @@
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:text="E-POSTA"
-                                    android:textColor="#7A8090"
+                                    android:textColor="#6b7a99"
                                     android:textSize="10sp"
                                     android:letterSpacing="0.12"
                                     android:fontFamily="sans-serif-medium" />
@@ -770,7 +797,7 @@
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:text="AD SOYAD"
-                                    android:textColor="#7A8090"
+                                    android:textColor="#6b7a99"
                                     android:textSize="10sp"
                                     android:letterSpacing="0.12"
                                     android:fontFamily="sans-serif-medium" />
@@ -794,7 +821,7 @@
                         android:layout_height="wrap_content"
                         android:gravity="center"
                         android:text=""
-                        android:textColor="#6366f1"
+                        android:textColor="#60a5fa"
                         android:textSize="12sp"
                         android:layout_marginBottom="8dp"
                         android:fontFamily="sans-serif-medium"
@@ -823,7 +850,7 @@
                         android:layout_marginBottom="12dp"
                         android:background="@drawable/profile_button_admin_bg"
                         android:text="📜  Sistem Logları (Admin)"
-                        android:textColor="#00FBFF"
+                        android:textColor="#60a5fa"
                         android:textAllCaps="false"
                         android:fontFamily="sans-serif-bold"
                         android:textSize="15sp"
@@ -867,9 +894,11 @@
                         android:stateListAnimator="@null" />
                 </LinearLayout>
 
-            </LinearLayout>
-        </ScrollView>
-    </LinearLayout>
+              </LinearLayout>
+            </ScrollView>
+
+        </LinearLayout> <!-- authCardContainer kapanışı -->
+    </LinearLayout> <!-- layoutAccount kapanışı -->
 
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <!-- MODEL SEÇİM PANELİ: Premium Zeka Merkezi Tasarımı                              -->
@@ -885,22 +914,19 @@
         android:clickable="true"
         android:focusable="true">
 
-        <!-- HEADER BÖLÜMÜ -->
+        <!-- HEADER: Zeka Merkezi Başlık -->
         <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:paddingHorizontal="24dp"
-            android:paddingTop="32dp"
+            android:paddingTop="40dp"
             android:paddingBottom="24dp">
 
-            <!-- Sol: Başlık ve Durum -->
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_centerVertical="true"
                 android:orientation="vertical">
 
-                <!-- Başlık -->
                 <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -911,68 +937,46 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="🧠"
-                        android:textSize="26sp"
-                        android:layout_marginEnd="10dp" />
+                        android:textSize="32sp"
+                        android:layout_marginEnd="12dp" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Zeka Merkezi"
-                        android:textColor="#FFFFFF"
+                        android:textColor="#f0f4ff"
                         android:textSize="28sp"
                         android:fontFamily="sans-serif-black"
-                        android:letterSpacing="-0.02" />
+                        android:letterSpacing="-0.03" />
                 </LinearLayout>
 
-                <!-- Aktif Model Badge -->
-                <LinearLayout
+                <TextView
+                    android:id="@+id/txtCurrentModel"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:layout_marginTop="10dp"
-                    android:background="@drawable/history_date_badge_bg"
+                    android:text="AKTİF MODEL: LLAMA 3.2"
+                    android:textColor="#93c5fd"
+                    android:textSize="11sp"
+                    android:textAllCaps="true"
+                    android:letterSpacing="0.06"
+                    android:fontFamily="sans-serif-bold"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/history_date_badge_blue_bg"
                     android:paddingHorizontal="12dp"
-                    android:paddingVertical="6dp">
-
-                    <View
-                        android:layout_width="6dp"
-                        android:layout_height="6dp"
-                        android:background="@drawable/mic_button"
-                        android:backgroundTint="#00FBFF"
-                        android:layout_marginEnd="8dp" />
-
-                    <TextView
-                        android:id="@+id/txtCurrentModel"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="AKTİF: LLAMA 3.2"
-                        android:textColor="#00FBFF"
-                        android:textSize="10sp"
-                        android:textAllCaps="true"
-                        android:letterSpacing="0.08"
-                        android:fontFamily="sans-serif-bold" />
-                </LinearLayout>
+                    android:paddingVertical="5dp" />
             </LinearLayout>
 
-            <!-- Kapat Butonu -->
-            <FrameLayout
-                android:layout_width="52dp"
-                android:layout_height="52dp"
+            <ImageButton
+                android:id="@+id/btnCloseModels"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
                 android:layout_alignParentEnd="true"
                 android:layout_centerVertical="true"
-                android:background="@drawable/profile_icon_bg">
-
-                <ImageButton
-                    android:id="@+id/btnCloseModels"
-                    android:layout_width="36dp"
-                    android:layout_height="36dp"
-                    android:layout_gravity="center"
-                    android:background="?android:attr/selectableItemBackgroundBorderless"
-                    android:scaleType="centerInside"
-                    android:src="@android:drawable/ic_menu_close_clear_cancel"
-                    android:tint="#FFFFFF" />
-            </FrameLayout>
+                android:background="@drawable/auth_close_btn_bg"
+                android:src="@android:drawable/ic_menu_close_clear_cancel"
+                android:tint="#f0f4ff"
+                android:padding="12dp"
+                android:scaleType="centerInside" />
         </RelativeLayout>
 
         <!-- MODEL LİSTESİ -->
@@ -982,41 +986,39 @@
             android:layout_weight="1"
             android:overScrollMode="never"
             android:scrollbars="none"
-            android:paddingHorizontal="24dp"
-            android:clipToPadding="false">
+            android:paddingHorizontal="20dp">
 
-            <!-- Modellerin dinamik olarak listelendiği alan -->
             <LinearLayout
                 android:id="@+id/containerModelItems"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:clipToPadding="false" />
+                android:paddingBottom="40dp" />
         </ScrollView>
 
-        <!-- ALT BİLGİ -->
+        <!-- FOOTER: Bilgilendirme -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:paddingHorizontal="24dp"
-            android:paddingVertical="20dp"
+            android:paddingVertical="24dp"
             android:gravity="center"
-            android:background="@drawable/history_card_bg">
+            android:background="#1A000000">
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="💡"
-                android:textSize="14sp"
-                android:layout_marginEnd="8dp" />
+                android:textSize="16sp"
+                android:layout_marginEnd="10dp" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Model seçimi yanıt hızını ve kalitesini etkiler"
-                android:textColor="#60FFFFFF"
-                android:textSize="12sp"
+                android:text="Model seçimi yanıt kalitesini doğrudan etkiler."
+                android:textColor="#6b7a99"
+                android:textSize="13sp"
                 android:fontFamily="sans-serif-medium" />
         </LinearLayout>
     </LinearLayout>
@@ -1036,128 +1038,83 @@
         android:clickable="true"
         android:focusable="true">
 
-        <!-- ═══════════════════════════════════════════════════════════════════════════ -->
-        <!-- HEADER BÖLÜMÜ: Premium floating header tasarımı                            -->
-        <!-- Büyük başlık, animasyonlu durum göstergesi, neon vurgular                 -->
-        <!-- ═══════════════════════════════════════════════════════════════════════════ -->
+        <!-- HEADER: Premium Lacivert Başlık -->
         <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:paddingHorizontal="24dp"
-            android:paddingTop="32dp"
-            android:paddingBottom="20dp">
+            android:paddingTop="40dp"
+            android:paddingBottom="24dp">
 
-            <!-- Sol: Başlık ve Alt Bilgi -->
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_centerVertical="true"
                 android:orientation="vertical">
 
-                <!-- Ana Başlık -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Sohbet Geçmişi"
-                    android:textColor="#FFFFFF"
-                    android:textSize="32sp"
+                    android:textColor="#f0f4ff"
+                    android:textSize="30sp"
                     android:fontFamily="sans-serif-black"
-                    android:letterSpacing="-0.03"
-                    android:includeFontPadding="false" />
+                    android:letterSpacing="-0.03" />
 
-                <!-- Alt Başlık: Açıklama -->
                 <TextView
+                    android:id="@+id/txtHistoryStats"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Tüm sohbet geçmişiniz burada"
-                    android:textColor="#60FFFFFF"
-                    android:textSize="13sp"
-                    android:fontFamily="sans-serif-medium"
-                    android:layout_marginTop="2dp" />
-
-                <!-- Durum Badge'i -->
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:layout_marginTop="10dp"
-                    android:background="@drawable/history_date_badge_bg"
-                    android:paddingHorizontal="12dp"
-                    android:paddingVertical="6dp">
-
-                    <!-- Canlı gösterge noktası -->
-                    <View
-                        android:layout_width="6dp"
-                        android:layout_height="6dp"
-                        android:background="@drawable/mic_button"
-                        android:backgroundTint="#00FBFF"
-                        android:layout_marginEnd="8dp" />
-
-                    <TextView
-                        android:id="@+id/txtHistoryStats"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="SENKRONİZE • 0 KAYIT"
-                        android:textColor="#00FBFF"
-                        android:textSize="10sp"
-                        android:textAllCaps="true"
-                        android:letterSpacing="0.08"
-                        android:fontFamily="sans-serif-bold" />
-                </LinearLayout>
+                    android:text="SENKRONİZE • 0 KAYIT"
+                    android:textColor="#93c5fd"
+                    android:textSize="11sp"
+                    android:textAllCaps="true"
+                    android:letterSpacing="0.06"
+                    android:fontFamily="sans-serif-bold"
+                    android:layout_marginTop="4dp"
+                    android:background="@drawable/history_date_badge_blue_bg"
+                    android:paddingHorizontal="10dp"
+                    android:paddingVertical="4dp" />
             </LinearLayout>
 
-            <!-- Sağ: Kapat Butonu -->
-            <FrameLayout
-                android:layout_width="52dp"
-                android:layout_height="52dp"
+            <ImageButton
+                android:id="@+id/btnCloseHistory"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
                 android:layout_alignParentEnd="true"
                 android:layout_centerVertical="true"
-                android:background="@drawable/profile_icon_bg">
-
-                <ImageButton
-                    android:id="@+id/btnCloseHistory"
-                    android:layout_width="36dp"
-                    android:layout_height="36dp"
-                    android:layout_gravity="center"
-                    android:background="?android:attr/selectableItemBackgroundBorderless"
-                    android:scaleType="centerInside"
-                    android:src="@android:drawable/ic_menu_close_clear_cancel"
-                    android:tint="#FFFFFF" />
-            </FrameLayout>
+                android:background="@drawable/auth_close_btn_bg"
+                android:src="@android:drawable/ic_menu_close_clear_cancel"
+                android:tint="#f0f4ff"
+                android:padding="12dp"
+                android:scaleType="centerInside" />
         </RelativeLayout>
 
-        <!-- ═══════════════════════════════════════════════════════════════════════════ -->
-        <!-- STATS KARTLARI: Hızlı istatistik görünümü                                 -->
-        <!-- Toplam sohbet, bugünkü mesaj, son aktivite bilgileri                      -->
-        <!-- ═══════════════════════════════════════════════════════════════════════════ -->
+        <!-- STATS: Modern Mavi Kartlar -->
         <LinearLayout
             android:id="@+id/layoutHistoryStats"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:paddingHorizontal="24dp"
-            android:paddingBottom="16dp">
+            android:paddingHorizontal="20dp"
+            android:layout_marginBottom="24dp">
 
-            <!-- Stat 1: Toplam Sohbet -->
             <LinearLayout
                 android:id="@+id/cardStatTotal"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:layout_marginEnd="8dp"
+                android:layout_marginEnd="6dp"
                 android:orientation="vertical"
                 android:gravity="center"
-                android:background="@drawable/history_card_bg"
-                android:paddingVertical="16dp"
-                android:paddingHorizontal="12dp">
+                android:background="@drawable/history_card_premium_bg"
+                android:paddingVertical="18dp">
 
                 <TextView
                     android:id="@+id/txtStatTotalChats"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="0"
-                    android:textColor="#00FBFF"
+                    android:textColor="#60a5fa"
                     android:textSize="24sp"
                     android:fontFamily="sans-serif-black" />
 
@@ -1165,63 +1122,57 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Sohbet"
-                    android:textColor="#80FFFFFF"
+                    android:textColor="#6b7a99"
                     android:textSize="11sp"
-                    android:fontFamily="sans-serif-medium"
-                    android:layout_marginTop="2dp" />
+                    android:fontFamily="sans-serif-medium" />
             </LinearLayout>
 
-            <!-- Stat 2: Bu Hafta -->
             <LinearLayout
                 android:id="@+id/cardStatWeekly"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:layout_marginHorizontal="4dp"
+                android:layout_marginHorizontal="3dp"
                 android:orientation="vertical"
                 android:gravity="center"
-                android:background="@drawable/history_card_bg"
-                android:paddingVertical="16dp"
-                android:paddingHorizontal="12dp">
+                android:background="@drawable/history_card_premium_bg"
+                android:paddingVertical="18dp">
 
                 <TextView
                     android:id="@+id/txtStatThisWeek"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="0"
-                    android:textColor="#6366f1"
+                    android:textColor="#93c5fd"
                     android:textSize="24sp"
                     android:fontFamily="sans-serif-black" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Bu Hafta"
-                    android:textColor="#80FFFFFF"
+                    android:text="Haftalık"
+                    android:textColor="#6b7a99"
                     android:textSize="11sp"
-                    android:fontFamily="sans-serif-medium"
-                    android:layout_marginTop="2dp" />
+                    android:fontFamily="sans-serif-medium" />
             </LinearLayout>
 
-            <!-- Stat 3: Bugün -->
             <LinearLayout
                 android:id="@+id/cardStatToday"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:layout_marginStart="8dp"
+                android:layout_marginStart="6dp"
                 android:orientation="vertical"
                 android:gravity="center"
-                android:background="@drawable/history_card_bg"
-                android:paddingVertical="16dp"
-                android:paddingHorizontal="12dp">
+                android:background="@drawable/history_card_premium_bg"
+                android:paddingVertical="18dp">
 
                 <TextView
                     android:id="@+id/txtStatToday"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="0"
-                    android:textColor="#27C93F"
+                    android:textColor="#34d399"
                     android:textSize="24sp"
                     android:fontFamily="sans-serif-black" />
 
@@ -1229,78 +1180,62 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Bugün"
-                    android:textColor="#80FFFFFF"
+                    android:textColor="#6b7a99"
                     android:textSize="11sp"
-                    android:fontFamily="sans-serif-medium"
-                    android:layout_marginTop="2dp" />
+                    android:fontFamily="sans-serif-medium" />
             </LinearLayout>
         </LinearLayout>
 
-        <!-- ═══════════════════════════════════════════════════════════════════════════ -->
-        <!-- ARAMA ÇUBUĞU: Neon vurgulu floating arama kutusu                          -->
-        <!-- Sol tarafta ikon, sağda temizle butonu, neon alt çizgi                    -->
-        <!-- ═══════════════════════════════════════════════════════════════════════════ -->
+        <!-- ARAMA ÇUBUĞU -->
         <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:paddingHorizontal="24dp"
-            android:paddingBottom="20dp">
+            android:layout_marginBottom="16dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="56dp"
+                android:layout_height="52dp"
                 android:background="@drawable/auth_input_bg"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
                 android:paddingHorizontal="16dp">
 
-                <!-- Arama ikonu -->
-                <FrameLayout
-                    android:layout_width="36dp"
-                    android:layout_height="36dp"
-                    android:layout_marginEnd="12dp">
-                    <ImageView
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
-                        android:layout_gravity="center"
-                        android:src="@android:drawable/ic_menu_search"
-                        android:tint="#60FFFFFF" />
-                </FrameLayout>
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:src="@android:drawable/ic_menu_search"
+                    android:tint="#6b7a99"
+                    android:layout_marginEnd="12dp" />
 
-                <!-- Arama input -->
-                <!-- Geçmiş kayıtlar içinde arama yapma kutusu -->
                 <EditText
                     android:id="@+id/edtHistorySearch"
                     android:layout_width="0dp"
                     android:layout_weight="1"
                     android:layout_height="match_parent"
                     android:background="@null"
-                    android:hint="Gemişte ara..."
-                    android:textColorHint="#40FFFFFF"
-                    android:textColor="#FFFFFF"
+                    android:hint="Geçmişte ara..."
+                    android:textColorHint="#406b7a99"
+                    android:textColor="#f0f4ff"
                     android:inputType="text"
                     android:fontFamily="sans-serif-medium"
-                    android:textSize="15sp"
+                    android:textSize="14sp"
                     android:imeOptions="actionSearch"
                     android:maxLines="1" />
 
-                <!-- Temizle butonu (varsayılan gizli) -->
                 <ImageButton
                     android:id="@+id/btnClearSearch"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
                     android:background="?android:attr/selectableItemBackgroundBorderless"
                     android:src="@android:drawable/ic_menu_close_clear_cancel"
-                    android:tint="#50FFFFFF"
+                    android:tint="#406b7a99"
                     android:scaleType="centerInside"
                     android:visibility="gone" />
             </LinearLayout>
         </FrameLayout>
 
-        <!-- ═══════════════════════════════════════════════════════════════════════════ -->
-        <!-- İÇERİK ALANI: Sohbet listesi veya boş durum gösterimi                     -->
-        <!-- Her sohbet kartı premium glassmorphism tasarımında                        -->
-        <!-- ═══════════════════════════════════════════════════════════════════════════ -->
+        <!-- LİSTE ALANI -->
         <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
@@ -1312,143 +1247,117 @@
                 android:layout_height="match_parent"
                 android:overScrollMode="never"
                 android:scrollbars="none"
-                android:paddingHorizontal="24dp"
-                android:clipToPadding="false"
-                android:fadingEdge="vertical"
-                android:fadingEdgeLength="40dp"
-                android:requiresFadingEdge="vertical">
+                android:paddingHorizontal="20dp"
+                android:clipToPadding="false">
 
                 <LinearLayout
                     android:id="@+id/containerHistoryItems"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:paddingBottom="24dp" />
+                    android:paddingBottom="40dp" />
             </ScrollView>
 
-            <!-- BOŞ DURUM GÖSTERİMİ: Kayıt yoksa gösterilir -->
+            <!-- BOŞ DURUM -->
             <LinearLayout
                 android:id="@+id/layoutHistoryEmpty"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
-                android:layout_marginHorizontal="40dp"
+                android:layout_marginHorizontal="32dp"
                 android:orientation="vertical"
                 android:gravity="center"
-                android:background="@drawable/history_empty_state_bg"
-                android:paddingVertical="48dp"
-                android:paddingHorizontal="32dp"
+                android:background="@drawable/history_empty_state_blue_bg"
+                android:paddingVertical="40dp"
+                android:paddingHorizontal="24dp"
                 android:visibility="gone">
 
-                <!-- Boş durum ikonu -->
-                <FrameLayout
-                    android:layout_width="80dp"
-                    android:layout_height="80dp"
-                    android:background="@drawable/profile_icon_bg"
-                    android:layout_marginBottom="20dp">
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="center"
-                        android:text="💭"
-                        android:textSize="36sp" />
-                </FrameLayout>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="💭"
+                    android:textSize="40sp"
+                    android:layout_marginBottom="16dp" />
 
-                <!-- Boş durum başlığı -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Henüz Anı Yok"
-                    android:textColor="#FFFFFF"
+                    android:textColor="#f0f4ff"
                     android:textSize="20sp"
-                    android:fontFamily="sans-serif-bold"
-                    android:layout_marginBottom="8dp" />
+                    android:fontFamily="sans-serif-black" />
 
-                <!-- Boş durum açıklaması -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Niko ile sohbet etmeye başladığınızda\ntüm konuşmalarınız burada görünecek"
-                    android:textColor="#60FFFFFF"
+                    android:text="Niko ile sohbet ettiğinizde anılarınız burada birikecek."
+                    android:textColor="#6b7a99"
                     android:textSize="13sp"
-                    android:fontFamily="sans-serif-medium"
                     android:gravity="center"
-                    android:lineSpacingExtra="4dp" />
+                    android:layout_marginTop="8dp" />
 
-                <!-- Yeni sohbet başlat butonu -->
                 <Button
                     android:id="@+id/btnStartNewChat"
                     android:layout_width="wrap_content"
-                    android:layout_height="44dp"
+                    android:layout_height="wrap_content"
                     android:layout_marginTop="24dp"
-                    android:background="@drawable/history_date_badge_bg"
-                    android:text="✨  Yeni Sohbet Başlat"
-                    android:textColor="#00FBFF"
+                    android:background="@drawable/auth_button_bg"
+                    android:text="Yeni Sohbet Başlat"
+                    android:textColor="#FFFFFF"
                     android:textAllCaps="false"
-                    android:fontFamily="sans-serif-bold"
-                    android:textSize="13sp"
-                    android:paddingHorizontal="24dp" />
+                    android:paddingHorizontal="24dp"
+                    android:fontFamily="sans-serif-bold" />
             </LinearLayout>
         </FrameLayout>
 
-        <!-- ═══════════════════════════════════════════════════════════════════════════ -->
-        <!-- FOOTER BÖLÜMÜ: Aksiyon butonları                                          -->
-        <!-- Gradient blur arka plan, tehlikeli eylem için kırmızı vurgu              -->
-        <!-- ═══════════════════════════════════════════════════════════════════════════ -->
+        <!-- FOOTER: Aksiyonlar -->
         <LinearLayout
-            android:id="@+id/layoutHistoryFooter"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:background="#1A000000"
             android:paddingHorizontal="24dp"
-            android:paddingTop="24dp"
-            android:paddingBottom="20dp">
+            android:paddingTop="20dp"
+            android:paddingBottom="24dp"
+            android:background="#1A000000">
 
-            <!-- Uyarı metni -->
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Dikkat: Silinen veriler geri getirilemez"
-                android:textColor="#40FFFFFF"
+                android:text="Silinen veriler geri getirilemez"
+                android:textColor="#406b7a99"
                 android:textSize="11sp"
                 android:fontFamily="sans-serif-medium"
                 android:gravity="center"
                 android:layout_marginBottom="12dp" />
 
-            <!-- Butonlar -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal">
 
-                <!-- Dışa Aktar Butonu -->
-                <Button
-                    android:id="@+id/btnExportHistory"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_height="52dp"
-                    android:layout_marginEnd="8dp"
-                    android:background="@drawable/auth_input_bg"
-                    android:text="📥  Dışa Aktar"
-                    android:textColor="#FFFFFF"
-                    android:textAllCaps="false"
-                    android:fontFamily="sans-serif-bold"
-                    android:textSize="13sp" />
-
-                <!-- Tümünü Sil Butonu -->
                 <Button
                     android:id="@+id/btnClearHistory"
                     android:layout_width="0dp"
+                    android:layout_height="48dp"
                     android:layout_weight="1"
-                    android:layout_height="52dp"
-                    android:layout_marginStart="8dp"
+                    android:layout_marginEnd="6dp"
                     android:background="@drawable/profile_button_danger_bg"
-                    android:text="🗑️  Arşivi Temizle"
-                    android:textColor="#F43F5E"
+                    android:text="Hepsini Sil"
+                    android:textColor="#fca5a5"
                     android:textAllCaps="false"
-                    android:fontFamily="sans-serif-bold"
-                    android:textSize="13sp" />
+                    android:fontFamily="sans-serif-bold" />
+
+                <Button
+                    android:id="@+id/btnExportHistory"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:layout_marginStart="6dp"
+                    android:background="@drawable/auth_secondary_button_bg"
+                    android:text="Dışa Aktar"
+                    android:textColor="#93c5fd"
+                    android:textAllCaps="false"
+                    android:fontFamily="sans-serif-bold" />
             </LinearLayout>
         </LinearLayout>
     </LinearLayout>

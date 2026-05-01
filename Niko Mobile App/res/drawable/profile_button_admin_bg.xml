@@ -5,7 +5,7 @@
         <layer-list>
             <item>
                 <shape android:shape="rectangle">
-                    <solid android:color="#4D00FBFF" />
+                    <solid android:color="#4D2563EB" />
                     <corners android:radius="16dp" />
                 </shape>
             </item>
@@ -21,7 +21,7 @@
                         android:gradientRadius="150%"
                         android:centerX="50%"
                         android:centerY="100%"
-                        android:startColor="#2600FBFF"
+                        android:startColor="#262563EB"
                         android:endColor="#00000000" />
                     <corners android:radius="20dp" />
                 </shape>
@@ -30,21 +30,21 @@
             <item>
                 <shape android:shape="rectangle">
                     <gradient
-                        android:startColor="#1A00FBFF"
+                        android:startColor="#1A2563EB"
                         android:centerColor="#0D000000"
-                        android:endColor="#1200FBFF"
+                        android:endColor="#122563EB"
                         android:angle="135" />
                     <corners android:radius="16dp" />
                     <stroke
                         android:width="1.2dp"
-                        android:color="#4D00FBFF" />
+                        android:color="#4D2563EB" />
                 </shape>
             </item>
             <!-- Terminal Shine -->
             <item android:top="1dp" android:left="1dp" android:right="1dp">
                 <shape android:shape="rectangle">
                     <gradient
-                        android:startColor="#1A00FBFF"
+                        android:startColor="#1A2563EB"
                         android:endColor="#00000000"
                         android:angle="270" />
                     <corners android:topLeftRadius="15dp" android:topRightRadius="15dp" />

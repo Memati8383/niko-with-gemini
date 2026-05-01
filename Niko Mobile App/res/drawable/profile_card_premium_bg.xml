@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- PREMIUM PROFİL KARTI: Ultra-Modern Glassmorphism -->
+<!-- PREMIUM PROFİL KARTI: Blue Glassmorphism Style -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- DEEP SHADOW / GLOW (Holographic base) -->
+    <!-- DEEP SHADOW / GLOW (Holographic base - Blue theme) -->
     <item>
         <shape android:shape="rectangle">
             <gradient
-                android:startColor="#1A6366f1"
-                android:centerColor="#0D8b5cf6"
-                android:endColor="#1A00FBFF"
+                android:startColor="#1A3B82F6"
+                android:centerColor="#0D2563EB"
+                android:endColor="#1A2563EB"
                 android:angle="135" />
             <corners android:radius="24dp" />
         </shape>
@@ -20,7 +20,7 @@
         android:left="1.2dp"
         android:right="1.2dp">
         <shape android:shape="rectangle">
-            <solid android:color="#260A0A1A" />
+            <solid android:color="#26020817" />
             <corners android:radius="23dp" />
             <!-- Ultra-thin elegant border -->
             <stroke

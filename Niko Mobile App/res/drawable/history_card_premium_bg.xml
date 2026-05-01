@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- PREMIUM HISTORY CARD: Deep Blue Glassmorphism -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Pressed State -->
+    <item android:state_pressed="true">
+        <layer-list>
+            <item>
+                <shape android:shape="rectangle">
+                    <solid android:color="#263B82F6" />
+                    <corners android:radius="22dp" />
+                </shape>
+            </item>
+            <item>
+                <shape android:shape="rectangle">
+                    <stroke
+                        android:width="1.2dp"
+                        android:color="#4D3B82F6" />
+                    <corners android:radius="22dp" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+
+    <!-- Normal State -->
+    <item>
+        <layer-list>
+            <!-- Background Depth -->
+            <item>
+                <shape android:shape="rectangle">
+                    <solid android:color="#1A0D1117" />
+                    <corners android:radius="20dp" />
+                </shape>
+            </item>
+            <!-- Glass Rim -->
+            <item>
+                <shape android:shape="rectangle">
+                    <stroke
+                        android:width="1dp"
+                        android:color="#1AFFFFFF" />
+                    <corners android:radius="20dp" />
+                </shape>
+            </item>
+            <!-- Subtle Inner Glow -->
+            <item android:top="1dp" android:left="1dp" android:right="1dp">
+                <shape android:shape="rectangle">
+                    <gradient
+                        android:startColor="#0DFFFFFF"
+                        android:endColor="#00FFFFFF"
+                        android:angle="270" />
+                    <corners android:topLeftRadius="19dp" android:topRightRadius="19dp" />
+                    <size android:height="40dp" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+</selector>

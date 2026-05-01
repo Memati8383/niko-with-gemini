@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- PREMIUM PROFİL AVATAR IŞIMA: Ultra-Premium Holographic Aura -->
+<!-- PREMIUM PROFİL AVATAR IŞIMA: Blue Holographic Aura -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- BASE DEEP GLOW (Indigo) -->
+    <!-- BASE DEEP GLOW (Vibrant Blue) -->
     <item>
         <shape android:shape="oval">
             <gradient
@@ -9,12 +9,12 @@
                 android:gradientRadius="100%"
                 android:centerX="50%"
                 android:centerY="50%"
-                android:startColor="#266366f1"
+                android:startColor="#263B82F6"
                 android:endColor="#00000000" />
         </shape>
     </item>
 
-    <!-- ACCENT GLOW (Electric Cyan) -->
+    <!-- ACCENT GLOW (Electric Azure) -->
     <item android:top="10dp" android:bottom="10dp" android:left="10dp" android:right="10dp">
         <shape android:shape="oval">
             <gradient
@@ -22,18 +22,18 @@
                 android:gradientRadius="90%"
                 android:centerX="30%"
                 android:centerY="30%"
-                android:startColor="#1A00FBFF"
+                android:startColor="#1A2563EB"
                 android:endColor="#00000000" />
         </shape>
     </item>
 
-    <!-- INNER VIBRANCE (Violet) -->
+    <!-- INNER VIBRANCE (Royal Blue) -->
     <item android:top="20dp" android:bottom="20dp" android:left="20dp" android:right="20dp">
         <shape android:shape="oval">
             <gradient
                 android:type="radial"
                 android:gradientRadius="80%"
-                android:startColor="#228b5cf6"
+                android:startColor="#222563EB"
                 android:endColor="#00000000" />
         </shape>
     </item>

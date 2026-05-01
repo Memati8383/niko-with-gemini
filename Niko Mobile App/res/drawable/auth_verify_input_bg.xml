@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- GİRİŞ ALANI (EDITTEXT) TASARIMI: Blue Glassmorphism Style (Site Uyumlu) -->
+<!-- DOĞRULAMA KODU GİRİŞ ALANI: Premium Blue Focus Style -->
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- ODAKLANILMIŞ DURUM: Kullanıcı yazı yazarken (Blue Accent) -->
+    <!-- ODAKLANILMIŞ DURUM -->
     <item android:state_focused="true">
         <shape android:shape="rectangle">
-            <solid android:color="#0F0D1117" />
-            <stroke android:width="1.5dp" android:color="#992563EB" />
+            <solid android:color="#1A2563EB" />
+            <stroke android:width="2dp" android:color="#992563EB" />
             <corners android:radius="14dp" />
         </shape>
     </item>

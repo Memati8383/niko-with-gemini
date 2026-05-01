@@ -409,6 +409,7 @@ public class MainActivity extends Activity {
         layoutAccount = findViewById(R.id.layoutAccount);
         btnCloseAccount = findViewById(R.id.btnCloseAccount);
         txtAccountTitle = findViewById(R.id.txtAccountTitle);
+
         edtUsername = findViewById(R.id.edtUsername);
         edtPassword = findViewById(R.id.edtPassword);
         edtEmail = findViewById(R.id.edtEmail);
@@ -1568,6 +1569,7 @@ public class MainActivity extends Activity {
                 if (layoutAvatarSelection != null)
                     layoutAvatarSelection.setVisibility(View.VISIBLE);
                 txtAccountTitle.setText("Profili Düzenle");
+
                 layoutLoggedIn.setVisibility(View.GONE);
                 layoutAccountFields.setVisibility(View.VISIBLE);
                 layoutRegisterExtras.setVisibility(View.VISIBLE);
@@ -1589,6 +1591,7 @@ public class MainActivity extends Activity {
                     layoutAvatarSelection.setVisibility(View.GONE);
                 imgMainProfile.setOnClickListener(null);
                 txtAccountTitle.setText("Profilim");
+
                 layoutLoggedIn.setVisibility(View.VISIBLE);
                 fetchProfile();
                 layoutAccountFields.setVisibility(View.GONE);
@@ -1601,12 +1604,14 @@ public class MainActivity extends Activity {
 
             if (isRegisterMode) {
                 txtAccountTitle.setText("Yeni Hesap");
+
                 layoutRegisterExtras.setVisibility(View.VISIBLE);
                 btnSubmitAccount.setText("Kayıt Ol");
                 btnSwitchMode.setText("Zaten hesabınız var mı? Giriş Yapın");
                 btnSwitchMode.setOnClickListener(v -> toggleAccountMode());
             } else {
                 txtAccountTitle.setText("Giriş Yap");
+
                 layoutRegisterExtras.setVisibility(View.GONE);
                 btnSubmitAccount.setText("Giriş Yap");
                 btnSwitchMode.setText("Hesabınız yok mu? Kayıt Olun");
@@ -2315,44 +2320,60 @@ public class MainActivity extends Activity {
     // ================= ANİMASYON YARDIMCILARI =================
 
     /**
-     * Hesap panelinin açılış animasyonu (Premium giriş efekti).
-     * Optimize edildi - Donanım hızlandırma kullanır.
+     * Hesap panelinin açılış animasyonu (Premium SlideUp — Site CSS ile uyumlu).
+     * Site'deki slideUp keyframe'i: translateY(28px) scale(0.97) → translateY(0) scale(1)
      */
     private void animateAccountEntry() {
-        // Önceki animasyonu iptal et
         cancelAnimation(ANIM_ACCOUNT_ENTRY);
 
+        // 1. KATMAN: Arka plan fade-in
         layoutAccount.setAlpha(0f);
-        layoutAccount.setScaleX(0.9f);
-        layoutAccount.setScaleY(0.9f);
-
-        // Donanım katmanını kullan (GPU hızlandırma)
         layoutAccount.setLayerType(View.LAYER_TYPE_HARDWARE, null);
 
         layoutAccount.animate()
                 .alpha(1f)
-                .scaleX(1f)
-                .scaleY(1f)
-                .setDuration(400)
-                .setInterpolator(new android.view.animation.OvershootInterpolator(1.2f))
-                .withEndAction(() -> {
-                    // Animasyon bitince katmanı kaldır
-                    layoutAccount.setLayerType(View.LAYER_TYPE_NONE, null);
-                })
+                .setDuration(300)
+                .setInterpolator(new android.view.animation.DecelerateInterpolator())
+                .withEndAction(() -> layoutAccount.setLayerType(View.LAYER_TYPE_NONE, null))
                 .start();
 
-        // Form alanlarını sırayla animasyonla göster
-        animateFormFieldsEntry();
+        // 2. KATMAN: Kart slideUp animasyonu (Site uyumlu)
+        View authCard = findViewById(R.id.authCardContainer);
+        if (authCard != null) {
+            authCard.setAlpha(0f);
+            authCard.setTranslationY(80f);
+            authCard.setScaleX(0.97f);
+            authCard.setScaleY(0.97f);
+            authCard.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+
+            authCard.animate()
+                    .alpha(1f)
+                    .translationY(0f)
+                    .scaleX(1f)
+                    .scaleY(1f)
+                    .setStartDelay(100)
+                    .setDuration(550)
+                    .setInterpolator(new android.view.animation.OvershootInterpolator(0.8f))
+                    .withEndAction(() -> {
+                        authCard.setLayerType(View.LAYER_TYPE_NONE, null);
+                        // Kart geldikten sonra form alanlarını sırayla göster
+                        animateFormFieldsEntry();
+                    })
+                    .start();
+        } else {
+            animateFormFieldsEntry();
+        }
+
     }
 
     /**
-     * Form alanlarının sıralı giriş animasyonu (Kademeli etki).
-     * Optimize edildi - Tek işleyici ile toplu işlem.
+     * Form alanlarının kademeli giriş animasyonu.
+     * Site CSS'deki msgIn animasyonundan esinlenildi: fade + translateY.
      */
     private void animateFormFieldsEntry() {
         View[] fields = {
-                txtAccountTitle,
                 edtUsername,
+                edtCurrentPassword,
                 edtPassword,
                 edtEmail,
                 edtFullName,
@@ -2360,62 +2381,64 @@ public class MainActivity extends Activity {
                 btnSwitchMode
         };
 
-        // Tüm alanları hazırla (tek döngü)
+        int visibleIndex = 0;
         for (View field : fields) {
-            if (field != null) {
+            if (field != null && field.getVisibility() == View.VISIBLE) {
                 field.setAlpha(0f);
-                field.setTranslationY(30);
-                field.setLayerType(View.LAYER_TYPE_HARDWARE, null);
-            }
-        }
-
-        // Toplu animasyon başlat
-        for (int i = 0; i < fields.length; i++) {
-            if (fields[i] != null) {
-                final View field = fields[i];
-                final int delay = i * 60;
-                final boolean isLast = (i == fields.length - 1);
+                field.setTranslationY(20f);
 
                 field.animate()
                         .alpha(1f)
-                        .translationY(0)
-                        .setStartDelay(delay + 200)
-                        .setDuration(350)
-                        .setInterpolator(new android.view.animation.DecelerateInterpolator())
-                        .withEndAction(() -> {
-                            if (isLast) {
-                                // Son animasyon bitince tüm katmanları temizle
-                                for (View f : fields) {
-                                    if (f != null) {
-                                        f.setLayerType(View.LAYER_TYPE_NONE, null);
-                                    }
-                                }
-                            }
-                        })
+                        .translationY(0f)
+                        .setStartDelay(visibleIndex * 55L)
+                        .setDuration(400)
+                        .setInterpolator(new android.view.animation.DecelerateInterpolator(1.8f))
                         .start();
+
+                visibleIndex++;
             }
         }
     }
 
     /**
-     * Hesap panelinin kapanış animasyonu.
+     * Hesap panelinin kapanış animasyonu (Kart aşağı kayarak çıkar).
      */
     private void animateAccountExit() {
+        View authCard = findViewById(R.id.authCardContainer);
+
+        if (authCard != null) {
+            authCard.animate()
+                    .alpha(0f)
+                    .translationY(60f)
+                    .scaleX(0.97f)
+                    .scaleY(0.97f)
+                    .setDuration(250)
+                    .setInterpolator(new android.view.animation.AccelerateInterpolator(1.5f))
+                    .start();
+        }
+
         layoutAccount.animate()
                 .alpha(0f)
-                .scaleX(0.95f)
-                .scaleY(0.95f)
-                .setDuration(250)
+                .setStartDelay(100)
+                .setDuration(200)
                 .setInterpolator(new android.view.animation.AccelerateInterpolator())
-                .withEndAction(() -> layoutAccount.setVisibility(View.GONE))
+                .withEndAction(() -> {
+                    layoutAccount.setVisibility(View.GONE);
+                    // Kartı sıfırla
+                    if (authCard != null) {
+                        authCard.setAlpha(1f);
+                        authCard.setTranslationY(0f);
+                        authCard.setScaleX(1f);
+                        authCard.setScaleY(1f);
+                    }
+                })
                 .start();
     }
 
     /**
-     * Giriş/Kayıt modu değişim animasyonu.
+     * Giriş/Kayıt modu değişim animasyonu (Crossfade + stagger).
      */
     private void animateAccountModeSwitch() {
-        // Mevcut alanları sola kaydırarak gizle
         View[] currentFields = {
                 layoutAccountFields,
                 layoutRegisterExtras,
@@ -2423,46 +2446,52 @@ public class MainActivity extends Activity {
                 btnSwitchMode
         };
 
+        // 1. Mevcut alanları fade-out
         for (View field : currentFields) {
             if (field != null && field.getVisibility() == View.VISIBLE) {
                 field.animate()
                         .alpha(0f)
-                        .translationX(-50f)
+                        .translationY(-15f)
                         .setDuration(200)
                         .setInterpolator(new android.view.animation.AccelerateInterpolator())
                         .start();
             }
         }
 
-        // Başlığı döndürerek değiştir
+        // 2. Başlığı crossfade ile değiştir
         txtAccountTitle.animate()
-                .rotationY(90f)
+                .alpha(0f)
                 .setDuration(150)
                 .withEndAction(() -> {
                     updateAccountUI();
 
-                    // Başlığı geri döndür
-                    txtAccountTitle.setRotationY(-90f);
+                    txtAccountTitle.setAlpha(0f);
+                    txtAccountTitle.setTranslationY(10f);
                     txtAccountTitle.animate()
-                            .rotationY(0f)
-                            .setDuration(150)
+                            .alpha(1f)
+                            .translationY(0f)
+                            .setDuration(300)
+                            .setInterpolator(new android.view.animation.DecelerateInterpolator())
                             .start();
 
-                    // Yeni alanları sağdan getir
-                    new android.os.Handler().postDelayed(() -> {
+                    // 3. Yeni alanları stagger fade-in
+                    new android.os.Handler(Looper.getMainLooper()).postDelayed(() -> {
+                        int index = 0;
                         for (View field : currentFields) {
                             if (field != null && field.getVisibility() == View.VISIBLE) {
                                 field.setAlpha(0f);
-                                field.setTranslationX(50f);
+                                field.setTranslationY(15f);
                                 field.animate()
                                         .alpha(1f)
-                                        .translationX(0f)
-                                        .setDuration(300)
-                                        .setInterpolator(new android.view.animation.DecelerateInterpolator())
+                                        .translationY(0f)
+                                        .setStartDelay(index * 50L)
+                                        .setDuration(350)
+                                        .setInterpolator(new android.view.animation.DecelerateInterpolator(1.5f))
                                         .start();
+                                index++;
                             }
                         }
-                    }, 100);
+                    }, 50);
                 })
                 .start();
     }
@@ -2471,15 +2500,20 @@ public class MainActivity extends Activity {
      * Buton tıklama animasyonu (Nabız efekti).
      */
     private void animateButtonClick(View button) {
+        // Ultra-Tactile Feedback
         button.animate()
-                .scaleX(0.92f)
-                .scaleY(0.92f)
-                .setDuration(100)
+                .scaleX(0.88f)
+                .scaleY(0.88f)
+                .alpha(0.85f)
+                .setDuration(80)
+                .setInterpolator(new android.view.animation.AccelerateInterpolator())
                 .withEndAction(() -> {
                     button.animate()
                             .scaleX(1f)
                             .scaleY(1f)
-                            .setDuration(100)
+                            .alpha(1f)
+                            .setDuration(150)
+                            .setInterpolator(new android.view.animation.OvershootInterpolator(2.0f))
                             .start();
                 })
                 .start();
@@ -2492,23 +2526,33 @@ public class MainActivity extends Activity {
         if (button == null)
             return;
 
-        // Dönme animasyonu (yenileme simgesi gibi)
+        // Enerjik Dönme Animasyonu
         button.animate()
                 .rotation(360f)
-                .setDuration(500)
-                .setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator())
-                .withEndAction(() -> button.setRotation(0f))
+                .scaleX(1.2f)
+                .scaleY(1.2f)
+                .setDuration(600)
+                .setInterpolator(new android.view.animation.OvershootInterpolator(1.5f))
+                .withEndAction(() -> {
+                    button.setRotation(0f);
+                    button.animate()
+                            .scaleX(1f)
+                            .scaleY(1f)
+                            .setDuration(300)
+                            .setInterpolator(new android.view.animation.DecelerateInterpolator())
+                            .start();
+                })
                 .start();
 
-        // Renk geçişi (mavi → yeşil → mavi)
+        // Renk geçişi (Blue → Yeşil → Blue)
         if (button instanceof TextView) {
             TextView textView = (TextView) button;
-            int originalColor = textView.getCurrentTextColor();
-            int highlightColor = Color.parseColor("#4CAF50");
+            int originalColor = Color.parseColor("#60a5fa"); // Blue
+            int highlightColor = Color.parseColor("#34d399"); // Success Green
 
             android.animation.ValueAnimator colorAnim = android.animation.ValueAnimator.ofArgb(
                     originalColor, highlightColor, originalColor);
-            colorAnim.setDuration(500);
+            colorAnim.setDuration(600);
             colorAnim.addUpdateListener(animator -> {
                 try {
                     textView.setTextColor((int) animator.getAnimatedValue());
@@ -2518,27 +2562,15 @@ public class MainActivity extends Activity {
             colorAnim.start();
         }
 
-        // Nabız efekti
-        button.animate()
-                .scaleX(1.15f)
-                .scaleY(1.15f)
-                .setDuration(200)
-                .withEndAction(() -> {
-                    button.animate()
-                            .scaleX(1f)
-                            .scaleY(1f)
-                            .setDuration(200)
-                            .start();
-                })
-                .start();
+        vibrateFeedback();
     }
 
     /**
      * Başarılı işlem animasyonu (Yeşil flash).
      */
     private void animateSuccess(View view) {
-        int originalColor = Color.parseColor("#00E5FF");
-        int successColor = Color.parseColor("#4CAF50");
+        int originalColor = Color.parseColor("#60a5fa");
+        int successColor = Color.parseColor("#34d399");
 
         android.animation.ValueAnimator colorAnim = android.animation.ValueAnimator.ofArgb(originalColor, successColor,
                 originalColor);
@@ -2588,10 +2620,10 @@ public class MainActivity extends Activity {
 
         // Renk paleti (önceden tanımla)
         final int[] colors = {
-                Color.parseColor("#4CAF50"),
-                Color.parseColor("#8BC34A"),
-                Color.parseColor("#00E5FF"),
-                Color.parseColor("#FFD700")
+                Color.parseColor("#34d399"),
+                Color.parseColor("#60a5fa"),
+                Color.parseColor("#3b82f6"),
+                Color.parseColor("#93c5fd")
         };
 
         // Toplu işlem için liste
@@ -2647,7 +2679,7 @@ public class MainActivity extends Activity {
         bgFlash.setLayoutParams(new android.widget.FrameLayout.LayoutParams(
                 android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
                 android.widget.FrameLayout.LayoutParams.MATCH_PARENT));
-        bgFlash.setBackgroundColor(Color.parseColor("#1A4CAF50"));
+        bgFlash.setBackgroundColor(Color.parseColor("#1A34d399"));
         bgFlash.setAlpha(0f);
 
         try {
@@ -2674,10 +2706,10 @@ public class MainActivity extends Activity {
     }
 
     /**
-     * Input alanı odaklanma animasyonu.
+     * Input alanı odaklanma animasyonu (Subtle elevation + glow).
      */
     private void setupInputAnimations() {
-        EditText[] inputs = { edtUsername, edtPassword, edtEmail, edtFullName, edtCurrentPassword };
+        EditText[] inputs = { edtUsername, edtPassword, edtEmail, edtFullName, edtCurrentPassword, edtVerifyCode };
 
         for (EditText input : inputs) {
             if (input != null) {
@@ -2686,13 +2718,17 @@ public class MainActivity extends Activity {
                         v.animate()
                                 .scaleX(1.02f)
                                 .scaleY(1.02f)
-                                .setDuration(200)
+                                .translationZ(4f)
+                                .setDuration(250)
+                                .setInterpolator(new android.view.animation.DecelerateInterpolator())
                                 .start();
                     } else {
                         v.animate()
                                 .scaleX(1f)
                                 .scaleY(1f)
-                                .setDuration(200)
+                                .translationZ(0f)
+                                .setDuration(250)
+                                .setInterpolator(new android.view.animation.DecelerateInterpolator())
                                 .start();
                     }
                 });
@@ -2701,49 +2737,35 @@ public class MainActivity extends Activity {
     }
 
     /**
-     * Doğrulama ekranının sağdan animasyonla gelmesini sağlar.
-     * Premium multi-layer animasyon efekti.
+     * Doğrulama ekranı giriş animasyonu (Clean crossfade + slide).
      */
     private void animateVerificationEntry() {
         layoutVerification.setVisibility(View.VISIBLE);
         layoutVerification.setAlpha(0f);
+        layoutVerification.setTranslationY(30f);
 
-        // Ekran genişliğini alarak tam sağdan gelmesini sağla
-        float screenWidth = getResources().getDisplayMetrics().widthPixels;
-        layoutVerification.setTranslationX(screenWidth);
-
-        // 1. KATMAN: Form alanlarını 3D perspektif ile gizle
-        layoutAccountFields.setPivotX(0);
-        layoutAccountFields.setPivotY(layoutAccountFields.getHeight() / 2f);
+        // 1. Form alanlarını yukarı kaydırarak gizle
         layoutAccountFields.animate()
                 .alpha(0f)
-                .translationX(-150f)
-                .rotationY(-15f)
-                .scaleX(0.9f)
-                .scaleY(0.9f)
-                .setDuration(350)
+                .translationY(-20f)
+                .setDuration(250)
                 .setInterpolator(new android.view.animation.AccelerateInterpolator())
                 .withEndAction(() -> {
                     layoutAccountFields.setVisibility(View.GONE);
-                    layoutAccountFields.setRotationY(0f);
-                    layoutAccountFields.setScaleX(1f);
-                    layoutAccountFields.setScaleY(1f);
+                    layoutAccountFields.setTranslationY(0f);
                 })
                 .start();
 
-        // 2. KATMAN: Doğrulama ekranını elastik sıçrama ile getir
+        // 2. Doğrulama ekranını fade + slide ile getir
         layoutVerification.animate()
                 .alpha(1f)
-                .translationX(0f)
-                .setDuration(550)
-                .setInterpolator(new android.view.animation.OvershootInterpolator(1.3f))
-                .withEndAction(() -> {
-                    // Giriş tamamlandıktan sonra içerik animasyonlarını başlat
-                    animateVerificationContent();
-                })
+                .translationY(0f)
+                .setStartDelay(150)
+                .setDuration(450)
+                .setInterpolator(new android.view.animation.DecelerateInterpolator(1.5f))
+                .withEndAction(() -> animateVerificationContent())
                 .start();
 
-        // 3. KATMAN: Arka plan nabız efekti
         animateVerificationBackground();
     }
 
@@ -2762,25 +2784,20 @@ public class MainActivity extends Activity {
                 btnCancelVerification
         };
 
-        // Her öğeyi sırayla animasyonla göster (Kademeli etki)
+        // Kademeli fade-in
         for (int i = 0; i < contentViews.length; i++) {
             if (contentViews[i] != null) {
                 final View view = contentViews[i];
-                final int delay = i * 80;
 
                 view.setAlpha(0f);
-                view.setTranslationY(40);
-                view.setScaleX(0.9f);
-                view.setScaleY(0.9f);
+                view.setTranslationY(20f);
 
                 view.animate()
                         .alpha(1f)
-                        .translationY(0)
-                        .scaleX(1f)
-                        .scaleY(1f)
-                        .setStartDelay(delay)
+                        .translationY(0f)
+                        .setStartDelay(i * 65L)
                         .setDuration(400)
-                        .setInterpolator(new android.view.animation.DecelerateInterpolator())
+                        .setInterpolator(new android.view.animation.DecelerateInterpolator(1.5f))
                         .start();
             }
         }
@@ -2809,18 +2826,26 @@ public class MainActivity extends Activity {
         if (input == null)
             return;
 
-        android.animation.ObjectAnimator scaleX = android.animation.ObjectAnimator.ofFloat(input, "scaleX", 1f, 1.05f,
-                1f);
-        android.animation.ObjectAnimator scaleY = android.animation.ObjectAnimator.ofFloat(input, "scaleY", 1f, 1.05f,
-                1f);
+        // Breathing Effect
+        android.animation.ObjectAnimator scaleX = android.animation.ObjectAnimator.ofFloat(input, "scaleX", 1f, 1.03f, 1f);
+        android.animation.ObjectAnimator scaleY = android.animation.ObjectAnimator.ofFloat(input, "scaleY", 1f, 1.03f, 1f);
+        android.animation.ObjectAnimator alpha = android.animation.ObjectAnimator.ofFloat(input, "alpha", 1f, 0.85f, 1f);
 
-        scaleX.setDuration(800);
-        scaleY.setDuration(800);
-        scaleX.setRepeatCount(2);
-        scaleY.setRepeatCount(2);
+        scaleX.setDuration(1200);
+        scaleY.setDuration(1200);
+        alpha.setDuration(1200);
+        
+        scaleX.setRepeatCount(1);
+        scaleY.setRepeatCount(1);
+        alpha.setRepeatCount(1);
+
+        scaleX.setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator());
+        scaleY.setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator());
+        alpha.setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator());
 
         scaleX.start();
         scaleY.start();
+        alpha.start();
 
         vibrateFeedback();
     }
@@ -2852,64 +2877,38 @@ public class MainActivity extends Activity {
      * Premium 3D dönme animasyonu ile.
      * Optimize edildi - Donanım hızlandırma.
      */
+    /**
+     * Doğrulama ekranından çıkış animasyonu (Clean slide transition).
+     */
     private void animateVerificationExit() {
-        // Arka plan animasyonunu durdur
         cancelAnimation(ANIM_VERIFICATION_BG);
-        if (layoutVerification != null) {
-            layoutVerification.setAlpha(1f);
-        }
 
-        layoutAccountFields.setVisibility(View.VISIBLE);
-        layoutAccountFields.setAlpha(0f);
-        layoutAccountFields.setTranslationX(-150f);
-        layoutAccountFields.setRotationY(-15f);
-        layoutAccountFields.setScaleX(0.9f);
-        layoutAccountFields.setScaleY(0.9f);
-
-        // Donanım katmanını aktif et
-        layoutVerification.setLayerType(View.LAYER_TYPE_HARDWARE, null);
-        layoutAccountFields.setLayerType(View.LAYER_TYPE_HARDWARE, null);
-
-        // 1. KATMAN: Doğrulama ekranını 3D dönme ile gizle
-        layoutVerification.setPivotX(layoutVerification.getWidth());
-        layoutVerification.setPivotY(layoutVerification.getHeight() / 2f);
-
+        // 1. Doğrulama ekranını aşağı kaydırarak gizle
         layoutVerification.animate()
                 .alpha(0f)
-                .translationX(200f)
-                .rotationY(20f)
-                .scaleX(0.85f)
-                .scaleY(0.85f)
-                .setDuration(350)
+                .translationY(30f)
+                .setDuration(250)
                 .setInterpolator(new android.view.animation.AccelerateInterpolator())
                 .withEndAction(() -> {
                     layoutVerification.setVisibility(View.GONE);
-                    layoutVerification.setTranslationX(0f);
-                    layoutVerification.setRotationY(0f);
-                    layoutVerification.setScaleX(1f);
-                    layoutVerification.setScaleY(1f);
-                    layoutVerification.setLayerType(View.LAYER_TYPE_NONE, null);
+                    layoutVerification.setTranslationY(0f);
                 })
                 .start();
 
-        // 2. KATMAN: Form alanlarını elastik sıçrama ile getir
-        layoutAccountFields.setPivotX(0);
-        layoutAccountFields.setPivotY(layoutAccountFields.getHeight() / 2f);
+        // 2. Ana form ekranını geri getir
+        layoutAccountFields.setVisibility(View.VISIBLE);
+        layoutAccountFields.setAlpha(0f);
+        layoutAccountFields.setTranslationY(-20f);
 
         layoutAccountFields.animate()
                 .alpha(1f)
-                .translationX(0f)
-                .rotationY(0f)
-                .scaleX(1f)
-                .scaleY(1f)
-                .setDuration(500)
+                .translationY(0f)
                 .setStartDelay(100)
-                .setInterpolator(new android.view.animation.OvershootInterpolator(1.2f))
-                .withEndAction(() -> {
-                    layoutAccountFields.setLayerType(View.LAYER_TYPE_NONE, null);
-                })
+                .setDuration(450)
+                .setInterpolator(new android.view.animation.DecelerateInterpolator(1.5f))
                 .start();
     }
+
 
     /**
      * Hatalı işlemde görsele titreme efekti verir.
@@ -5229,13 +5228,13 @@ public class MainActivity extends Activity {
         // Rozet kapsayıcısı
         TextView dateHeader = new TextView(this);
         dateHeader.setText(formatDateHeader(date));
-        dateHeader.setTextColor(Color.parseColor("#00FBFF"));
+        dateHeader.setTextColor(Color.parseColor("#93c5fd"));
         dateHeader.setTextSize(10);
         dateHeader.setGravity(android.view.Gravity.CENTER);
         dateHeader.setAllCaps(true);
         dateHeader.setLetterSpacing(0.15f);
         dateHeader.setPadding(32, 12, 32, 12);
-        dateHeader.setBackgroundResource(R.drawable.history_date_badge_bg);
+        dateHeader.setBackgroundResource(R.drawable.history_date_badge_blue_bg);
         dateHeader.setTypeface(android.graphics.Typeface.create("sans-serif-bold", android.graphics.Typeface.NORMAL));
 
         wrapper.addView(dateHeader);
@@ -5275,7 +5274,7 @@ public class MainActivity extends Activity {
         LinearLayout itemLayout = new LinearLayout(this);
         itemLayout.setOrientation(LinearLayout.VERTICAL);
         itemLayout.setPadding(32, 28, 32, 28);
-        itemLayout.setBackgroundResource(R.drawable.history_card_bg);
+        itemLayout.setBackgroundResource(R.drawable.history_card_premium_bg);
         itemLayout.setLayoutParams(cardParams);
         itemLayout.setClickable(true);
         itemLayout.setFocusable(true);
@@ -5307,7 +5306,7 @@ public class MainActivity extends Activity {
         TextView txtSender = new TextView(this);
         boolean isUser = sender.toLowerCase().contains("ben") || sender.toLowerCase().contains("siz");
         txtSender.setText(isUser ? "● SİZ" : "● NİKO");
-        txtSender.setTextColor(isUser ? Color.parseColor("#00FBFF") : Color.parseColor("#FFD700"));
+        txtSender.setTextColor(isUser ? Color.parseColor("#60a5fa") : Color.parseColor("#f0f4ff"));
         txtSender.setTextSize(10);
         txtSender.setAllCaps(true);
         txtSender.setLetterSpacing(0.2f);
@@ -5334,7 +5333,7 @@ public class MainActivity extends Activity {
             int start = lowerMsg.indexOf(filter);
             while (start >= 0) {
                 int end = start + filter.length();
-                spannable.setSpan(new BackgroundColorSpan(Color.parseColor("#6600E5FF")), start, end,
+                spannable.setSpan(new BackgroundColorSpan(Color.parseColor("#663B82F6")), start, end,
                         Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                 start = lowerMsg.indexOf(filter, end);
             }
@@ -5369,7 +5368,7 @@ public class MainActivity extends Activity {
             LinearLayout itemLayout = new LinearLayout(this);
             itemLayout.setOrientation(LinearLayout.VERTICAL);
             itemLayout.setPadding(32, 24, 32, 24);
-            itemLayout.setBackgroundResource(R.drawable.history_card_bg);
+            itemLayout.setBackgroundResource(R.drawable.history_card_premium_bg);
             itemLayout.setLayoutParams(cardParams);
             itemLayout.setClickable(true);
             itemLayout.setFocusable(true);
@@ -5437,7 +5436,7 @@ public class MainActivity extends Activity {
             // 1. BÖLÜM: KULLANICI (SORU)
             TextView txtUserLabel = new TextView(this);
             txtUserLabel.setText("● SİZ");
-            txtUserLabel.setTextColor(Color.parseColor("#00FBFF")); // Cyan
+            txtUserLabel.setTextColor(Color.parseColor("#60a5fa")); // Blue
             txtUserLabel.setTextSize(10);
             txtUserLabel.setAllCaps(true);
             txtUserLabel.setLetterSpacing(0.2f);
@@ -5453,7 +5452,7 @@ public class MainActivity extends Activity {
                 int start = lowerMsg.indexOf(filter);
                 while (start >= 0) {
                     int end = start + filter.length();
-                    spannable.setSpan(new BackgroundColorSpan(Color.parseColor("#6600E5FF")), start, end,
+                    spannable.setSpan(new BackgroundColorSpan(Color.parseColor("#663B82F6")), start, end,
                             Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                     start = lowerMsg.indexOf(filter, end);
                 }
@@ -5479,7 +5478,7 @@ public class MainActivity extends Activity {
             // 2. BÖLÜM: NIKO (CEVAP)
             TextView txtAiLabel = new TextView(this);
             txtAiLabel.setText("● NİKO");
-            txtAiLabel.setTextColor(Color.parseColor("#FFD700")); // Gold
+            txtAiLabel.setTextColor(Color.parseColor("#f0f4ff")); // Off-white/Blueish
             txtAiLabel.setTextSize(10);
             txtAiLabel.setAllCaps(true);
             txtAiLabel.setLetterSpacing(0.2f);
@@ -5495,7 +5494,7 @@ public class MainActivity extends Activity {
                 int start = lowerMsg.indexOf(filter);
                 while (start >= 0) {
                     int end = start + filter.length();
-                    spannable.setSpan(new BackgroundColorSpan(Color.parseColor("#6600E5FF")), start, end,
+                    spannable.setSpan(new BackgroundColorSpan(Color.parseColor("#663B82F6")), start, end,
                             Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                     start = lowerMsg.indexOf(filter, end);
                 }
@@ -6143,7 +6142,7 @@ public class MainActivity extends Activity {
         itemLayout.setLayoutParams(layoutParams);
         itemLayout.setOrientation(LinearLayout.VERTICAL);
         itemLayout.setPadding(40, 32, 40, 32);
-        itemLayout.setBackgroundResource(R.drawable.model_item_bg);
+        itemLayout.setBackgroundResource(R.drawable.model_item_premium_blue_bg);
         itemLayout.setClickable(true);
         itemLayout.setFocusable(true);
 
@@ -6165,8 +6164,8 @@ public class MainActivity extends Activity {
         // Seçili Durum Tasarımı
         if (modelName.equals(selectedModel)) {
             itemLayout.setSelected(true);
-            txtTitle.setTextColor(Color.parseColor("#00E5FF"));
-            txtDesc.setTextColor(Color.parseColor("#6600E5FF"));
+            txtTitle.setTextColor(Color.parseColor("#60a5fa"));
+            txtDesc.setTextColor(Color.parseColor("#4D60a5fa"));
 
             // Sağ üst köşeye bir onay ikonu
             txtTitle.setCompoundDrawablesWithIntrinsicBounds(0, 0, android.R.drawable.checkbox_on_background, 0);
@@ -6229,7 +6228,7 @@ public class MainActivity extends Activity {
     private void updateSearchIcons() {
         runOnUiThread(() -> {
             if (isWebSearchEnabled) {
-                btnWebSearch.setColorFilter(Color.parseColor("#00E5FF"));
+                btnWebSearch.setColorFilter(Color.parseColor("#60a5fa"));
                 btnWebSearch.setAlpha(1.0f);
             } else {
                 btnWebSearch.setColorFilter(Color.parseColor("#44FFFFFF"));
