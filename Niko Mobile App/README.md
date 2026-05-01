@@ -76,12 +76,11 @@ Niko, Android cihazlar için geliştirilmiş, sesli komutlarla çalışan kişis
 
 ## Tasarım ve İkonlar
 
-| İkon | Adı | İkon | Adı |
-| :---: | :---: | :---: | :---: |
-| <img src="./icons/niko_icon_1.png" width="60"> | Icon 01 | <img src="./icons/niko_icon_2.png" width="60"> | Icon 02 |
-| <img src="./icons/niko_icon_3.png" width="60"> | Icon 03 | <img src="./icons/niko_icon_4.png" width="60"> | Icon 04 |
-| <img src="./icons/niko_icon_5.png" width="60"> | Icon 05 | <img src="./icons/niko_icon_6.png" width="60"> | Icon 06 |
-| <img src="./icons/niko_icon_7.png" width="60"> | Icon 07 | <img src="./icons/niko_icon_reference.jpeg" width="60"> | Icon 08 |
+| İkon | Adı | İkon | Adı | İkon | Adı |
+| :---: | :---: | :---: | :---: | :---: | :---: |
+| <img src="./icons/niko_icon_1.png" width="60"> | Icon 01 | <img src="./icons/niko_icon_2.png" width="60"> | Icon 02 | <img src="./icons/niko_icon_3.png" width="60"> | Icon 03 |
+| <img src="./icons/niko_icon_4.png" width="60"> | Icon 04 | <img src="./icons/niko_icon_5.png" width="60"> | Icon 05 | <img src="./icons/niko_icon_6.png" width="60"> | Icon 06 |
+| <img src="./icons/niko_icon_7.png" width="60"> | Icon 07 | <img src="./icons/niko_icon_8.png" width="60"> | Icon 08 | <img src="./icons/niko_icon_9.jpeg" width="60"> | Icon 09 |
 
 ## 📂 Proje Dosya Yapısı
 
