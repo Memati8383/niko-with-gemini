@@ -1098,8 +1098,14 @@ class ChatService:
         self.timeout = 120.0
     
     async def get_models(self) -> List[str]:
-        """Sadece Gemini 2.5 Flash modelini döndür."""
-        return ["gemini-2.5-flash"]
+        """Kullanıcının sağladığı güncel model listesini döndür."""
+        return [
+            "gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.0-flash", 
+            "gemini-3.1-pro-preview", "gemini-3.1-flash-lite-preview",
+            "gemini-3-pro-preview", "gemini-3-flash-preview",
+            "gemma-3-27b-it", "deep-research-max-preview-04-2026",
+            "gemini-1.5-flash", "gemini-1.5-pro"
+        ]
     
     async def check_ollama_available(self) -> bool:
         """Gemini API anahtarının mevcut olup olmadığını kontrol et."""
@@ -1123,16 +1129,14 @@ class ChatService:
             selected_model_name = selected_model_name.replace("models/", "")
 
         # Özel yönlendirmeler
-        lower_name = selected_model_name.lower()
-        if "llama" in lower_name or "gemma" in lower_name:
-            selected_model_name = "gemini-1.5-flash"
         
-        # Eğer 2.5 Flash ise ve hata veriyorsa 2.0'a düşmeyi denebilir (isteğe bağlı)
-        # Şimdilik kullanıcının istediği ismi koruyoruz.
-        
-        addLog(f"[AI] Gemini isteği: {selected_model_name}")
+        # Eğer kullanıcı "gemini-2.5-flash" istiyorsa ama liste değiştiyse koru
+        logger.info(f"[AI] Gemini isteği (Model: {selected_model_name})")
 
         try:
+            if not self.client:
+                yield "Hata: Gemini API istemcisi başlatılamadı. Lütfen API anahtarınızı kontrol edin."
+                return
             # Resim desteği (images listesi base64 formatında)
             contents = [prompt]
             if images:
