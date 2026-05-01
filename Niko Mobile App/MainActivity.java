@@ -3774,13 +3774,13 @@ public class MainActivity extends Activity {
             isAIOrmAnimating = true;
             if (aiOrbAnimator != null) aiOrbAnimator.cancel();
             
-            // AI konuşurken renk mor efekti
+            // AI konuşurken renk pembe/kırmızımsı (görseldeki gibi) efekti
             if (voiceOrb != null) {
-                voiceOrb.setBackgroundTintList(android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#BB86FC")));
+                voiceOrb.setBackgroundTintList(android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#FF1E56")));
             }
             if (orbHalo == null) orbHalo = findViewById(R.id.orbHalo);
             if (orbHalo != null) {
-                orbHalo.setBackgroundTintList(android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#BB86FC")));
+                orbHalo.setBackgroundTintList(android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#FF1E56")));
             }
 
             if (aiOrbRunnable == null) {
