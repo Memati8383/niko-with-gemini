@@ -1091,29 +1091,15 @@ class ChatService:
     
     def __init__(self):
         self.api_key = os.getenv("GEMINI_API_KEY")
-        self.default_model = os.getenv("DEFAULT_MODEL", "gemini-1.5-flash")
+        self.default_model = "gemini-2.5-flash"
         self.client = None
         if self.api_key:
-            # Otomatik versiyon seçimi için http_options'ı kaldırıyoruz
             self.client = genai.Client(api_key=self.api_key)
         self.timeout = 120.0
     
     async def get_models(self) -> List[str]:
-        """Mevcut Gemini modellerini API'den dinamik olarak getir."""
-        if not self.client:
-            return ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash"]
-        try:
-            # API'den gerçek modelleri listele
-            models = []
-            for m in self.client.models.list():
-                # Sadece içerik üretebilen modelleri al
-                if "generateContent" in m.supported_methods:
-                    name = m.name.replace("models/", "")
-                    models.append(name)
-            return models if models else ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash"]
-        except Exception as e:
-            logger.error(f"Model listesi alınamadı: {e}")
-            return ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash", "gemini-2.5-flash"]
+        """Sadece Gemini 2.5 Flash modelini döndür."""
+        return ["gemini-2.5-flash"]
     
     async def check_ollama_available(self) -> bool:
         """Gemini API anahtarının mevcut olup olmadığını kontrol et."""
