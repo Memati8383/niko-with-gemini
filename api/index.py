@@ -478,8 +478,13 @@ class AuthService:
     
     def save_users(self, users: dict) -> None:
         """Kullanıcıları JSON dosyasına kaydet"""
-        with open(self.users_file, 'w', encoding='utf-8') as f:
-            json.dump(users, f, indent=2, ensure_ascii=False)
+        # Vercel üzerinde dizinin var olduğundan emin ol
+        os.makedirs(os.path.dirname(self.users_file), exist_ok=True)
+        try:
+            with open(self.users_file, 'w', encoding='utf-8') as f:
+                json.dump(users, f, indent=2, ensure_ascii=False)
+        except Exception as e:
+            logger.error(f"❌ Kullanıcılar kaydedilemedi: {e}")
     
     def get_user(self, username: str) -> Optional[dict]:
         """Kullanıcı adına göre kullanıcıyı getir"""
