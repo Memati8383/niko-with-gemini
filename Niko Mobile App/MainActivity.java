@@ -7341,21 +7341,24 @@ public class MainActivity extends Activity {
 
     private void installApk(File apkFile) {
         try {
-            // Android 7.0+ (Nougat) için FileUriExposedException hatasını önlemek amacıyla StrictMode eziyoruz
+            Intent intent = new Intent(Intent.ACTION_VIEW);
+            Uri apkUri;
+
             if (Build.VERSION.SDK_INT >= 24) {
-                try {
-                    java.lang.reflect.Method m = android.os.StrictMode.class.getMethod("disableDeathOnFileUriExposure");
-                    m.invoke(null);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+                // Android 7.0+ (Nougat) ve üzeri için güvenli FileProvider kullanımı (content:// URI)
+                apkUri = androidx.core.content.FileProvider.getUriForFile(
+                        this,
+                        getApplicationContext().getPackageName() + ".provider",
+                        apkFile);
+            } else {
+                // Eski sürümler için (file:// URI)
+                apkUri = Uri.fromFile(apkFile);
             }
 
-            Intent intent = new Intent(Intent.ACTION_VIEW);
-            Uri apkUri = Uri.fromFile(apkFile);
-
             intent.setDataAndType(apkUri, "application/vnd.android.package-archive");
-            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            
             startActivity(intent);
             addLog("[UPDATE] APK kurulum ekranı açıldı.");
         } catch (Exception e) {
