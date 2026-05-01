@@ -6326,7 +6326,7 @@ public class MainActivity extends Activity {
 
     // ================= OTOMATİK GÜNCELLEME (PREMIUM) =================
 
-    private static final String GITHUB_RELEASES_API = "https://api.github.com/repos/Memati8383/Niko-AI/releases/latest";
+    private static final String GITHUB_RELEASES_API = "https://api.github.com/repos/Memati8383/niko-with-gemini/releases/latest";
 
     /**
      * Uygulama her açıldığında güncelleme kontrolü yapar.
