@@ -6025,6 +6025,9 @@ public class MainActivity extends Activity {
      * Her modelin ne işe yaradığını basitçe açıklar.
      */
     private String getModelDescription(String modelId) {
+        if (modelId == null) return "Genel amaçlı yapay zeka yardımcısı.";
+        String lowerId = modelId.toLowerCase();
+        
         if (lowerId.contains("gemini-2.5-flash"))
             return "Google'ın en hızlı ve dengeli modeli. Günlük sohbetler için ideal.";
         if (lowerId.contains("gemini-2.5-pro"))
