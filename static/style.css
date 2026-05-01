@@ -716,8 +716,8 @@ a:hover {
 /* From Uiverse.io by Cevorob - Adjusted for Niko AI */
 .burger {
   position: relative;
-  width: 20px;
-  height: 14px;
+  width: 22px;
+  height: 16px;
   background: transparent;
   cursor: pointer;
   display: block;
@@ -733,11 +733,11 @@ a:hover {
   height: 2px;
   width: 100%;
   background: var(--text-primary);
-  border-radius: 9px;
+  border-radius: 2px;
   opacity: 1;
   left: 0;
   transform: rotate(0deg);
-  transition: .25s ease-in-out;
+  transition: .25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .burger span:nth-of-type(1) {

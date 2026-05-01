@@ -455,7 +455,11 @@ async function init() {
  */
 function setupEventListeners() {
     // Sidebar toggle
-    elements.menuToggle.addEventListener('click', toggleSidebar);
+    if (elements.burger) {
+        elements.burger.addEventListener('change', toggleSidebar);
+    } else {
+        elements.menuToggle.addEventListener('click', toggleSidebar);
+    }
     
     // New chat
     elements.newChatBtn.addEventListener('click', startNewChat);
