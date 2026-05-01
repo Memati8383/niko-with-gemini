@@ -3,113 +3,128 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Niko AI - Giriş</title>
+    <title>Niko AI — Giriş Yap</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🤖</text></svg>">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/auth.css">
 </head>
 <body>
-    <div class="bg-blob bg-blob-1"></div>
-    <div class="bg-blob bg-blob-2"></div>
+
+    <div class="bg-mesh"></div>
+    <div class="bg-grid"></div>
 
     <div class="auth-container">
         <div class="auth-card">
             <div class="auth-header">
+                <div class="logo-mark">
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2M7.5 13A2.5 2.5 0 0 0 5 15.5 2.5 2.5 0 0 0 7.5 18 2.5 2.5 0 0 0 10 15.5 2.5 2.5 0 0 0 7.5 13m9 0A2.5 2.5 0 0 0 14 15.5a2.5 2.5 0 0 0 2.5 2.5 2.5 2.5 0 0 0 2.5-2.5A2.5 2.5 0 0 0 16.5 13z"/>
+                    </svg>
+                </div>
                 <h1 class="auth-logo">Niko AI</h1>
                 <p class="auth-subtitle">Yapay Zeka Sohbet Asistanı</p>
             </div>
-            
-            <form id="loginForm" class="auth-form">
+
+            <form id="loginForm" class="auth-form" novalidate>
+
+                <div id="errorMessage" class="error-message" style="display:none;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
+                    <span class="msg-text"></span>
+                </div>
+
                 <div class="form-group">
                     <label for="username">Kullanıcı Adı</label>
-                    <input 
-                        type="text" 
-                        id="username" 
-                        name="username" 
-                        placeholder="Kullanıcı adınız"
+                    <input
+                        type="text"
+                        id="username"
+                        name="username"
+                        placeholder="kullanici_adiniz"
                         required
                         autocomplete="username"
+                        spellcheck="false"
                     >
                 </div>
-                
+
                 <div class="form-group">
                     <label for="password">Şifre</label>
-                    <input 
-                        type="password" 
-                        id="password" 
-                        name="password" 
+                    <input
+                        type="password"
+                        id="password"
+                        name="password"
                         placeholder="••••••••"
                         required
                         autocomplete="current-password"
                     >
                 </div>
-                
-                <div id="errorMessage" class="error-message" style="display: none;">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-                    <span class="msg-text"></span>
-                </div>
-                
+
                 <button type="submit" class="auth-button" id="submitBtn">
                     <span class="button-text">Giriş Yap</span>
-                    <div class="button-loader" style="display: none;"></div>
+                    <div class="button-loader" style="display:none;"></div>
                 </button>
             </form>
-            
+
             <div class="auth-footer">
-                <p>Henüz hesabınız yok mu? <a href="signup.html">Kayıt Ol</a></p>
+                Hesabınız yok mu? <a href="signup.html">Kayıt Ol</a>
             </div>
         </div>
     </div>
 
     <script>
+        if (localStorage.getItem('token')) window.location.href = '/';
+
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            
-            const username = document.getElementById('username').value.trim();
-            const password = document.getElementById('password').value;
-            const errorMessage = document.getElementById('errorMessage');
-            const submitBtn = document.getElementById('submitBtn');
-            const buttonText = submitBtn.querySelector('.button-text');
-            const buttonLoader = submitBtn.querySelector('.button-loader');
-            
-            errorMessage.style.display = 'none';
-            
-            submitBtn.disabled = true;
-            buttonText.style.display = 'none';
-            buttonLoader.style.display = 'block';
-            
+
+            const username   = document.getElementById('username').value.trim();
+            const password   = document.getElementById('password').value;
+            const errEl      = document.getElementById('errorMessage');
+            const submitBtn  = document.getElementById('submitBtn');
+            const btnText    = submitBtn.querySelector('.button-text');
+            const btnLoader  = submitBtn.querySelector('.button-loader');
+
+            errEl.style.display = 'none';
+
+            if (!username || !password) {
+                showError('Lütfen tüm alanları doldurun.');
+                return;
+            }
+
+            setLoading(true);
+
             try {
-                const response = await fetch('/login', {
+                const res  = await fetch('/login', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username, password })
                 });
-                
-                const data = await response.json();
-                
-                if (response.ok) {
+                const data = await res.json();
+
+                if (res.ok) {
                     localStorage.setItem('token', data.access_token);
                     localStorage.setItem('username', username);
                     window.location.href = '/';
                 } else {
-                    errorMessage.querySelector('.msg-text').textContent = data.error || 'Giriş başarısız. Lütfen tekrar deneyin.';
-                    errorMessage.style.display = 'flex';
+                    showError(data.error || 'Giriş başarısız. Lütfen tekrar deneyin.');
                 }
-            } catch (error) {
-                errorMessage.querySelector('.msg-text').textContent = 'Bağlantı hatası. Lütfen internet bağlantınızı kontrol edin.';
-                errorMessage.style.display = 'flex';
+            } catch {
+                showError('Bağlantı hatası. İnternet bağlantınızı kontrol edin.');
             } finally {
-                submitBtn.disabled = false;
-                buttonText.style.display = 'block';
-                buttonLoader.style.display = 'none';
+                setLoading(false);
+            }
+
+            function setLoading(on) {
+                submitBtn.disabled = on;
+                btnText.style.display   = on ? 'none'  : 'block';
+                btnLoader.style.display = on ? 'block' : 'none';
+            }
+
+            function showError(msg) {
+                errEl.querySelector('.msg-text').textContent = msg;
+                errEl.style.display = 'flex';
             }
         });
-        
-        if (localStorage.getItem('token')) {
-            window.location.href = '/';
-        }
     </script>
 </body>
 </html>

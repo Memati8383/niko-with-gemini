@@ -3,177 +3,272 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Niko AI - Kayıt</title>
+    <title>Niko AI — Kayıt Ol</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🤖</text></svg>">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/auth.css">
+    <style>
+        /* Password strength bar */
+        .strength-bar {
+            display: flex;
+            gap: 4px;
+            margin-top: 7px;
+            height: 3px;
+        }
+        .strength-segment {
+            flex: 1;
+            border-radius: 99px;
+            background: var(--input-border);
+            transition: background 0.3s ease;
+        }
+        .strength-segment.active-weak   { background: #f87171; }
+        .strength-segment.active-medium { background: #fbbf24; }
+        .strength-segment.active-strong { background: #34d399; }
+        .strength-label {
+            font-size: 11px;
+            margin-top: 4px;
+            color: var(--text-subtle);
+            display: block;
+            font-weight: 500;
+            height: 14px;
+        }
+        .strength-label.weak   { color: #f87171; }
+        .strength-label.medium { color: #fbbf24; }
+        .strength-label.strong { color: #34d399; }
+
+        /* Optional badge */
+        .optional-badge {
+            display: inline-block;
+            font-size: 10px;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 5px;
+            background: rgba(99,102,241,0.12);
+            color: #818cf8;
+            letter-spacing: 0.5px;
+            margin-left: 6px;
+            vertical-align: middle;
+            text-transform: uppercase;
+        }
+    </style>
 </head>
 <body>
-    <div class="bg-blob bg-blob-1"></div>
-    <div class="bg-blob bg-blob-2"></div>
+
+    <div class="bg-mesh"></div>
+    <div class="bg-grid"></div>
 
     <div class="auth-container">
         <div class="auth-card">
             <div class="auth-header">
+                <div class="logo-mark">
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2M7.5 13A2.5 2.5 0 0 0 5 15.5 2.5 2.5 0 0 0 7.5 18 2.5 2.5 0 0 0 10 15.5 2.5 2.5 0 0 0 7.5 13m9 0A2.5 2.5 0 0 0 14 15.5a2.5 2.5 0 0 0 2.5 2.5 2.5 2.5 0 0 0 2.5-2.5A2.5 2.5 0 0 0 16.5 13z"/>
+                    </svg>
+                </div>
                 <h1 class="auth-logo">Niko AI</h1>
                 <p class="auth-subtitle">Yeni bir hesap oluşturun</p>
             </div>
-            
-            <form id="signupForm" class="auth-form">
+
+            <form id="signupForm" class="auth-form" novalidate>
+
+                <div id="errorMessage" class="error-message" style="display:none;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
+                    <span class="msg-text"></span>
+                </div>
+
+                <div id="successMessage" class="success-message" style="display:none;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    <span class="msg-text"></span>
+                </div>
+
                 <div class="form-group">
                     <label for="username">Kullanıcı Adı</label>
-                    <input 
-                        type="text" 
-                        id="username" 
-                        name="username" 
-                        placeholder="Kullanıcı adınız"
+                    <input
+                        type="text"
+                        id="username"
+                        name="username"
+                        placeholder="kullanici_adi"
                         required
                         autocomplete="username"
                         minlength="3"
                         maxlength="30"
+                        spellcheck="false"
                     >
-                    <span class="field-hint">En az 3 karakter. Harf, rakam ve alt çizgi.</span>
+                    <span class="field-hint">En az 3 karakter · Harf, rakam ve alt çizgi</span>
                 </div>
-                
+
                 <div class="form-row">
                     <div class="form-group">
                         <label for="password">Şifre</label>
-                        <input 
-                            type="password" 
-                            id="password" 
-                            name="password" 
+                        <input
+                            type="password"
+                            id="password"
+                            name="password"
                             placeholder="••••••••"
                             required
                             autocomplete="new-password"
                             minlength="8"
                         >
+                        <div class="strength-bar">
+                            <div class="strength-segment" id="s1"></div>
+                            <div class="strength-segment" id="s2"></div>
+                            <div class="strength-segment" id="s3"></div>
+                        </div>
+                        <span class="strength-label" id="strengthLabel"></span>
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="confirmPassword">Tekrar</label>
-                        <input 
-                            type="password" 
-                            id="confirmPassword" 
-                            name="confirmPassword" 
+                        <input
+                            type="password"
+                            id="confirmPassword"
+                            name="confirmPassword"
                             placeholder="••••••••"
                             required
                             autocomplete="new-password"
                         >
                     </div>
                 </div>
-                
+
                 <div class="form-group">
-                    <label for="email">E-posta (Opsiyonel)</label>
-                    <input 
-                        type="email" 
-                        id="email" 
-                        name="email" 
+                    <label for="email">
+                        E-posta
+                        <span class="optional-badge">Opsiyonel</span>
+                    </label>
+                    <input
+                        type="email"
+                        id="email"
+                        name="email"
                         placeholder="ad@email.com"
                         autocomplete="email"
                     >
                 </div>
-                
+
                 <div class="form-group">
-                    <label for="fullName">Ad Soyad (Opsiyonel)</label>
-                    <input 
-                        type="text" 
-                        id="fullName" 
-                        name="fullName" 
-                        placeholder="Adınız ve soyadınız"
+                    <label for="fullName">
+                        Ad Soyad
+                        <span class="optional-badge">Opsiyonel</span>
+                    </label>
+                    <input
+                        type="text"
+                        id="fullName"
+                        name="fullName"
+                        placeholder="Adınız Soyadınız"
                         autocomplete="name"
                     >
                 </div>
-                
-                <div id="errorMessage" class="error-message" style="display: none;">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-                    <span class="msg-text"></span>
-                </div>
 
-                <div id="successMessage" class="success-message" style="display: none;">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                    <span class="msg-text"></span>
-                </div>
-                
                 <button type="submit" class="auth-button" id="submitBtn">
                     <span class="button-text">Hesap Oluştur</span>
-                    <div class="button-loader" style="display: none;"></div>
+                    <div class="button-loader" style="display:none;"></div>
                 </button>
             </form>
-            
+
             <div class="auth-footer">
-                <p>Zaten bir hesabınız var mı? <a href="login.html">Giriş Yap</a></p>
+                Zaten hesabınız var mı? <a href="login.html">Giriş Yap</a>
             </div>
         </div>
     </div>
 
     <script>
-        function validateUsername(username) {
-            if (username.length < 3 || username.length > 30) return 'Kullanıcı adı 3-30 karakter arasında olmalıdır';
-            if (!/^[a-zA-Z]/.test(username)) return 'Kullanıcı adı bir harf ile başlamalıdır';
-            if (!/^[a-zA-Z][a-zA-Z0-9_]*$/.test(username)) return 'Kullanıcı adı sadece harf, rakam ve alt çizgi içerebilir';
+        if (localStorage.getItem('token')) window.location.href = '/';
+
+        /* ── Password strength ── */
+        const pwdInput = document.getElementById('password');
+        const segments = [document.getElementById('s1'), document.getElementById('s2'), document.getElementById('s3')];
+        const strengthLabel = document.getElementById('strengthLabel');
+
+        function getStrength(pwd) {
+            let score = 0;
+            if (pwd.length >= 8)  score++;
+            if (pwd.length >= 12) score++;
+            if (/[A-Z]/.test(pwd) && /[a-z]/.test(pwd)) score++;
+            if (/[0-9]/.test(pwd)) score++;
+            if (/[^a-zA-Z0-9]/.test(pwd)) score++;
+            if (score <= 1) return 'weak';
+            if (score <= 3) return 'medium';
+            return 'strong';
+        }
+
+        const labels = { weak: 'Zayıf', medium: 'Orta', strong: 'Güçlü' };
+        const counts  = { weak: 1, medium: 2, strong: 3 };
+
+        pwdInput.addEventListener('input', () => {
+            const val = pwdInput.value;
+            if (!val) {
+                segments.forEach(s => s.className = 'strength-segment');
+                strengthLabel.textContent = '';
+                strengthLabel.className = 'strength-label';
+                return;
+            }
+            const level = getStrength(val);
+            const active = counts[level];
+            segments.forEach((s, i) => {
+                s.className = 'strength-segment' + (i < active ? ` active-${level}` : '');
+            });
+            strengthLabel.textContent = labels[level];
+            strengthLabel.className = `strength-label ${level}`;
+        });
+
+        /* ── Validation ── */
+        function validateUsername(u) {
+            if (u.length < 3 || u.length > 30) return 'Kullanıcı adı 3-30 karakter olmalı';
+            if (!/^[a-zA-Z]/.test(u)) return 'Kullanıcı adı harf ile başlamalı';
+            if (!/^[a-zA-Z][a-zA-Z0-9_]*$/.test(u)) return 'Harf, rakam ve alt çizgi kullanılabilir';
             return null;
         }
-        
-        function validatePassword(password) {
-            if (password.length < 8) return 'Şifre en az 8 karakter olmalıdır';
-            if (!/[A-Z]/.test(password)) return 'Şifre en az bir büyük harf içermelidir';
-            if (!/[a-z]/.test(password)) return 'Şifre en az bir küçük harf içermelidir';
-            if (!/[0-9]/.test(password)) return 'Şifre en az bir rakam içermelidir';
+        function validatePassword(p) {
+            if (p.length < 8) return 'Şifre en az 8 karakter olmalı';
+            if (!/[A-Z]/.test(p)) return 'En az bir büyük harf gerekli';
+            if (!/[a-z]/.test(p)) return 'En az bir küçük harf gerekli';
+            if (!/[0-9]/.test(p)) return 'En az bir rakam gerekli';
             return null;
         }
-        
-        function validateEmail(email) {
-            if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return 'Geçerli bir e-posta adresi girin';
+        function validateEmail(e) {
+            if (e && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) return 'Geçerli bir e-posta adresi girin';
             return null;
         }
-        
+
+        /* ── Submit ── */
         document.getElementById('signupForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            
-            const username = document.getElementById('username').value.trim();
-            const password = document.getElementById('password').value;
+
+            const username        = document.getElementById('username').value.trim();
+            const password        = document.getElementById('password').value;
             const confirmPassword = document.getElementById('confirmPassword').value;
-            const email = document.getElementById('email').value.trim();
-            const fullName = document.getElementById('fullName').value.trim();
-            const errorMessage = document.getElementById('errorMessage');
-            const successMessage = document.getElementById('successMessage');
-            const submitBtn = document.getElementById('submitBtn');
-            const buttonText = submitBtn.querySelector('.button-text');
-            const buttonLoader = submitBtn.querySelector('.button-loader');
-            
-            errorMessage.style.display = 'none';
-            successMessage.style.display = 'none';
-            
+            const email           = document.getElementById('email').value.trim();
+            const fullName        = document.getElementById('fullName').value.trim();
+            const errEl           = document.getElementById('errorMessage');
+            const okEl            = document.getElementById('successMessage');
+            const submitBtn       = document.getElementById('submitBtn');
+            const btnText         = submitBtn.querySelector('.button-text');
+            const btnLoader       = submitBtn.querySelector('.button-loader');
+
+            errEl.style.display = 'none';
+            okEl.style.display  = 'none';
+
             let error = validateUsername(username);
             if (!error) error = validatePassword(password);
             if (!error && password !== confirmPassword) error = 'Şifreler eşleşmiyor';
             if (!error) error = validateEmail(email);
-            
-            if (error) {
-                errorMessage.querySelector('.msg-text').textContent = error;
-                errorMessage.style.display = 'flex';
-                return;
-            }
-            
-            submitBtn.disabled = true;
-            buttonText.style.display = 'none';
-            buttonLoader.style.display = 'block';
-            
+
+            if (error) { showError(error); return; }
+
+            setLoading(true);
+
             try {
-                const response = await fetch('/register', {
+                const res  = await fetch('/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        username,
-                        password,
-                        email: email || null,
-                        full_name: fullName || null
-                    })
+                    body: JSON.stringify({ username, password, email: email || null, full_name: fullName || null })
                 });
-                
-                const data = await response.json();
-                
-                if (response.ok) {
+                const data = await res.json();
+
+                if (res.ok) {
                     if (email) {
                         try {
                             await fetch('/email/send-verification', {
@@ -182,34 +277,32 @@
                                 body: JSON.stringify({ email, username })
                             });
                             localStorage.setItem('pendingVerificationEmail', email);
-                            successMessage.querySelector('.msg-text').textContent = 'Kayıt başarılı! Doğrulama sayfasına yönlendiriliyorsunuz...';
-                            successMessage.style.display = 'flex';
-                            setTimeout(() => { window.location.href = 'verify.html'; }, 2000);
-                        } catch (err) {
+                            showSuccess('Kayıt başarılı! Doğrulama sayfasına yönlendiriliyorsunuz…');
+                            setTimeout(() => window.location.href = 'verify.html', 2000);
+                        } catch {
                             window.location.href = 'login.html';
                         }
                     } else {
-                        successMessage.querySelector('.msg-text').textContent = 'Kayıt başarılı! Giriş sayfasına yönlendiriliyorsunuz...';
-                        successMessage.style.display = 'flex';
-                        setTimeout(() => { window.location.href = 'login.html'; }, 2000);
+                        showSuccess('Kayıt başarılı! Giriş sayfasına yönlendiriliyorsunuz…');
+                        setTimeout(() => window.location.href = 'login.html', 2000);
                     }
                 } else {
-                    errorMessage.querySelector('.msg-text').textContent = data.error || 'Kayıt başarısız.';
-                    errorMessage.style.display = 'flex';
+                    showError(data.error || 'Kayıt başarısız. Lütfen tekrar deneyin.');
                 }
-            } catch (error) {
-                errorMessage.querySelector('.msg-text').textContent = 'Bağlantı hatası.';
-                errorMessage.style.display = 'flex';
+            } catch {
+                showError('Bağlantı hatası. İnternet bağlantınızı kontrol edin.');
             } finally {
-                submitBtn.disabled = false;
-                buttonText.style.display = 'block';
-                buttonLoader.style.display = 'none';
+                setLoading(false);
             }
+
+            function setLoading(on) {
+                submitBtn.disabled = on;
+                btnText.style.display   = on ? 'none'  : 'block';
+                btnLoader.style.display = on ? 'block' : 'none';
+            }
+            function showError(msg)   { errEl.querySelector('.msg-text').textContent = msg; errEl.style.display = 'flex'; }
+            function showSuccess(msg) { okEl.querySelector('.msg-text').textContent  = msg; okEl.style.display  = 'flex'; }
         });
-        
-        if (localStorage.getItem('token')) {
-            window.location.href = '/';
-        }
     </script>
 </body>
 </html>

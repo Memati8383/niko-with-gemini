@@ -3,179 +3,262 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Niko AI - E-posta Doğrulama</title>
+    <title>Niko AI — E-posta Doğrulama</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🤖</text></svg>">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/auth.css">
+    <style>
+        .email-icon-wrap {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 60px;
+            height: 60px;
+            border-radius: 18px;
+            background: rgba(99,102,241,0.1);
+            border: 1px solid rgba(99,102,241,0.2);
+            margin: 0 auto 20px;
+        }
+
+        .email-icon-wrap svg {
+            width: 28px;
+            height: 28px;
+            stroke: #818cf8;
+        }
+
+        .verify-desc {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 13.5px;
+            line-height: 1.6;
+            margin-bottom: 28px;
+        }
+
+        .verify-desc strong {
+            color: var(--text-main);
+            font-weight: 600;
+        }
+
+        /* Animated focus ring on active input */
+        .code-input:focus {
+            transform: translateY(-1px);
+        }
+
+        .code-input.filled {
+            border-color: rgba(99,102,241,0.45);
+            background: rgba(99,102,241,0.08);
+            color: #a5b4fc;
+        }
+    </style>
 </head>
 <body>
-    <div class="bg-blob bg-blob-1"></div>
-    <div class="bg-blob bg-blob-2"></div>
+
+    <div class="bg-mesh"></div>
+    <div class="bg-grid"></div>
 
     <div class="auth-container">
         <div class="auth-card">
             <div class="auth-header">
-                <h1 class="auth-logo">Niko AI</h1>
-                <p class="auth-subtitle">E-posta adresinizi doğrulayın</p>
+                <div class="email-icon-wrap">
+                    <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="2" y="4" width="20" height="16" rx="3"/>
+                        <polyline points="2,4 12,13 22,4"/>
+                    </svg>
+                </div>
+                <h1 class="auth-logo">E-posta Doğrulama</h1>
+                <p class="auth-subtitle">Gelen kutunuzu kontrol edin</p>
             </div>
-            
-            <p style="text-align: center; color: var(--text-muted); margin-bottom: 24px; font-size: 14px;">
-                <span id="displayEmail" style="color: var(--text-main); font-weight: 500;">...</span> adresine 6 haneli bir kod gönderdik.
+
+            <p class="verify-desc">
+                <strong id="displayEmail">…</strong> adresine<br>6 haneli doğrulama kodu gönderdik.
             </p>
 
-            <form id="verifyForm" class="auth-form">
+            <form id="verifyForm" class="auth-form" novalidate>
                 <div class="code-wrapper">
-                    <input type="text" class="code-input" maxlength="1" pattern="\d" required autofocus>
-                    <input type="text" class="code-input" maxlength="1" pattern="\d" required>
-                    <input type="text" class="code-input" maxlength="1" pattern="\d" required>
-                    <input type="text" class="code-input" maxlength="1" pattern="\d" required>
-                    <input type="text" class="code-input" maxlength="1" pattern="\d" required>
-                    <input type="text" class="code-input" maxlength="1" pattern="\d" required>
+                    <input type="text" class="code-input" inputmode="numeric" maxlength="1" pattern="\d" required autofocus>
+                    <input type="text" class="code-input" inputmode="numeric" maxlength="1" pattern="\d" required>
+                    <input type="text" class="code-input" inputmode="numeric" maxlength="1" pattern="\d" required>
+                    <input type="text" class="code-input" inputmode="numeric" maxlength="1" pattern="\d" required>
+                    <input type="text" class="code-input" inputmode="numeric" maxlength="1" pattern="\d" required>
+                    <input type="text" class="code-input" inputmode="numeric" maxlength="1" pattern="\d" required>
                 </div>
-                
-                <div id="errorMessage" class="error-message" style="display: none;">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+
+                <div id="errorMessage" class="error-message" style="display:none;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
                     <span class="msg-text"></span>
                 </div>
 
-                <div id="successMessage" class="success-message" style="display: none;">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                <div id="successMessage" class="success-message" style="display:none;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
                     <span class="msg-text"></span>
                 </div>
-                
+
                 <button type="submit" class="auth-button" id="submitBtn">
                     <span class="button-text">Doğrula</span>
-                    <div class="button-loader" style="display: none;"></div>
+                    <div class="button-loader" style="display:none;"></div>
                 </button>
             </form>
-            
+
             <div class="verify-timer" id="timerContainer">
                 Yeni kod için bekleyin: <span id="timer">01:00</span>
             </div>
-            
+
             <a id="resendBtn" class="resend-link disabled">Kodu tekrar gönder</a>
 
             <div class="auth-footer">
-                <p><a href="login.html">Giriş sayfasına dön</a></p>
+                <a href="login.html">← Giriş sayfasına dön</a>
             </div>
         </div>
     </div>
 
     <script>
+        /* ── Display email ── */
         const email = localStorage.getItem('pendingVerificationEmail') || 'E-posta';
         document.getElementById('displayEmail').textContent = email;
 
+        /* ── Code inputs ── */
         const inputs = document.querySelectorAll('.code-input');
-        const form = document.getElementById('verifyForm');
-        const resendBtn = document.getElementById('resendBtn');
-        const timerSpan = document.getElementById('timer');
 
-        inputs.forEach((input, index) => {
+        inputs.forEach((input, idx) => {
             input.addEventListener('input', (e) => {
-                if (e.target.value.length === 1 && index < inputs.length - 1) {
-                    inputs[index + 1].focus();
+                const val = e.target.value.replace(/\D/g, '');
+                e.target.value = val;
+                if (val) {
+                    input.classList.add('filled');
+                    if (idx < inputs.length - 1) inputs[idx + 1].focus();
+                } else {
+                    input.classList.remove('filled');
                 }
+                // Auto-submit when all filled
+                if ([...inputs].every(i => i.value)) submitForm();
             });
 
             input.addEventListener('keydown', (e) => {
-                if (e.key === 'Backspace' && e.target.value.length === 0 && index > 0) {
-                    inputs[index - 1].focus();
+                if (e.key === 'Backspace') {
+                    if (!e.target.value && idx > 0) {
+                        inputs[idx - 1].focus();
+                        inputs[idx - 1].value = '';
+                        inputs[idx - 1].classList.remove('filled');
+                    }
                 }
+                if (e.key === 'ArrowLeft' && idx > 0) inputs[idx - 1].focus();
+                if (e.key === 'ArrowRight' && idx < inputs.length - 1) inputs[idx + 1].focus();
             });
-            
+
             input.addEventListener('paste', (e) => {
                 e.preventDefault();
-                const data = e.clipboardData.getData('text').trim();
-                if (data.length === 6 && /^\d+$/.test(data)) {
-                    data.split('').forEach((char, i) => {
+                const text = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+                if (text.length === 6) {
+                    text.split('').forEach((char, i) => {
                         inputs[i].value = char;
+                        inputs[i].classList.add('filled');
                     });
                     inputs[5].focus();
+                    setTimeout(submitForm, 80);
                 }
+            });
+
+            input.addEventListener('focus', () => {
+                input.select();
             });
         });
 
+        /* ── Timer ── */
+        const resendBtn     = document.getElementById('resendBtn');
+        const timerSpan     = document.getElementById('timer');
+        const timerContainer = document.getElementById('timerContainer');
         let timeLeft = 60;
+        let timerID;
+
         function updateTimer() {
-            const mins = Math.floor(timeLeft / 60);
-            const secs = timeLeft % 60;
-            timerSpan.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-            
+            const m = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+            const s = (timeLeft % 60).toString().padStart(2, '0');
+            timerSpan.textContent = `${m}:${s}`;
             if (timeLeft <= 0) {
                 resendBtn.classList.remove('disabled');
-                document.getElementById('timerContainer').style.display = 'none';
-            } else {
-                timeLeft--;
-                setTimeout(updateTimer, 1000);
+                timerContainer.style.display = 'none';
+                return;
             }
+            timeLeft--;
+            timerID = setTimeout(updateTimer, 1000);
         }
         updateTimer();
 
-        form.addEventListener('submit', async (e) => {
+        /* ── Submit ── */
+        document.getElementById('verifyForm').addEventListener('submit', (e) => {
             e.preventDefault();
-            
-            const code = Array.from(inputs).map(i => i.value).join('');
+            submitForm();
+        });
+
+        async function submitForm() {
+            const code = [...inputs].map(i => i.value).join('');
             if (code.length !== 6) return;
 
-            const errorMessage = document.getElementById('errorMessage');
-            const successMessage = document.getElementById('successMessage');
+            const errEl     = document.getElementById('errorMessage');
+            const okEl      = document.getElementById('successMessage');
             const submitBtn = document.getElementById('submitBtn');
-            const buttonText = submitBtn.querySelector('.button-text');
-            const buttonLoader = submitBtn.querySelector('.button-loader');
+            const btnText   = submitBtn.querySelector('.button-text');
+            const btnLoader = submitBtn.querySelector('.button-loader');
 
-            errorMessage.style.display = 'none';
-            submitBtn.disabled = true;
-            buttonText.style.display = 'none';
-            buttonLoader.style.display = 'block';
+            errEl.style.display = 'none';
+            submitBtn.disabled  = true;
+            btnText.style.display   = 'none';
+            btnLoader.style.display = 'block';
 
             try {
-                const response = await fetch('/email/verify', {
+                const res  = await fetch('/email/verify', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email, code })
                 });
+                const data = await res.json();
 
-                const data = await response.json();
-
-                if (response.ok) {
-                    successMessage.querySelector('.msg-text').textContent = 'Doğrulama başarılı! Yönlendiriliyorsunuz...';
-                    successMessage.style.display = 'flex';
+                if (res.ok) {
+                    okEl.querySelector('.msg-text').textContent = 'Doğrulama başarılı! Yönlendiriliyorsunuz…';
+                    okEl.style.display = 'flex';
                     localStorage.removeItem('pendingVerificationEmail');
-                    setTimeout(() => {
-                        window.location.href = 'login.html';
-                    }, 2000);
+                    setTimeout(() => window.location.href = 'login.html', 1800);
                 } else {
-                    errorMessage.querySelector('.msg-text').textContent = data.error || 'Geçersiz kod';
-                    errorMessage.style.display = 'flex';
+                    errEl.querySelector('.msg-text').textContent = data.error || 'Geçersiz kod. Lütfen tekrar deneyin.';
+                    errEl.style.display = 'flex';
+                    // shake inputs
+                    inputs.forEach(i => { i.value = ''; i.classList.remove('filled'); });
+                    inputs[0].focus();
                 }
-            } catch (err) {
-                errorMessage.querySelector('.msg-text').textContent = 'Bağlantı hatası';
-                errorMessage.style.display = 'flex';
+            } catch {
+                errEl.querySelector('.msg-text').textContent = 'Bağlantı hatası. Lütfen tekrar deneyin.';
+                errEl.style.display = 'flex';
             } finally {
-                submitBtn.disabled = false;
-                buttonText.style.display = 'block';
-                buttonLoader.style.display = 'none';
+                submitBtn.disabled  = false;
+                btnText.style.display   = 'block';
+                btnLoader.style.display = 'none';
             }
-        });
+        }
 
+        /* ── Resend ── */
         resendBtn.addEventListener('click', async () => {
             if (resendBtn.classList.contains('disabled')) return;
-            
+
             try {
-                const response = await fetch('/email/resend', {
+                const res = await fetch('/email/resend', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email })
                 });
 
-                if (response.ok) {
+                if (res.ok) {
+                    clearTimeout(timerID);
                     timeLeft = 60;
                     resendBtn.classList.add('disabled');
-                    document.getElementById('timerContainer').style.display = 'block';
+                    timerContainer.style.display = 'block';
                     updateTimer();
                 }
             } catch (err) {
-                console.error(err);
+                console.error('Resend error:', err);
             }
         });
     </script>
