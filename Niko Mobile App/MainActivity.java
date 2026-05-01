@@ -3834,7 +3834,20 @@ public class MainActivity extends Activity {
                 null)) {
 
             if (c != null && c.moveToFirst()) {
-                return c.getString(c.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER));
+                int nameIndex = c.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME);
+                int numberIndex = c.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER);
+                
+                // Önce tam eşleşme ara (örn: "annem" arandığında "anneannem" yerine tam "annem" olanı bulsun)
+                do {
+                    String displayName = c.getString(nameIndex);
+                    if (displayName != null && displayName.trim().equalsIgnoreCase(name.trim())) {
+                        return c.getString(numberIndex);
+                    }
+                } while (c.moveToNext());
+                
+                // Tam eşleşme yoksa ilk bulduğunu döndür (kısmi eşleşme)
+                c.moveToFirst();
+                return c.getString(numberIndex);
             }
         } catch (Exception e) {
             addLog("[Contact] Sorgu hatası: " + e.getMessage());
