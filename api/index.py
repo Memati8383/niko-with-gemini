@@ -1642,9 +1642,6 @@ async def rate_limit_middleware(request: Request, call_next):
     
     return response
 
-# Gerekli dizinlerin var olduğundan emin ol (Gereksinimler: 10.1)
-for folder in ["history"]:
-    os.makedirs(folder, exist_ok=True)
 
 # Statik dosyaları bağla
 static_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")
