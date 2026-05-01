@@ -29,6 +29,9 @@ import base64
 from typing import AsyncGenerator
 from fastapi.responses import StreamingResponse
 import logging
+import sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from prompts import build_full_prompt
 from email_verification import get_email_service
 
