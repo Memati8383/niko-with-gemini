@@ -1575,7 +1575,7 @@ async def general_exception_handler(request: Request, exc: Exception):
     logger.error(f"💥 Beklenmedik hata: {exc}", exc_info=True)
     return JSONResponse(
         status_code=500,
-        content={"error": "Beklenmeyen bir hata oluştu. Lütfen tekrar deneyin."}
+        content={"error": f"Beklenmeyen bir hata oluştu: {str(exc)}"}
     )
 
 # CORS ara yazılım yapılandırması
