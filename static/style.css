@@ -1,5 +1,5 @@
 /* Niko AI Sohbet - Premium Glassmorphism Stilleri */
-@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap");
 
 /* ===== CSS Değişkenleri (Glassmorphism — Deep Navy + Cyan) ===== */
 :root {
@@ -2418,4 +2418,657 @@ option {
   30%  { transform: scale(1.3) rotate(-10deg); }
   60%  { transform: scale(0.95) rotate(5deg); }
   100% { transform: scale(1) rotate(0deg); }
+}
+/* ============================================================ */
+/* ✨ NİKO AI — GÜZELLEŞTİRME KATMANI                          */
+/* ============================================================ */
+@import url("https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
+
+:root {
+  /* Geliştirilmiş renk paleti */
+  --bg-primary: #060b18;
+  --bg-secondary: #090e1d;
+  --bg-tertiary: #0d1630;
+  --bg-card: rgba(10, 16, 35, 0.6);
+
+  /* Daha canlı accent */
+  --accent-primary: #00d4ff;
+  --accent-primary-hover: #33deff;
+  --accent-secondary: #7df9ff;
+  --accent-glow: rgba(0, 212, 255, 0.35);
+  --accent-gradient: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%);
+  --accent-gradient-warm: linear-gradient(135deg, #00d4ff 0%, #00aaff 50%, #0066ff 100%);
+
+  /* Glassmorphism geliştirilmiş */
+  --bg-glass: rgba(255, 255, 255, 0.04);
+  --bg-glass-hover: rgba(255, 255, 255, 0.08);
+
+  /* Kenarlıklar */
+  --border-primary: rgba(0, 212, 255, 0.12);
+  --border-focus: rgba(0, 212, 255, 0.6);
+  --border-glass: rgba(255, 255, 255, 0.12);
+
+  /* Gölgeler */
+  --shadow-glow: 0 0 60px rgba(0, 212, 255, 0.15);
+  --shadow-md: 0 8px 32px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.6);
+
+  /* Tipografi — daha güçlü seçim */
+  --font-family: "Plus Jakarta Sans", sans-serif;
+  --font-display: "Syne", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  /* Köşe yuvarlaklıkları */
+  --radius-full: 9999px;
+  --radius-xl: 28px;
+  --radius-lg: 20px;
+  --radius-md: 14px;
+  --radius-sm: 8px;
+}
+
+/* ── Arka plan mesh gradient ── */
+body {
+  font-family: var(--font-family);
+  background: var(--bg-primary);
+  letter-spacing: -0.015em;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 50% at 10% 15%, rgba(0, 180, 255, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 40% at 90% 85%, rgba(0, 80, 200, 0.10) 0%, transparent 50%),
+    radial-gradient(ellipse 40% 60% at 50% 50%, rgba(0, 212, 255, 0.03) 0%, transparent 60%);
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* ── Noise overlay daha belirgin ── */
+.noise-overlay {
+  opacity: 0.025;
+}
+
+/* ── LOGO / SİDEBAR GELİŞTİRMELERİ ── */
+.sidebar {
+  width: 270px;
+  background: linear-gradient(180deg, rgba(9,14,29,0.98) 0%, rgba(6,11,24,0.99) 100%);
+  border-right: 1px solid var(--border-primary);
+  box-shadow: 4px 0 32px rgba(0,0,0,0.4);
+}
+
+.sidebar-logo {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  background: var(--accent-gradient-warm);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 0 12px rgba(0,212,255,0.4));
+}
+
+.sidebar-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid rgba(0,212,255,0.08);
+  background: rgba(0,0,0,0.2);
+}
+
+/* ── YENİ SOHBET BUTONU ── */
+.new-chat-btn {
+  font-family: var(--font-family);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 0.55rem 0.9rem;
+  border-radius: 10px;
+  background: rgba(0,212,255,0.06);
+  border: 1px solid rgba(0,212,255,0.18);
+  color: rgba(0,212,255,0.9);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.new-chat-btn:hover {
+  background: rgba(0,212,255,0.14);
+  border-color: rgba(0,212,255,0.4);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(0,212,255,0.2);
+  color: #fff;
+}
+
+/* ── GEÇMİŞ ÖĞELERİ ── */
+.history-item {
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  background: transparent;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.history-item:hover {
+  background: rgba(0,212,255,0.05);
+  border-color: rgba(0,212,255,0.12);
+}
+
+.history-item.active {
+  background: rgba(0,212,255,0.10);
+  border-color: rgba(0,212,255,0.25);
+}
+
+.history-item-title {
+  font-size: 0.83rem;
+  font-weight: 500;
+  color: rgba(240,246,252,0.8);
+}
+
+.history-item.active .history-item-title {
+  color: #fff;
+}
+
+/* ── SOHBET BAŞLIĞI ── */
+.chat-header {
+  padding: 1rem 1.5rem;
+  background: rgba(6,11,24,0.95);
+  border-bottom: 1px solid rgba(0,212,255,0.08);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* ── MODEL SEÇİCİ ── */
+.model-selector {
+  font-family: var(--font-family);
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 0.5rem 0.9rem;
+  background: rgba(0,212,255,0.05);
+  border: 1px solid rgba(0,212,255,0.15);
+  border-radius: 10px;
+  color: rgba(240,246,252,0.85);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.model-selector:hover,
+.model-selector:focus {
+  border-color: rgba(0,212,255,0.4);
+  background: rgba(0,212,255,0.09);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(0,212,255,0.08);
+}
+
+/* ── KULLANICI AVATAR ── */
+.user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--accent-gradient-warm);
+  border: 2px solid rgba(0,212,255,0.3);
+  box-shadow: 0 0 0 4px rgba(0,212,255,0.08);
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: #000;
+  transition: all 0.2s ease;
+}
+
+.user-avatar:hover {
+  box-shadow: 0 0 0 4px rgba(0,212,255,0.20), 0 4px 16px rgba(0,212,255,0.25);
+  transform: scale(1.05);
+}
+
+/* ── HOŞ GELDİN MESAJI ── */
+.welcome-message {
+  gap: 0.5rem;
+  animation: welcomeEntry 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes welcomeEntry {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.welcome-icon {
+  font-size: 3.5rem;
+  margin-bottom: 0.75rem;
+  filter: drop-shadow(0 0 20px rgba(0,212,255,0.5));
+  animation: iconFloat 4s ease-in-out infinite;
+}
+
+@keyframes iconFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.welcome-message h2 {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  background: linear-gradient(135deg, #ffffff 0%, #00d4ff 50%, #0072ff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 0 20px rgba(0,212,255,0.3));
+}
+
+.welcome-message p {
+  font-size: 1rem;
+  color: rgba(148,163,184,0.8);
+  font-weight: 400;
+  margin-top: 0.25rem;
+}
+
+/* ── MESAJ BALONCUKLARI ── */
+.message-content {
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,0.07);
+  padding: 1rem 1.25rem;
+}
+
+.message.user .message-content {
+  background: linear-gradient(135deg, rgba(0,114,255,0.18) 0%, rgba(0,212,255,0.12) 100%);
+  border-color: rgba(0,212,255,0.20);
+  border-radius: 18px 18px 4px 18px;
+}
+
+.message.bot .message-content {
+  background: rgba(13,22,48,0.7);
+  border-color: rgba(255,255,255,0.06);
+  border-radius: 18px 18px 18px 4px;
+}
+
+.message.bot .message-avatar {
+  background: rgba(0,212,255,0.10);
+  border: 1px solid rgba(0,212,255,0.20);
+  font-size: 1.1rem;
+}
+
+.message-text {
+  font-size: 0.93rem;
+  line-height: 1.75;
+  color: rgba(240,246,252,0.92);
+}
+
+/* ── SOHBET GİRİŞ ALANI ── */
+.chat-input-container {
+  padding: 1.25rem 1.5rem 1.5rem;
+  background: linear-gradient(0deg, rgba(6,11,24,0.98) 0%, rgba(6,11,24,0.90) 100%);
+  border-top: 1px solid rgba(0,212,255,0.08);
+  backdrop-filter: blur(20px);
+}
+
+.chat-input-box {
+  background: rgba(13,22,48,0.6);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(0,212,255,0.14);
+  border-radius: 18px;
+  padding: 1rem 1.25rem;
+  transition: all 0.25s ease;
+}
+
+.chat-input-box:focus-within {
+  border-color: rgba(0,212,255,0.4);
+  background: rgba(13,22,48,0.75);
+  box-shadow: 0 0 0 4px rgba(0,212,255,0.07), 0 8px 32px rgba(0,0,0,0.3);
+}
+
+#messageInput {
+  font-family: var(--font-family);
+  font-size: 0.92rem;
+  color: rgba(240,246,252,0.95);
+  letter-spacing: -0.01em;
+}
+
+#messageInput::placeholder {
+  color: rgba(100,116,139,0.6);
+  font-weight: 400;
+}
+
+/* ── GÖNDER BUTONU ── */
+.send-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--accent-gradient-warm);
+  box-shadow: 0 4px 20px rgba(0,114,255,0.4);
+}
+
+/* ── MODAL ── */
+.modal {
+  background: linear-gradient(160deg, rgba(9,14,29,0.97) 0%, rgba(6,11,24,0.99) 100%);
+  border: 1px solid rgba(0,212,255,0.10);
+  border-radius: 28px;
+  box-shadow:
+    0 40px 80px rgba(0,0,0,0.7),
+    0 0 0 1px rgba(255,255,255,0.04) inset,
+    inset 0 1px 0 rgba(0,212,255,0.08);
+}
+
+.modal-title {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  background: linear-gradient(135deg, #fff 30%, #00d4ff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.modal-btn.cancel {
+  font-family: var(--font-family);
+  font-weight: 600;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  color: rgba(148,163,184,0.9);
+  transition: all 0.2s ease;
+}
+
+.modal-btn.cancel:hover {
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.16);
+  color: #fff;
+}
+
+.modal-btn.confirm {
+  font-family: var(--font-family);
+  font-weight: 700;
+  border-radius: 14px;
+  letter-spacing: 0.01em;
+}
+
+/* ── AUTH KART ── */
+.auth-card {
+  border: 1px solid rgba(0,212,255,0.10);
+  box-shadow:
+    0 40px 80px rgba(0,0,0,0.6),
+    0 0 0 1px rgba(255,255,255,0.03) inset;
+  background: rgba(9,14,29,0.55);
+}
+
+.auth-logo {
+  font-family: var(--font-display);
+  font-size: 2.8rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  filter: drop-shadow(0 0 24px rgba(0,212,255,0.4));
+}
+
+.auth-subtitle {
+  font-size: 0.9rem;
+  font-weight: 400;
+}
+
+.form-group input {
+  font-family: var(--font-family);
+  background: rgba(6,11,24,0.6);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 12px;
+  transition: all 0.2s ease;
+}
+
+.form-group input:focus {
+  background: rgba(6,11,24,0.8);
+  border-color: rgba(0,212,255,0.5);
+  box-shadow: 0 0 0 3px rgba(0,212,255,0.10);
+}
+
+.auth-button {
+  font-family: var(--font-family);
+  font-weight: 700;
+  border-radius: 14px;
+  background: var(--accent-gradient-warm);
+  color: #fff;
+  text-shadow: none;
+  box-shadow: 0 4px 20px rgba(0,114,255,0.35);
+  letter-spacing: 0.02em;
+}
+
+.auth-button:hover:not(:disabled) {
+  box-shadow: 0 8px 30px rgba(0,114,255,0.5);
+  filter: brightness(1.1);
+}
+
+/* ── TOAST BİLDİRİMLERİ ── */
+.toast {
+  font-family: var(--font-family);
+  font-size: 0.85rem;
+  font-weight: 500;
+  border-radius: 14px;
+  background: rgba(9,14,29,0.95);
+  border: 1px solid rgba(255,255,255,0.08);
+  backdrop-filter: blur(20px);
+  padding: 0.9rem 1.2rem;
+  box-shadow: 0 16px 40px rgba(0,0,0,0.5);
+}
+
+.toast.success {
+  border-color: rgba(16,185,129,0.35);
+  background: rgba(16,185,129,0.08);
+}
+
+.toast.error {
+  border-color: rgba(248,113,113,0.35);
+  background: rgba(248,113,113,0.08);
+}
+
+/* ── KOD BLOKLARI ── */
+.code-block {
+  border: 1px solid rgba(0,212,255,0.10);
+  border-radius: 14px;
+  background: rgba(6,11,24,0.85);
+}
+
+.code-block-header {
+  border-bottom: 1px solid rgba(0,212,255,0.08);
+  background: rgba(0,212,255,0.04);
+  padding: 0.5rem 1rem;
+}
+
+.code-block-header .code-lang {
+  font-family: var(--font-mono);
+  color: rgba(0,212,255,0.7);
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  font-weight: 500;
+}
+
+/* ── KAYDIRMA ÇUBUĞU ── */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0,212,255,0.15);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0,212,255,0.3);
+}
+
+/* ── SEÇİM ── */
+::selection {
+  background: rgba(0,114,255,0.3);
+  color: #fff;
+}
+
+/* ── PROFİL MODAL ── */
+.profile-pic-wrapper {
+  border: 2px solid rgba(0,212,255,0.4);
+  box-shadow: 0 0 0 4px rgba(0,212,255,0.08), 0 0 40px rgba(0,212,255,0.10);
+  transition: all 0.3s ease;
+}
+
+.profile-pic-wrapper:hover {
+  border-color: rgba(0,212,255,0.7);
+  box-shadow: 0 0 0 6px rgba(0,212,255,0.12), 0 0 50px rgba(0,212,255,0.18);
+}
+
+.profile-section-title {
+  font-family: var(--font-family);
+  font-size: 0.7rem;
+  color: rgba(0,212,255,0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 700;
+}
+
+.admin-badge-btn {
+  font-family: var(--font-family);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  background: linear-gradient(135deg, rgba(0,212,255,0.10) 0%, rgba(0,114,255,0.08) 100%);
+  border: 1px solid rgba(0,212,255,0.22);
+  border-radius: 16px;
+  color: rgba(0,212,255,0.95);
+}
+
+.admin-badge-btn:hover {
+  background: linear-gradient(135deg, rgba(0,212,255,0.18) 0%, rgba(0,114,255,0.14) 100%);
+  box-shadow: 0 8px 24px rgba(0,114,255,0.2);
+  transform: translateY(-2px);
+}
+
+/* ── BAĞLANTI DURUMU ── */
+.status-dot {
+  box-shadow: 0 0 8px var(--success), 0 0 16px rgba(16,185,129,0.3);
+}
+
+/* ── SOSYAL MEDYA FAB ── */
+.social-fab-toggle {
+  background: rgba(6,11,24,0.9);
+  border: 1px solid rgba(0,212,255,0.15);
+  backdrop-filter: blur(20px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.6), inset 0 1px 0 rgba(0,212,255,0.08);
+}
+
+.social-fab-toggle:hover {
+  border-color: rgba(0,212,255,0.3);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.7), 0 0 20px rgba(0,212,255,0.1);
+}
+
+.social-btn {
+  background: rgba(6,11,24,0.85);
+  border: 1px solid rgba(255,255,255,0.07);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+}
+
+/* ── ADMIN PANELİ GELİŞTİRMELERİ ── */
+.admin-header {
+  background: rgba(255,255,255,0.015);
+  border: 1px solid rgba(0,212,255,0.08);
+  border-radius: 24px;
+}
+
+.admin-title h1 {
+  font-family: var(--font-display) !important;
+  font-size: 1.8rem !important;
+  letter-spacing: -0.04em !important;
+  background: linear-gradient(135deg, #fff 0%, #00d4ff 60%, #0072ff 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+}
+
+.btn {
+  font-family: var(--font-family);
+  letter-spacing: 0.04em;
+  font-size: 0.78rem;
+  border-radius: 12px;
+}
+
+.btn-primary {
+  background: var(--accent-gradient-warm) !important;
+  box-shadow: 0 4px 20px rgba(0,114,255,0.35) !important;
+}
+
+.btn-primary:hover {
+  box-shadow: 0 8px 28px rgba(0,114,255,0.5) !important;
+}
+
+.users-table-container {
+  border: 1px solid rgba(0,212,255,0.06);
+  border-radius: 28px;
+  background: rgba(6,11,24,0.5);
+}
+
+.users-table th {
+  font-family: var(--font-family);
+  color: rgba(0,212,255,0.65);
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+}
+
+.users-table tbody tr:hover td {
+  border-color: rgba(0,212,255,0.15) !important;
+  background: rgba(0,212,255,0.04) !important;
+  color: #fff !important;
+}
+
+.badge-admin {
+  background: rgba(0,212,255,0.12) !important;
+  color: #00d4ff !important;
+  border: 1px solid rgba(0,212,255,0.22) !important;
+  font-family: var(--font-family);
+  letter-spacing: 0.06em;
+}
+
+.badge-user {
+  font-family: var(--font-family);
+  letter-spacing: 0.06em;
+}
+
+/* ── TYPING İNDİKATÖR GELİŞTİRME ── */
+.typing-indicator span {
+  background: rgba(0,212,255,0.5);
+  width: 7px;
+  height: 7px;
+}
+
+/* ── GELİŞTİRİLMİŞ HOVER EFEKTLER ── */
+.history-action-btn:hover {
+  color: rgba(0,212,255,0.8);
+  background: rgba(0,212,255,0.08);
+}
+
+/* ── FONT DÜZELTME: form alanları ── */
+.filter-group select {
+  font-family: var(--font-family);
+  background: rgba(6,11,24,0.8);
+  border: 1px solid rgba(0,212,255,0.12);
+}
+
+.filter-group select:hover {
+  border-color: rgba(0,212,255,0.35);
+}
+
+/* ── SİDEBAR FOOTER ── */
+.sidebar-footer {
+  border-top: 1px solid rgba(0,212,255,0.07);
+  background: rgba(0,0,0,0.1);
+}
+
+/* ── WEB ARAMA BUTONU AKTİF HALİ ── */
+.input-action-btn.active {
+  color: #00d4ff;
+  background: rgba(0,212,255,0.12);
+  border-radius: 8px;
+}
+
+.input-action-btn:hover {
+  color: rgba(240,246,252,0.9);
+  background: rgba(0,212,255,0.08);
+  border-radius: 8px;
 }
