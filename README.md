@@ -70,7 +70,7 @@ Projeyi buluta taşımak için:
 1. Bu depoyu fork edin.
 2. Vercel üzerinde yeni bir proje oluşturun ve deponuzu bağlayın.
 3. Aşağıdaki **Environment Variables** (Çevresel Değişkenler) bilgilerini ekleyin:
-   - `GEMINI_API_KEY`: Google AI Studio'dan aldığınız API anahtarı.
+   - `GEMINI_API_KEY`: Google AI Studio'dan aldığınız API anahtarı. Birden fazla anahtar kullanmak isterseniz virgülle ayırarak yazabilirsiniz (Örn: `key1,key2,key3`). Kota dolduğunda otomatik olarak bir sonraki anahtara geçilecektir.
    - `JWT_SECRET`: Rastgele bir güvenli metin (token imzalama için).
    - `RESEND_API_KEY`: (Opsiyonel) E-posta doğrulaması için.
    - `DEFAULT_MODEL`: `gemini-1.5-flash`

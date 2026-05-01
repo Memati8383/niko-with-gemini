@@ -1087,12 +1087,26 @@ class ChatService:
     """
     
     def __init__(self):
-        self.api_key = os.getenv("GEMINI_API_KEY")
+        api_key_env = os.getenv("GEMINI_API_KEY", "")
+        # Virgülle ayrılmış birden fazla anahtarı destekle
+        self.api_keys = [k.strip() for k in api_key_env.split(",") if k.strip()]
+        self.current_key_index = 0
         self.default_model = "gemini-2.5-flash"
         self.client = None
-        if self.api_key:
-            self.client = genai.Client(api_key=self.api_key)
+        self._setup_client()
         self.timeout = 120.0
+    
+    def _setup_client(self):
+        """Mevcut dizindeki API anahtarı ile istemciyi kur."""
+        if self.api_keys:
+            key = self.api_keys[self.current_key_index]
+            self.client = genai.Client(api_key=key)
+            # Log key safely (first and last 4 chars)
+            masked_key = f"{key[:4]}...{key[-4:]}" if len(key) > 8 else "****"
+            logger.info(f"Gemini API istemcisi yapılandırıldı (Anahtar: {masked_key}, İndeks: {self.current_key_index})")
+        else:
+            self.client = None
+            logger.error("Gemini API anahtarı bulunamadı!")
     
     async def get_models(self) -> List[str]:
         """Sadece Gemini 2.5 Flash modelini döndür (Kota sorunlarını önlemek için)."""
@@ -1100,7 +1114,7 @@ class ChatService:
     
     async def check_ollama_available(self) -> bool:
         """Gemini API anahtarının mevcut olup olmadığını kontrol et."""
-        return self.api_key is not None
+        return len(self.api_keys) > 0
     
     async def chat_stream(
         self,
@@ -1117,39 +1131,64 @@ class ChatService:
         selected_model_name = "gemini-2.5-flash"
         
         logger.info(f"[AI] Gemini isteği (Model: {selected_model_name})")
+        # Resim desteği (images listesi base64 formatında)
+        contents = [prompt]
+        if images:
+            for img_data in images:
+                if "," in img_data:
+                    mime_type = img_data.split(";")[0].split(":")[1]
+                    data = img_data.split(",")[1]
+                else:
+                    mime_type = "image/jpeg"
+                    data = img_data
+                
+                from google.genai import types
+                contents.append(types.Part.from_bytes(
+                    data=base64.b64decode(data),
+                    mime_type=mime_type
+                ))
 
-        try:
-            if not self.client:
-                yield "Hata: Gemini API istemcisi başlatılamadı. Lütfen API anahtarınızı kontrol edin."
-                return
-            # Resim desteği (images listesi base64 formatında)
-            contents = [prompt]
-            if images:
-                for img_data in images:
-                    if "," in img_data:
-                        mime_type = img_data.split(";")[0].split(":")[1]
-                        data = img_data.split(",")[1]
-                    else:
-                        mime_type = "image/jpeg"
-                        data = img_data
-                    
-                    from google.genai import types
-                    contents.append(types.Part.from_bytes(
-                        data=base64.b64decode(data),
-                        mime_type=mime_type
-                    ))
+        # Maksimum anahtar sayısı kadar deneme yap
+        retry_count = 0
+        max_retries = len(self.api_keys)
+        
+        while retry_count < max_retries:
+            try:
+                if not self.client:
+                    yield "Hata: Gemini API istemcisi başlatılamadı. Lütfen API anahtarınızı kontrol edin."
+                    return
 
-            response = self.client.models.generate_content_stream(
-                model=selected_model_name,
-                contents=contents
-            )
-            
-            for chunk in response:
-                if chunk.text:
-                    yield chunk.text
-        except Exception as e:
-            logger.error(f"Gemini API hatası: {e}")
-            yield f"Gemini API hatası oluştu: {str(e)}"
+                response = self.client.models.generate_content_stream(
+                    model=selected_model_name,
+                    contents=contents
+                )
+                
+                for chunk in response:
+                    if chunk.text:
+                        yield chunk.text
+                
+                # Başarılı olursa döngüden çık
+                break
+                
+            except Exception as e:
+                error_msg = str(e).lower()
+                # Kota dolu (429) VEYA Hatalı Anahtar (400) kontrolü
+                is_quota_error = "429" in error_msg or "quota" in error_msg or "limit" in error_msg
+                is_invalid_key = "400" in error_msg or "invalid" in error_msg or "not valid" in error_msg
+                
+                if (is_quota_error or is_invalid_key) and len(self.api_keys) > 1:
+                    retry_count += 1
+                    if retry_count < max_retries:
+                        self.current_key_index = (self.current_key_index + 1) % len(self.api_keys)
+                        reason = "Kota doldu" if is_quota_error else "Hatalı anahtar"
+                        logger.warning(f"⚠️ Gemini {reason}! Diğer anahtara geçiliyor... (Yeni İndeks: {self.current_key_index})")
+                        self._setup_client()
+                        continue # Yeni anahtar ile tekrar dene
+                
+                # Diğer hatalar veya tüm anahtarlar denendiyse hata fırlat
+                logger.error(f"Gemini API hatası: {e}")
+                yield f"Gemini API hatası oluştu: {str(e)}"
+                break
     
     async def chat(
         self,
@@ -1158,11 +1197,6 @@ class ChatService:
         images: Optional[List[str]] = None
     ) -> str:
         """Gemini'den tam sohbet yanıtı al (akışsız)."""
-        response_parts = []
-        async for chunk in self.chat_stream(prompt, model, images):
-            response_parts.append(chunk)
-        return "".join(response_parts)
-
         response_parts = []
         async for chunk in self.chat_stream(prompt, model, images):
             response_parts.append(chunk)
