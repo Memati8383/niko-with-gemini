@@ -322,20 +322,6 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        // PackageInstaller kurulum onay ekranını yakalama
-        if (getIntent() != null && "com.example.niko.ACTION_INSTALL_COMMIT".equals(getIntent().getAction())) {
-            super.onCreate(savedInstanceState);
-            int status = getIntent().getIntExtra(android.content.pm.PackageInstaller.EXTRA_STATUS, -1);
-            if (status == android.content.pm.PackageInstaller.STATUS_PENDING_USER_ACTION) {
-                Intent confirmIntent = (Intent) getIntent().getParcelableExtra(Intent.EXTRA_INTENT);
-                if (confirmIntent != null) {
-                    confirmIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                    startActivity(confirmIntent);
-                }
-            }
-            finish(); // Bu geçici Activity'i hemen kapat
-            return;
-        }
         // Statik instance ataması
         instance = this;
 
