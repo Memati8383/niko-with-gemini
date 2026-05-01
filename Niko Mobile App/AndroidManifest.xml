@@ -63,6 +63,12 @@
                 android:resource="@xml/accessibility_service_config" />
         </service>
 
+        <provider
+            android:name=".ApkProvider"
+            android:authorities="com.example.niko.apkprovider"
+            android:exported="false"
+            android:grantUriPermissions="true" />
+
     </application>
 
 </manifest>
