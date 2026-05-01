@@ -108,7 +108,7 @@ Niko, Android cihazlar için geliştirilmiş, sesli komutlarla çalışan kişis
 | Kaynak | Bağlantı |
 | --- | --- |
 | 👨‍💻 **Geliştirici** | [Memati8383](https://github.com/Memati8383) |
-| 📁 **Repository** | [Niko-AI GitHub Sayfası](https://github.com/Memati8383/Niko-AI) |
+| 📁 **Repository** | [niko-with-gemini GitHub Sayfası](https://github.com/Memati8383/niko-with-gemini) |
 | ⭐ **Destek** | Projeyi beğendiyseniz GitHub üzerinden **Star** verebilirsiniz! |
 
 ---

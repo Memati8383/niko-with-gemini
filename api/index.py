@@ -1136,6 +1136,9 @@ class ChatService:
                         mime_type=mime_type
                     ))
 
+            # Akışlı yanıt başlat (google-genai senkron generator döndürür, ancak async sarmalayıcı gerekebilir)
+            # Not: google-genai kütüphanesinin async desteği için Client(..., http_options={'api_version': 'v1alpha'}) vb gerekebilir
+            # Basitlik için senkron iterasyonu async generator içinde kullanıyoruz
             response = self.client.models.generate_content_stream(
                 model=selected_model_name,
                 contents=contents
@@ -1641,21 +1644,22 @@ for folder in ["history"]:
     os.makedirs(folder, exist_ok=True)
 
 # Statik dosyaları bağla
-app.mount("/static", StaticFiles(directory="static"), name="static")
+static_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")
+app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 
 @app.get("/")
 async def root():
     """Ana sayfayı sun"""
     logger.info("Serving index.html (v1.2)")
-    return FileResponse("static/index.html")
+    return FileResponse(os.path.join(static_dir, "index.html"))
 
 
 @app.get("/login.html")
 @app.get("/login")
 async def login_page():
     """Giriş sayfasını sun"""
-    return FileResponse("static/login.html")
+    return FileResponse(os.path.join(static_dir, "login.html"))
 
 
 @app.get("/signup.html")
@@ -1663,7 +1667,7 @@ async def login_page():
 @app.get("/signup/")
 async def signup_page():
     """Kayıt sayfasını sun"""
-    return FileResponse("static/signup.html")
+    return FileResponse(os.path.join(static_dir, "signup.html"))
 
 
 @app.get("/admin.html")
@@ -1671,7 +1675,7 @@ async def signup_page():
 @app.get("/admin/")
 async def admin_page():
     """Yönetici panelini sun"""
-    return FileResponse("static/admin.html")
+    return FileResponse(os.path.join(static_dir, "admin.html"))
 
 
 @app.get("/test")
@@ -1695,7 +1699,7 @@ async def service_worker():
     Servis çalışanları, tüm siteyi kontrol etmek için kök kapsamdan sunulmalıdır.
     """
     return FileResponse(
-        "static/sw.js",
+        os.path.join(static_dir, "sw.js"),
         media_type="application/javascript",
         headers={
             "Cache-Control": "no-cache, no-store, must-revalidate",
@@ -1707,13 +1711,13 @@ async def service_worker():
 @app.get("/style.css")
 async def style_css():
     """Ana stil dosyasını sun"""
-    return FileResponse("static/style.css", media_type="text/css")
+    return FileResponse(os.path.join(static_dir, "style.css"), media_type="text/css")
 
 
 @app.get("/script.js")
 async def script_js():
     """Ana JavaScript dosyasını sun"""
-    return FileResponse("static/script.js", media_type="application/javascript")
+    return FileResponse(os.path.join(static_dir, "script.js"), media_type="application/javascript")
 
 
 @app.get("/health")

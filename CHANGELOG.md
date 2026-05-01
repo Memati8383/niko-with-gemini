@@ -56,4 +56,4 @@ ve bu proje [Semantic Versioning](https://semver.org/lang/tr/) kullanır.
 
 ---
 
-[1.0.0]: https://github.com/Memati8383/Niko-AI/releases/tag/v1.0.0
+[1.0.0]: https://github.com/Memati8383/niko-with-gemini/releases/tag/v1.0.0

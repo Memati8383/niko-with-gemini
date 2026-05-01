@@ -422,4 +422,4 @@ Gerçek zamanlı chat için WebSocket desteği planlanıyor.
 
 ---
 
-Daha fazla bilgi için [GitHub Wiki](https://github.com/Memati8383/Niko-AI/wiki) sayfasını ziyaret edin.
+Daha fazla bilgi için [GitHub Wiki](https://github.com/Memati8383/niko-with-gemini/wiki) sayfasını ziyaret edin.```

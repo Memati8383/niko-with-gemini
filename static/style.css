@@ -1,59 +1,70 @@
-/* Niko AI Sohbet - Premium Avant-Garde Stilleri */
+/* Niko AI Sohbet - Premium Glassmorphism Stilleri */
 @import url("https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono&display=swap");
 
-/* ===== CSS Değişkenleri (Avant-Garde Palette) ===== */
+/* ===== CSS Değişkenleri (Glassmorphism — Deep Navy + Cyan) ===== */
 :root {
-  --bg-primary: #030305;
-  --bg-secondary: #08080c;
-  --bg-tertiary: #0f0f18;
-  --bg-card: rgba(10, 10, 18, 0.6);
-  --bg-glass: rgba(255, 255, 255, 0.02);
-  --bg-glass-hover: rgba(255, 255, 255, 0.05);
+  /* ── Arka Plan Katmanları ── */
+  --bg-primary: #0a0f1e;
+  --bg-secondary: #0d1328;
+  --bg-tertiary: #111a35;
+  --bg-card: rgba(13, 19, 40, 0.45);
+  --bg-glass: rgba(255, 255, 255, 0.03);
+  --bg-glass-hover: rgba(255, 255, 255, 0.06);
 
-  --text-primary: #ffffff;
-  --text-secondary: #9ca3af;
-  --text-muted: #6b7280;
-  --text-hint: #4b5563;
+  /* ── Metin ── */
+  --text-primary: #f0f6fc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --text-hint: #475569;
 
-  --accent-primary: #8b5cf6;
-  --accent-primary-hover: #a78bfa;
-  --accent-secondary: #d946ef;
-  --accent-glow: rgba(139, 92, 246, 0.3);
-  --accent-gradient: linear-gradient(135deg, #8b5cf6 0%, #d946ef 100%);
+  /* ── Vurgu (Siyan / Buz Beyazı — MOR YOK) ── */
+  --accent-primary: #06b6d4;
+  --accent-primary-hover: #22d3ee;
+  --accent-secondary: #67e8f9;
+  --accent-glow: rgba(6, 182, 212, 0.30);
+  --accent-gradient: linear-gradient(135deg, #06b6d4 0%, #22d3ee 50%, #67e8f9 100%);
 
+  /* ── Durum Renkleri ── */
   --success: #10b981;
   --success-bg: rgba(16, 185, 129, 0.1);
-  --error: #ef4444;
-  --error-bg: rgba(239, 68, 68, 0.1);
-  --warning: #f59e0b;
-  --warning-bg: rgba(245, 158, 11, 0.1);
+  --error: #f87171;
+  --error-bg: rgba(248, 113, 113, 0.08);
+  --warning: #fbbf24;
+  --warning-bg: rgba(251, 191, 36, 0.08);
 
-  --border-primary: rgba(255, 255, 255, 0.08);
-  --border-secondary: rgba(255, 255, 255, 0.04);
-  --border-focus: rgba(139, 92, 246, 0.5);
+  /* ── Kenarlıklar (Buzlu Cam) ── */
+  --border-primary: rgba(255, 255, 255, 0.10);
+  --border-secondary: rgba(255, 255, 255, 0.05);
+  --border-focus: rgba(6, 182, 212, 0.55);
+  --border-glass: rgba(255, 255, 255, 0.15);
 
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.5);
-  --shadow-md: 0 8px 16px rgba(0, 0, 0, 0.6);
-  --shadow-lg: 0 16px 32px rgba(0, 0, 0, 0.7);
-  --shadow-glow: 0 0 40px rgba(139, 92, 246, 0.15);
+  /* ── Gölgeler ── */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.55);
+  --shadow-glow: 0 0 40px rgba(6, 182, 212, 0.12);
 
+  /* ── Tipografi ── */
   --font-family: "Outfit", sans-serif;
   --font-mono: "JetBrains Mono", monospace;
 
+  /* ── Boşluk ── */
   --spacing-xs: 0.5rem;
   --spacing-sm: 1rem;
   --spacing-md: 1.5rem;
   --spacing-lg: 2rem;
   --spacing-xl: 3rem;
 
+  /* ── Köşe Yuvarlaklıkları ── */
   --radius-md: 12px;
   --radius-lg: 16px;
   --radius-xl: 24px;
 
+  /* ── Geçiş Eğrileri ── */
   --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-premium: 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 
-  /* Z-Index Layers */
+  /* ── Z-Index Katmanları ── */
   --z-dropdown: 999;
   --z-modal: 1000;
   --z-toast: 2000;
@@ -97,14 +108,19 @@ body::before {
   inset: 0;
   background:
     radial-gradient(
-      circle at 10% 10%,
-      rgba(129, 140, 248, 0.08) 0%,
-      transparent 40%
+      circle at 15% 20%,
+      rgba(6, 182, 212, 0.07) 0%,
+      transparent 45%
     ),
     radial-gradient(
-      circle at 90% 90%,
-      rgba(192, 132, 252, 0.08) 0%,
-      transparent 40%
+      circle at 85% 80%,
+      rgba(34, 211, 238, 0.06) 0%,
+      transparent 45%
+    ),
+    radial-gradient(
+      circle at 50% 50%,
+      rgba(6, 182, 212, 0.03) 0%,
+      transparent 60%
     );
   z-index: -1;
 }
@@ -132,38 +148,67 @@ a:hover {
 .auth-container::before {
   content: "";
   position: absolute;
-  width: 150%;
-  height: 150%;
+  width: 500px;
+  height: 500px;
+  top: -10%;
+  left: -10%;
   background: radial-gradient(
-    circle at 50% 50%,
-    rgba(139, 92, 246, 0.05) 0%,
-    transparent 50%
+    circle,
+    rgba(6, 182, 212, 0.12) 0%,
+    transparent 70%
   );
-  animation: rotateGlow 20s linear infinite;
+  animation: floatOrb1 12s ease-in-out infinite alternate;
   z-index: -1;
 }
 
-@keyframes rotateGlow {
-  from {
-    transform: translate(-50%, -50%) rotate(0deg);
-  }
-  to {
-    transform: translate(-50%, -50%) rotate(360deg);
-  }
+.auth-container::after {
+  content: "";
+  position: absolute;
+  width: 400px;
+  height: 400px;
+  bottom: -10%;
+  right: -10%;
+  background: radial-gradient(
+    circle,
+    rgba(34, 211, 238, 0.08) 0%,
+    transparent 70%
+  );
+  animation: floatOrb2 14s ease-in-out infinite alternate;
+  z-index: -1;
 }
 
+@keyframes floatOrb1 {
+  0%   { transform: translate(0, 0)   scale(1);   }
+  50%  { transform: translate(60px, 40px) scale(1.15); }
+  100% { transform: translate(-30px, 70px) scale(1.05); }
+}
+
+@keyframes floatOrb2 {
+  0%   { transform: translate(0, 0)   scale(1);   }
+  50%  { transform: translate(-50px, -30px) scale(1.1); }
+  100% { transform: translate(40px, -60px) scale(0.95); }
+}
+
+/* ── Buzlu Cam Kart (Frosted Glass) ── */
 .auth-card {
   width: 100%;
   max-width: 440px;
-  background: var(--bg-card);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid var(--border-primary);
+  background: rgba(13, 19, 40, 0.40);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: var(--radius-xl);
   padding: 3.5rem 2.5rem;
-  box-shadow: var(--shadow-lg);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
   position: relative;
   animation: authCardEntry 0.8s var(--transition-premium);
+  /* İç parıltı efekti */
+  background-image: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.04) 0%,
+    rgba(255, 255, 255, 0) 50%,
+    rgba(6, 182, 212, 0.03) 100%
+  );
 }
 
 @keyframes authCardEntry {
@@ -191,6 +236,7 @@ a:hover {
   background-clip: text;
   margin-bottom: 0.75rem;
   letter-spacing: -0.02em;
+  filter: drop-shadow(0 0 18px rgba(6, 182, 212, 0.35));
 }
 
 .auth-subtitle {
@@ -225,19 +271,22 @@ a:hover {
 .form-group input {
   width: 100%;
   padding: 1.1rem 1.25rem;
-  background: rgba(15, 15, 25, 0.4);
-  border: 1px solid var(--border-primary);
+  background: rgba(10, 15, 30, 0.50);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--radius-md);
   color: var(--text-primary);
   font-size: 1rem;
+  font-family: var(--font-family);
   transition: all var(--transition-fast);
   outline: none;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
 
 .form-group input:focus {
   border-color: var(--accent-primary);
-  background: rgba(15, 15, 25, 0.6);
-  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.08);
+  background: rgba(10, 15, 30, 0.65);
+  box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.12), 0 0 20px rgba(6, 182, 212, 0.06);
 }
 
 .form-group:focus-within label {
@@ -302,7 +351,7 @@ a:hover {
 .code-input:focus {
   border-color: var(--accent-primary);
   background: var(--bg-secondary);
-  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.1);
+  box-shadow: 0 0 0 4px rgba(6, 182, 212, 0.1);
 }
 
 .code-input.input-error {
@@ -374,9 +423,10 @@ a:hover {
   background: var(--accent-gradient);
   border: none;
   border-radius: var(--radius-md);
-  color: #ffffff;
+  color: #0a0f1e;
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 700;
+  font-family: var(--font-family);
   cursor: pointer;
   transition: all var(--transition-fast);
   display: flex;
@@ -384,13 +434,15 @@ a:hover {
   justify-content: center;
   gap: 0.75rem;
   min-height: 52px;
-  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.2);
+  box-shadow: 0 4px 18px rgba(6, 182, 212, 0.25);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+  letter-spacing: 0.02em;
 }
 
 .auth-button:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(139, 92, 246, 0.3);
-  filter: brightness(1.1);
+  box-shadow: 0 8px 28px rgba(6, 182, 212, 0.35), 0 0 60px rgba(6, 182, 212, 0.10);
+  filter: brightness(1.08);
 }
 
 .auth-button:active:not(:disabled) {
@@ -398,7 +450,7 @@ a:hover {
 }
 
 .auth-button:disabled {
-  opacity: 0.5;
+  opacity: 0.45;
   cursor: not-allowed;
   filter: grayscale(0.5);
 }
@@ -540,8 +592,7 @@ a:hover {
 }
 
 .history-item.active {
-  background: var(--accent-primary);
-  background: rgba(99, 102, 241, 0.2);
+  background: rgba(6, 182, 212, 0.15);
   border-color: var(--accent-primary);
 }
 
@@ -793,8 +844,8 @@ option {
 }
 
 .message.user .message-content {
-  background: rgba(99, 102, 241, 0.2);
-  border-color: rgba(99, 102, 241, 0.3);
+  background: rgba(6, 182, 212, 0.12);
+  border-color: rgba(6, 182, 212, 0.22);
 }
 
 .message-text {
@@ -936,7 +987,7 @@ option {
 
 .chat-input-box:focus-within {
   border-color: var(--border-focus);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.1);
 }
 
 
@@ -1002,7 +1053,7 @@ option {
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.3);
+  box-shadow: 0 4px 16px rgba(6, 182, 212, 0.3);
 }
 
 /* Shimmer sweep on hover */
@@ -1047,8 +1098,8 @@ option {
 .send-btn:hover:not(:disabled) {
   transform: translateY(-2px) scale(1.06);
   box-shadow:
-    0 8px 24px rgba(139, 92, 246, 0.45),
-    0 2px 8px rgba(217, 70, 239, 0.3);
+    0 8px 24px rgba(6, 182, 212, 0.40),
+    0 2px 8px rgba(34, 211, 238, 0.25);
   border-radius: 16px;
 }
 
@@ -1058,7 +1109,7 @@ option {
 
 .send-btn:active:not(:disabled) {
   transform: translateY(0) scale(0.97);
-  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.25);
+  box-shadow: 0 2px 8px rgba(6, 182, 212, 0.25);
   transition-duration: 0.1s;
 }
 
@@ -1071,9 +1122,9 @@ option {
 
 /* Pulse ring animation when enabled */
 @keyframes sendPulse {
-  0%   { box-shadow: 0 4px 16px rgba(139, 92, 246, 0.3), 0 0 0 0 rgba(139, 92, 246, 0.35); }
-  70%  { box-shadow: 0 4px 16px rgba(139, 92, 246, 0.3), 0 0 0 8px rgba(139, 92, 246, 0); }
-  100% { box-shadow: 0 4px 16px rgba(139, 92, 246, 0.3), 0 0 0 0 rgba(139, 92, 246, 0); }
+  0%   { box-shadow: 0 4px 16px rgba(6, 182, 212, 0.3), 0 0 0 0 rgba(6, 182, 212, 0.35); }
+  70%  { box-shadow: 0 4px 16px rgba(6, 182, 212, 0.3), 0 0 0 8px rgba(6, 182, 212, 0); }
+  100% { box-shadow: 0 4px 16px rgba(6, 182, 212, 0.3), 0 0 0 0 rgba(6, 182, 212, 0); }
 }
 
 .send-btn:not(:disabled) {
@@ -1144,7 +1195,7 @@ option {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(8, 8, 12, 0.85);
+  background: rgba(10, 15, 30, 0.85);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   display: flex;
@@ -1166,8 +1217,8 @@ option {
 .modal {
   background: linear-gradient(
     165deg,
-    rgba(23, 23, 33, 0.95) 0%,
-    rgba(13, 13, 22, 0.98) 100%
+    rgba(13, 19, 40, 0.95) 0%,
+    rgba(10, 15, 30, 0.98) 100%
   );
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 28px;
@@ -1304,7 +1355,7 @@ option {
   .chat-header {
     padding: 8px 10px;
     gap: 4px;
-    background: rgba(8, 8, 12, 0.98);
+    background: rgba(10, 15, 30, 0.98);
     backdrop-filter: blur(15px);
     display: flex;
     justify-content: space-between;
@@ -1538,7 +1589,7 @@ option {
 
 /* ===== Seçim (Selection) ===== */
 ::selection {
-  background: rgba(99, 102, 241, 0.3);
+  background: rgba(6, 182, 212, 0.25);
   color: var(--text-primary);
 }
 
@@ -1599,7 +1650,7 @@ option {
 /* ===== Arama Geçiş Butonları ===== */
 .input-action-btn.active {
   color: var(--accent-primary);
-  background: rgba(99, 102, 241, 0.2);
+  background: rgba(6, 182, 212, 0.15);
 }
 
 /* ===== Durdur Butonu ===== */
@@ -1992,7 +2043,7 @@ option {
 .profile-input-wrapper input:focus {
   background: rgba(255, 255, 255, 0.04) !important;
   border-color: var(--accent-primary) !important;
-  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1) !important;
+  box-shadow: 0 0 0 4px rgba(6, 182, 212, 0.1) !important;
 }
 
 .profile-input-wrapper input:focus + svg {
@@ -2016,25 +2067,25 @@ option {
   text-decoration: none;
   background: linear-gradient(
     135deg,
-    rgba(168, 85, 247, 0.15) 0%,
-    rgba(139, 92, 246, 0.15) 100%
+    rgba(6, 182, 212, 0.12) 0%,
+    rgba(34, 211, 238, 0.10) 100%
   );
-  border: 1px solid rgba(168, 85, 247, 0.3);
-  color: #c084fc;
+  border: 1px solid rgba(6, 182, 212, 0.30);
+  color: var(--accent-secondary);
   min-height: 52px;
   border-radius: 16px;
   font-weight: 700;
-  transition: all var(--transition-normal);
+  transition: all var(--transition-fast);
 }
 
 .admin-badge-btn:hover {
   background: linear-gradient(
     135deg,
-    rgba(168, 85, 247, 0.25) 0%,
-    rgba(139, 92, 246, 0.25) 100%
+    rgba(6, 182, 212, 0.22) 0%,
+    rgba(34, 211, 238, 0.18) 100%
   );
   transform: translateY(-2px);
-  box-shadow: 0 10px 20px -5px rgba(168, 85, 247, 0.3);
+  box-shadow: 0 10px 20px -5px rgba(6, 182, 212, 0.25);
 }
 
 /* Platform'a özgü hover renkleri */

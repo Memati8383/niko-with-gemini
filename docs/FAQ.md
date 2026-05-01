@@ -111,7 +111,7 @@ AI'nın yanıt üretirken düşünme sürecini gösterir. Nasıl sonuca vardığ
 
 ### APK nereden indirilir?
 
-GitHub Releases sayfasından: [Releases](https://github.com/Memati8383/Niko-AI/releases)
+GitHub Releases sayfasından: [Releases](https://github.com/Memati8383/niko-with-gemini/releases)
 
 ### Otomatik güncelleme nasıl çalışır?
 
@@ -273,4 +273,4 @@ Roadmap için [CHANGELOG.md](../CHANGELOG.md) dosyasını kontrol edin.
 
 ---
 
-Sorunuz burada yanıtlanmadı mı? [GitHub Discussions](https://github.com/Memati8383/Niko-AI/discussions)'da sorun!
+Sorunuz burada yanıtlanmadı mı? [GitHub Discussions](https://github.com/Memati8383/niko-with-gemini/discussions)'da sorun!

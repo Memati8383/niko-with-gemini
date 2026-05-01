@@ -110,7 +110,7 @@ import android.content.ClipboardManager; // Pano (Kopyala/Yapıştır) yönetimi
 import android.content.ClipData; // Pano veri yapısı
 import android.view.WindowInsets; // Ekran içi boşluklar (çentik vb.)
 import android.view.inputmethod.InputMethodManager; // Klavye yönetimi
-import androidx.core.content.FileProvider; // Dosya paylaşım sağlayıcısı
+// import android.support.v4.content.FileProvider; // İptal edildi
 import android.hardware.camera2.CameraManager; // Kamera servisi
 import android.hardware.camera2.CameraCharacteristics; // Kamera teknik özellikleri
 import java.util.regex.Matcher; // Düzenli ifade eşleştirici (Regex)
@@ -305,8 +305,8 @@ public class MainActivity extends Activity {
     /** Merkezi API sunucu adresi */
     private static String API_BASE_URL = "";
 
-    private static final String GITHUB_VERSION_URL = "https://raw.githubusercontent.com/Memati8383/Niko-AI/refs/heads/main/version.json";
-    private static final String GITHUB_APK_URL = "https://github.com/Memati8383/Niko-AI/releases/latest/download/niko.apk";
+    private static final String GITHUB_VERSION_URL = "https://raw.githubusercontent.com/Memati8383/niko-with-gemini/refs/heads/main/version.json";
+    private static final String GITHUB_APK_URL = "https://github.com/Memati8383/niko-with-gemini/releases/latest/download/niko.apk";
 
     private SharedPreferences updatePrefs;
     private String latestVersion = "";
@@ -330,7 +330,26 @@ public class MainActivity extends Activity {
         // GitHub'dan güncel URL'yi çek (Arka planda)
         updateApiUrlFromGithub();
 
+        // ActionBar'ı gizle ve başlık çubuğunu kaldır
+        requestWindowFeature(Window.FEATURE_NO_TITLE);
+
         super.onCreate(savedInstanceState);
+        
+        if (getActionBar() != null) {
+            getActionBar().hide();
+        }
+
+        // Statusbar'ı şeffaf yap ve içeriği altına yay
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            Window window = getWindow();
+            window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
+            window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+            window.setStatusBarColor(Color.TRANSPARENT);
+            window.getDecorView().setSystemUiVisibility(
+                    android.view.View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
+                    android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+        }
+
         setContentView(R.layout.activity_main);
 
         // Arayüz elemanlarını bağla
@@ -7184,10 +7203,18 @@ public class MainActivity extends Activity {
 
     private void installApk(File apkFile) {
         try {
+            // Android 7.0+ (Nougat) için FileUriExposedException hatasını önlemek amacıyla StrictMode eziyoruz
+            if (Build.VERSION.SDK_INT >= 24) {
+                try {
+                    java.lang.reflect.Method m = android.os.StrictMode.class.getMethod("disableDeathOnFileUriExposure");
+                    m.invoke(null);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+
             Intent intent = new Intent(Intent.ACTION_VIEW);
-            Uri apkUri = Build.VERSION.SDK_INT >= Build.VERSION_CODES.N
-                    ? FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", apkFile)
-                    : Uri.fromFile(apkFile);
+            Uri apkUri = Uri.fromFile(apkFile);
 
             intent.setDataAndType(apkUri, "application/vnd.android.package-archive");
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_GRANT_READ_URI_PERMISSION);
