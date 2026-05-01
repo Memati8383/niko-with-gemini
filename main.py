@@ -1752,6 +1752,11 @@ async def style_css():
     return FileResponse("static/style.css", media_type="text/css")
 
 
+@app.get("/auth.css")
+async def auth_css():
+    return FileResponse("static/auth.css", media_type="text/css")
+
+
 @app.get("/script.js")
 async def script_js():
     """Ana JavaScript dosyasını sun"""
