@@ -336,7 +336,7 @@ public class MainActivity extends Activity {
         requestWindowFeature(Window.FEATURE_NO_TITLE);
 
         super.onCreate(savedInstanceState);
-        
+
         if (getActionBar() != null) {
             getActionBar().hide();
         }
@@ -349,7 +349,7 @@ public class MainActivity extends Activity {
             window.setStatusBarColor(Color.TRANSPARENT);
             window.getDecorView().setSystemUiVisibility(
                     android.view.View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
-                    android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+                            android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
         }
 
         setContentView(R.layout.activity_main);
@@ -676,7 +676,8 @@ public class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
-        // WhatsApp oto-gönderim bayrağını her ihtimale karşı sıfırla (kazara tıklamaları önlemek için)
+        // WhatsApp oto-gönderim bayrağını her ihtimale karşı sıfırla (kazara
+        // tıklamaları önlemek için)
         NikoAccessibilityService.isWaitingForWhatsAppAutoSend = false;
     }
 
@@ -1462,11 +1463,13 @@ public class MainActivity extends Activity {
                     // Hatalı durumda kullanıcıyı uyar
                     String errorDetail = response.toString();
                     addLog("[AI] Sunucu Hatası: " + code + " - " + errorDetail);
-                    
+
                     if (code == 429) {
-                        speak("Gemini API kotası doldu biraderim. Lütfen biraz bekle veya API anahtarını kontrol et.", false);
+                        speak("Gemini API kotası doldu biraderim. Lütfen biraz bekle veya API anahtarını kontrol et.",
+                                false);
                     } else if (code == 404) {
-                        speak("İstediğin model bulunamadı veya şu an aktif değil. Başka bir model denememi ister misin?", false);
+                        speak("İstediğin model bulunamadı veya şu an aktif değil. Başka bir model denememi ister misin?",
+                                false);
                     } else {
                         speak("Sunucu ile bağlantıda bir sorun oluştu. Hata kodu: " + code, false);
                     }
@@ -2321,7 +2324,8 @@ public class MainActivity extends Activity {
 
     /**
      * Hesap panelinin açılış animasyonu (Premium SlideUp — Site CSS ile uyumlu).
-     * Site'deki slideUp keyframe'i: translateY(28px) scale(0.97) → translateY(0) scale(1)
+     * Site'deki slideUp keyframe'i: translateY(28px) scale(0.97) → translateY(0)
+     * scale(1)
      */
     private void animateAccountEntry() {
         cancelAnimation(ANIM_ACCOUNT_ENTRY);
@@ -2827,14 +2831,17 @@ public class MainActivity extends Activity {
             return;
 
         // Breathing Effect
-        android.animation.ObjectAnimator scaleX = android.animation.ObjectAnimator.ofFloat(input, "scaleX", 1f, 1.03f, 1f);
-        android.animation.ObjectAnimator scaleY = android.animation.ObjectAnimator.ofFloat(input, "scaleY", 1f, 1.03f, 1f);
-        android.animation.ObjectAnimator alpha = android.animation.ObjectAnimator.ofFloat(input, "alpha", 1f, 0.85f, 1f);
+        android.animation.ObjectAnimator scaleX = android.animation.ObjectAnimator.ofFloat(input, "scaleX", 1f, 1.03f,
+                1f);
+        android.animation.ObjectAnimator scaleY = android.animation.ObjectAnimator.ofFloat(input, "scaleY", 1f, 1.03f,
+                1f);
+        android.animation.ObjectAnimator alpha = android.animation.ObjectAnimator.ofFloat(input, "alpha", 1f, 0.85f,
+                1f);
 
         scaleX.setDuration(1200);
         scaleY.setDuration(1200);
         alpha.setDuration(1200);
-        
+
         scaleX.setRepeatCount(1);
         scaleY.setRepeatCount(1);
         alpha.setRepeatCount(1);
@@ -2908,7 +2915,6 @@ public class MainActivity extends Activity {
                 .setInterpolator(new android.view.animation.DecelerateInterpolator(1.5f))
                 .start();
     }
-
 
     /**
      * Hatalı işlemde görsele titreme efekti verir.
@@ -3771,23 +3777,28 @@ public class MainActivity extends Activity {
     private void startAIOrbAnimation() {
         runOnUiThread(() -> {
             isAIOrmAnimating = true;
-            if (aiOrbAnimator != null) aiOrbAnimator.cancel();
-            
+            if (aiOrbAnimator != null)
+                aiOrbAnimator.cancel();
+
             // AI konuşurken renk pembe/kırmızımsı (görseldeki gibi) efekti
             if (voiceOrb != null) {
-                voiceOrb.setBackgroundTintList(android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#FF1E56")));
+                voiceOrb.setBackgroundTintList(
+                        android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#FF1E56")));
             }
-            if (orbHalo == null) orbHalo = findViewById(R.id.orbHalo);
+            if (orbHalo == null)
+                orbHalo = findViewById(R.id.orbHalo);
             if (orbHalo != null) {
-                orbHalo.setBackgroundTintList(android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#FF1E56")));
+                orbHalo.setBackgroundTintList(
+                        android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#FF1E56")));
             }
 
             if (aiOrbRunnable == null) {
                 aiOrbRunnable = new Runnable() {
                     @Override
                     public void run() {
-                        if (!isAIOrmAnimating) return;
-                        
+                        if (!isAIOrmAnimating)
+                            return;
+
                         // Konuşma benzeri ritmik ve rastgele bir dalgalanma (Hece simülasyonu)
                         float fakeRms = 0;
                         long now = System.currentTimeMillis();
@@ -3799,19 +3810,20 @@ public class MainActivity extends Activity {
                             // Sönümlenme evresi veya sessizlik
                             fakeRms = 2f + (float) (Math.random() * 5.0);
                         }
-                        
+
                         float rawScale = 1.0f + (fakeRms / 20.0f);
                         float scale = Math.min(rawScale, 1.4f);
-                        
+
                         if (voiceOrb != null) {
                             voiceOrb.animate().scaleX(scale).scaleY(scale).setDuration(80).start();
                         }
-                        
+
                         if (orbHalo != null) {
                             float haloScale = Math.min(1.0f + (fakeRms / 12.0f), 1.6f);
-                            orbHalo.animate().scaleX(haloScale).scaleY(haloScale).alpha(0.2f + (fakeRms / 25.0f)).setDuration(120).start();
+                            orbHalo.animate().scaleX(haloScale).scaleY(haloScale).alpha(0.2f + (fakeRms / 25.0f))
+                                    .setDuration(120).start();
                         }
-                        
+
                         aiOrbHandler.postDelayed(this, 80);
                     }
                 };
@@ -3829,7 +3841,7 @@ public class MainActivity extends Activity {
             if (aiOrbAnimator != null) {
                 aiOrbAnimator.cancel();
             }
-            
+
             if (voiceOrb != null) {
                 voiceOrb.setBackgroundTintList(null); // Orijinal renge dön
                 voiceOrb.animate().scaleX(1f).scaleY(1f).setDuration(200).start();
@@ -3883,7 +3895,7 @@ public class MainActivity extends Activity {
 
                 // Erişilebilirlik servisini hazırla
                 NikoAccessibilityService.isWaitingForWhatsAppAutoSend = true;
-                
+
                 startActivity(intent);
 
                 // Erişilebilirlik servisinin aktif olup olmadığını kontrol et
@@ -3916,15 +3928,16 @@ public class MainActivity extends Activity {
             if (c != null && c.moveToFirst()) {
                 int nameIndex = c.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME);
                 int numberIndex = c.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER);
-                
-                // Önce tam eşleşme ara (örn: "annem" arandığında "anneannem" yerine tam "annem" olanı bulsun)
+
+                // Önce tam eşleşme ara (örn: "annem" arandığında "anneannem" yerine tam "annem"
+                // olanı bulsun)
                 do {
                     String displayName = c.getString(nameIndex);
                     if (displayName != null && displayName.trim().equalsIgnoreCase(name.trim())) {
                         return c.getString(numberIndex);
                     }
                 } while (c.moveToNext());
-                
+
                 // Tam eşleşme yoksa ilk bulduğunu döndür (kısmi eşleşme)
                 c.moveToFirst();
                 return c.getString(numberIndex);
@@ -6118,9 +6131,10 @@ public class MainActivity extends Activity {
      * Her modelin ne işe yaradığını basitçe açıklar.
      */
     private String getModelDescription(String modelId) {
-        if (modelId == null) return "Genel amaçlı yapay zeka yardımcısı.";
+        if (modelId == null)
+            return "Genel amaçlı yapay zeka yardımcısı.";
         String lowerId = modelId.toLowerCase();
-        
+
         if (lowerId.contains("gemini-2.5-flash"))
             return "Google'ın en hızlı ve dengeli modeli. Günlük sohbetler için ideal.";
         if (lowerId.contains("gemini-2.5-pro"))
@@ -6357,10 +6371,11 @@ public class MainActivity extends Activity {
                 versionReader.close();
 
                 JSONObject versionInfo = new JSONObject(versionSb.toString());
-                latestVersion = versionInfo.optString("version", "1.0.0");
+                latestVersion = versionInfo.optString("version", "1.0.1");
 
                 String currentVersion = getCurrentVersion();
-                addLog("[UPDATE] Sürüm Kontrolü -> Mevcut: [" + currentVersion + "] | Sunucudaki En Yeni: [" + latestVersion + "]");
+                addLog("[UPDATE] Sürüm Kontrolü -> Mevcut: [" + currentVersion + "] | Sunucudaki En Yeni: ["
+                        + latestVersion + "]");
 
                 // Güncelleme gerekli mi kontrol et
                 if (compareVersions(latestVersion, currentVersion) <= 0) {
@@ -6516,7 +6531,7 @@ public class MainActivity extends Activity {
         try {
             return getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
         } catch (Exception e) {
-            return "1.0.0";
+            return "1.0.1";
         }
     }
 
@@ -7225,13 +7240,13 @@ public class MainActivity extends Activity {
                 conn.setInstanceFollowRedirects(false); // Manuel yönlendirme takibi
                 conn.setConnectTimeout(30000);
                 conn.setReadTimeout(30000);
-                
+
                 int status = conn.getResponseCode();
                 boolean redirect = false;
                 if (status != HttpURLConnection.HTTP_OK) {
                     if (status == HttpURLConnection.HTTP_MOVED_TEMP
-                        || status == HttpURLConnection.HTTP_MOVED_PERM
-                        || status == HttpURLConnection.HTTP_SEE_OTHER) {
+                            || status == HttpURLConnection.HTTP_MOVED_PERM
+                            || status == HttpURLConnection.HTTP_SEE_OTHER) {
                         redirect = true;
                     }
                 }
@@ -7354,7 +7369,7 @@ public class MainActivity extends Activity {
             intent.setDataAndType(apkUri, "application/vnd.android.package-archive");
             intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            
+
             startActivity(intent);
             addLog("[UPDATE] Özel ApkProvider ile kurulum ekranı açıldı.");
         } catch (Exception e) {
@@ -7646,8 +7661,9 @@ public class MainActivity extends Activity {
         }
 
         private void handleWhatsAppAutoSend(AccessibilityNodeInfo rootNode) {
-            if (!isWaitingForWhatsAppAutoSend) return;
-            
+            if (!isWaitingForWhatsAppAutoSend)
+                return;
+
             List<AccessibilityNodeInfo> sendMessageButtons = rootNode
                     .findAccessibilityNodeInfosByViewId("com.whatsapp:id/send");
             if (sendMessageButtons != null && !sendMessageButtons.isEmpty()) {
@@ -7683,7 +7699,8 @@ public class MainActivity extends Activity {
             }
 
             for (int i = 0; i < node.getChildCount(); i++) {
-                if (findAndClickByText(node.getChild(i), targets)) return true;
+                if (findAndClickByText(node.getChild(i), targets))
+                    return true;
             }
             return false;
         }
