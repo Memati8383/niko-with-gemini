@@ -30,6 +30,7 @@ const elements = {
     // Sidebar
     sidebar: document.getElementById('sidebar'),
     menuToggle: document.getElementById('menuToggle'),
+    burger: document.getElementById('burger'),
     newChatBtn: document.getElementById('newChatBtn'),
     historyList: document.getElementById('historyList'),
     clearAllBtn: document.getElementById('clearAllBtn'),
@@ -252,6 +253,15 @@ function toggleSidebar() {
     } else {
         // Desktop behavior
         sidebar.classList.toggle('collapsed');
+    }
+    
+    // Sync burger checkbox state
+    if (elements.burger) {
+        if (window.innerWidth <= 768) {
+            elements.burger.checked = sidebar.classList.contains('open');
+        } else {
+            elements.burger.checked = !sidebar.classList.contains('collapsed');
+        }
     }
 }
 
