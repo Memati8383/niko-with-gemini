@@ -2178,8 +2178,9 @@ async def get_models(current_user: str = Depends(get_current_user)):
     Dönüş:
         Ollama'da bulunan model isimlerinin listesi
     """
+    models = await chat_service.get_models()
     return {
-        "models": ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash-exp"],
+        "models": models,
         "message": "Gemini API modelleri başarıyla alındı."
     }
 
