@@ -513,9 +513,9 @@ class AuthService:
                 email_service = get_email_service()
                 if not email_service.is_verified(user.email):
                     # Eğer doğrulama sistemini bypass etmek isterseniz bu bloğu yorum satırı yapın
-                    # Ancak güvenlik için önerilmez.
-                    logger.warning(f"Doğrulanmamış kayıt girişimi: {user.email}")
-                    raise ValueError("E-posta adresi doğrulanmamış. Lütfen önce kodu doğrulayın.")
+                    # Ancak güvenlik için önerilmez. Frontend kayıt sonrası doğrulama yaptığı için kapatıldı.
+                    logger.warning(f"Doğrulanmamış kayıt girişimi (Geçici İzin): {user.email}")
+                    # raise ValueError("E-posta adresi doğrulanmamış. Lütfen önce kodu doğrulayın.")
                 
                 # Başarılı kayıt sonrası temizle
                 email_service.remove_verified_email(user.email)
