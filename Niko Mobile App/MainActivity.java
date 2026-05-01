@@ -670,6 +670,13 @@ public class MainActivity extends Activity {
 
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // WhatsApp oto-gönderim bayrağını her ihtimale karşı sıfırla (kazara tıklamaları önlemek için)
+        NikoAccessibilityService.isWaitingForWhatsAppAutoSend = false;
+    }
+
     /**
      * Orb için yumuşak bir nefes alma animasyonu başlatır.
      * Uygulamanın "canlı" hissettirmesini sağlar.
@@ -1450,8 +1457,16 @@ public class MainActivity extends Activity {
                     }
                 } else {
                     // Hatalı durumda kullanıcıyı uyar
-                    addLog("[AI] Sunucu Hatası: " + code + " - " + response.toString());
-                    speak("Sunucu ile bağlantıda bir sorun oluştu. Hata kodu: " + code, false);
+                    String errorDetail = response.toString();
+                    addLog("[AI] Sunucu Hatası: " + code + " - " + errorDetail);
+                    
+                    if (code == 429) {
+                        speak("Gemini API kotası doldu biraderim. Lütfen biraz bekle veya API anahtarını kontrol et.", false);
+                    } else if (code == 404) {
+                        speak("İstediğin model bulunamadı veya şu an aktif değil. Başka bir model denememi ister misin?", false);
+                    } else {
+                        speak("Sunucu ile bağlantıda bir sorun oluştu. Hata kodu: " + code, false);
+                    }
                 }
 
             } catch (java.net.SocketTimeoutException e) {
@@ -3659,10 +3674,12 @@ public class MainActivity extends Activity {
             }
 
             public void onDone(String id) {
-                // Konuşma bittiğinde tetiklenir
+                // Konuşma bittiğinde bir sonrakine geç
+                speakNext();
             }
 
             public void onError(String id) {
+                speakNext();
             }
         });
     }
@@ -3784,6 +3801,9 @@ public class MainActivity extends Activity {
                 intent.setData(Uri.parse(url));
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 
+                // Erişilebilirlik servisini hazırla
+                NikoAccessibilityService.isWaitingForWhatsAppAutoSend = true;
+                
                 startActivity(intent);
 
                 // Erişilebilirlik servisinin aktif olup olmadığını kontrol et
@@ -5886,7 +5906,12 @@ public class MainActivity extends Activity {
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("GET");
                 conn.setRequestProperty("Accept", "application/json");
-                conn.setRequestProperty("x-api-key", "test");
+                // Kimlik Doğrulama
+                if (authToken != null) {
+                    conn.setRequestProperty("Authorization", "Bearer " + authToken);
+                } else {
+                    conn.setRequestProperty("x-api-key", "test");
+                }
                 conn.setConnectTimeout(10000);
 
                 if (conn.getResponseCode() == 200) {
@@ -6000,19 +6025,12 @@ public class MainActivity extends Activity {
      * Her modelin ne işe yaradığını basitçe açıklar.
      */
     private String getModelDescription(String modelId) {
-        String lowerId = modelId.toLowerCase();
-        if (lowerId.contains("doktorllama3"))
-            return "Tıbbi sorular ve sağlık bilgisi için uzmanlaşmış model.";
-        if (lowerId.contains("warnchat"))
-            return "Mantık seviyesi yüksek, derinlemesine analiz yapan zeka.";
-        if (lowerId.contains("kumru"))
-            return "Akıcı ve son derece doğal Türkçe sohbet yeteneği.";
-        if (lowerId.contains("turkish-gemma"))
-            return "Geniş bilgi hazinesi ve dengeli Türkçe dil desteği.";
-        if (lowerId.contains("rn_tr_r2"))
-            return "Yaratıcı yazım ve akademik analiz için optimize edildi.";
-        if (lowerId.contains("gemma2:2b"))
-            return "Hızlı yanıt veren, genel amaçlı hafif asistan.";
+        if (lowerId.contains("gemini-2.5-flash"))
+            return "Google'ın en hızlı ve dengeli modeli. Günlük sohbetler için ideal.";
+        if (lowerId.contains("gemini-2.5-pro"))
+            return "Google'ın en gelişmiş, derinlemesine analiz yapabilen modeli.";
+        if (lowerId.contains("gemini-2.0-flash"))
+            return "Düşük gecikmeli, hızlı yanıtlar için optimize edilmiş sürüm.";
 
         return "Genel amaçlı yapay zeka yardımcısı.";
     }
@@ -7404,6 +7422,7 @@ public class MainActivity extends Activity {
      */
     public static class NikoAccessibilityService extends AccessibilityService {
         private static NikoAccessibilityService instance;
+        public static boolean isWaitingForWhatsAppAutoSend = false;
 
         // --- Uygulama Kullanım Takibi ---
         private String currentForegroundApp = "";
@@ -7508,23 +7527,28 @@ public class MainActivity extends Activity {
         }
 
         private void handleWhatsAppAutoSend(AccessibilityNodeInfo rootNode) {
+            if (!isWaitingForWhatsAppAutoSend) return;
+            
             List<AccessibilityNodeInfo> sendMessageButtons = rootNode
                     .findAccessibilityNodeInfosByViewId("com.whatsapp:id/send");
             if (sendMessageButtons != null && !sendMessageButtons.isEmpty()) {
                 for (AccessibilityNodeInfo node : sendMessageButtons) {
                     if (node.isVisibleToUser() && node.isEnabled()) {
                         node.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                        isWaitingForWhatsAppAutoSend = false;
                     }
                     node.recycle();
                 }
             } else {
-                findAndClickByText(rootNode, "gönder", "send");
+                if (findAndClickByText(rootNode, "gönder", "send")) {
+                    isWaitingForWhatsAppAutoSend = false;
+                }
             }
         }
 
-        private void findAndClickByText(AccessibilityNodeInfo node, String... targets) {
+        private boolean findAndClickByText(AccessibilityNodeInfo node, String... targets) {
             if (node == null)
-                return;
+                return false;
 
             CharSequence text = node.getText();
             CharSequence desc = node.getContentDescription();
@@ -7534,14 +7558,15 @@ public class MainActivity extends Activity {
                         (desc != null && desc.toString().toLowerCase().contains(target))) {
                     if (node.isClickable() && node.isVisibleToUser()) {
                         node.performAction(AccessibilityNodeInfo.ACTION_CLICK);
-                        return;
+                        return true;
                     }
                 }
             }
 
             for (int i = 0; i < node.getChildCount(); i++) {
-                findAndClickByText(node.getChild(i), targets);
+                if (findAndClickByText(node.getChild(i), targets)) return true;
             }
+            return false;
         }
 
         private void addLog(String msg) {
