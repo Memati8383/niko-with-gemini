@@ -5,10 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Niko AI - E-posta Doğrulama</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🤖</text></svg>">
-    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="auth.css">
 </head>
 <body>
-    <div class="noise-overlay"></div>
+    <div class="bg-blob bg-blob-1"></div>
+    <div class="bg-blob bg-blob-2"></div>
+
     <div class="auth-container">
         <div class="auth-card">
             <div class="auth-header">
@@ -16,8 +19,8 @@
                 <p class="auth-subtitle">E-posta adresinizi doğrulayın</p>
             </div>
             
-            <p style="text-align: center; color: var(--text-secondary); margin-bottom: 2rem; font-size: 0.95rem;">
-                <span id="displayEmail" style="color: var(--text-primary); font-weight: 500;">...</span> adresine 6 haneli bir kod gönderdik.
+            <p style="text-align: center; color: var(--text-muted); margin-bottom: 24px; font-size: 14px;">
+                <span id="displayEmail" style="color: var(--text-main); font-weight: 500;">...</span> adresine 6 haneli bir kod gönderdik.
             </p>
 
             <form id="verifyForm" class="auth-form">
@@ -30,12 +33,19 @@
                     <input type="text" class="code-input" maxlength="1" pattern="\d" required>
                 </div>
                 
-                <div id="errorMessage" class="error-message" style="display: none;"></div>
-                <div id="successMessage" class="success-message" style="display: none;"></div>
+                <div id="errorMessage" class="error-message" style="display: none;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                    <span class="msg-text"></span>
+                </div>
+
+                <div id="successMessage" class="success-message" style="display: none;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    <span class="msg-text"></span>
+                </div>
                 
                 <button type="submit" class="auth-button" id="submitBtn">
                     <span class="button-text">Doğrula</span>
-                    <span class="button-loader" style="display: none;"></span>
+                    <div class="button-loader" style="display: none;"></div>
                 </button>
             </form>
             
@@ -60,7 +70,6 @@
         const resendBtn = document.getElementById('resendBtn');
         const timerSpan = document.getElementById('timer');
 
-        // Otomatik odaklanma ve silme davranışı
         inputs.forEach((input, index) => {
             input.addEventListener('input', (e) => {
                 if (e.target.value.length === 1 && index < inputs.length - 1) {
@@ -74,7 +83,6 @@
                 }
             });
             
-            // Yapıştırma desteği
             input.addEventListener('paste', (e) => {
                 e.preventDefault();
                 const data = e.clipboardData.getData('text').trim();
@@ -87,7 +95,6 @@
             });
         });
 
-        // Sayaç
         let timeLeft = 60;
         function updateTimer() {
             const mins = Math.floor(timeLeft / 60);
@@ -104,7 +111,6 @@
         }
         updateTimer();
 
-        // Form gönderimi
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             
@@ -120,7 +126,7 @@
             errorMessage.style.display = 'none';
             submitBtn.disabled = true;
             buttonText.style.display = 'none';
-            buttonLoader.style.display = 'inline-block';
+            buttonLoader.style.display = 'block';
 
             try {
                 const response = await fetch('/email/verify', {
@@ -132,29 +138,26 @@
                 const data = await response.json();
 
                 if (response.ok) {
-                    successMessage.textContent = 'Doğrulama başarılı! Yönlendiriliyorsunuz...';
-                    successMessage.style.display = 'block';
+                    successMessage.querySelector('.msg-text').textContent = 'Doğrulama başarılı! Yönlendiriliyorsunuz...';
+                    successMessage.style.display = 'flex';
                     localStorage.removeItem('pendingVerificationEmail');
                     setTimeout(() => {
                         window.location.href = 'login.html';
                     }, 2000);
                 } else {
-                    errorMessage.textContent = data.error || 'Geçersiz kod';
-                    errorMessage.style.display = 'block';
-                    inputs.forEach(i => i.classList.add('input-error'));
-                    setTimeout(() => inputs.forEach(i => i.classList.remove('input-error')), 2000);
+                    errorMessage.querySelector('.msg-text').textContent = data.error || 'Geçersiz kod';
+                    errorMessage.style.display = 'flex';
                 }
             } catch (err) {
-                errorMessage.textContent = 'Bağlantı hatası';
-                errorMessage.style.display = 'block';
+                errorMessage.querySelector('.msg-text').textContent = 'Bağlantı hatası';
+                errorMessage.style.display = 'flex';
             } finally {
                 submitBtn.disabled = false;
-                buttonText.style.display = 'inline';
+                buttonText.style.display = 'block';
                 buttonLoader.style.display = 'none';
             }
         });
 
-        // Tekrar gönder
         resendBtn.addEventListener('click', async () => {
             if (resendBtn.classList.contains('disabled')) return;
             
