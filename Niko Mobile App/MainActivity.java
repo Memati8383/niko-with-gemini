@@ -3764,8 +3764,14 @@ public class MainActivity extends Activity {
         }
     }
 
+    private Runnable aiOrbRunnable;
+    private android.os.Handler aiOrbHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+    private boolean isAIOrmAnimating = false;
+    private long lastSyllableTime = 0;
+
     private void startAIOrbAnimation() {
         runOnUiThread(() -> {
+            isAIOrmAnimating = true;
             if (aiOrbAnimator != null) aiOrbAnimator.cancel();
             
             // AI konuşurken renk mor efekti
@@ -3777,33 +3783,52 @@ public class MainActivity extends Activity {
                 orbHalo.setBackgroundTintList(android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#BB86FC")));
             }
 
-            aiOrbAnimator = android.animation.ValueAnimator.ofFloat(1.0f, 1.3f);
-            aiOrbAnimator.setDuration(400);
-            aiOrbAnimator.setRepeatCount(android.animation.ValueAnimator.INFINITE);
-            aiOrbAnimator.setRepeatMode(android.animation.ValueAnimator.REVERSE);
-            aiOrbAnimator.addUpdateListener(animation -> {
-                if (voiceOrb != null) {
-                    float scale = (float) animation.getAnimatedValue();
-                    voiceOrb.setScaleX(scale);
-                    voiceOrb.setScaleY(scale);
-                    
-                    if (orbHalo != null) {
-                        float haloScale = 1.0f + ((scale - 1.0f) * 1.5f);
-                        orbHalo.setScaleX(haloScale);
-                        orbHalo.setScaleY(haloScale);
-                        orbHalo.setAlpha(0.6f - (scale - 1.0f));
+            if (aiOrbRunnable == null) {
+                aiOrbRunnable = new Runnable() {
+                    @Override
+                    public void run() {
+                        if (!isAIOrmAnimating) return;
+                        
+                        // Konuşma benzeri ritmik ve rastgele bir dalgalanma (Hece simülasyonu)
+                        float fakeRms = 0;
+                        long now = System.currentTimeMillis();
+                        if (now - lastSyllableTime > 150 + Math.random() * 200) {
+                            // Yeni bir hece/kelime vurgusu
+                            fakeRms = 10f + (float) (Math.random() * 10.0);
+                            lastSyllableTime = now;
+                        } else {
+                            // Sönümlenme evresi veya sessizlik
+                            fakeRms = 2f + (float) (Math.random() * 5.0);
+                        }
+                        
+                        float rawScale = 1.0f + (fakeRms / 20.0f);
+                        float scale = Math.min(rawScale, 1.4f);
+                        
+                        if (voiceOrb != null) {
+                            voiceOrb.animate().scaleX(scale).scaleY(scale).setDuration(80).start();
+                        }
+                        
+                        if (orbHalo != null) {
+                            float haloScale = Math.min(1.0f + (fakeRms / 12.0f), 1.6f);
+                            orbHalo.animate().scaleX(haloScale).scaleY(haloScale).alpha(0.2f + (fakeRms / 25.0f)).setDuration(120).start();
+                        }
+                        
+                        aiOrbHandler.postDelayed(this, 80);
                     }
-                }
-            });
-            aiOrbAnimator.start();
+                };
+            }
+            aiOrbHandler.post(aiOrbRunnable);
         });
     }
 
     private void stopAIOrbAnimation() {
+        isAIOrmAnimating = false;
         runOnUiThread(() -> {
+            if (aiOrbRunnable != null) {
+                aiOrbHandler.removeCallbacks(aiOrbRunnable);
+            }
             if (aiOrbAnimator != null) {
                 aiOrbAnimator.cancel();
-                aiOrbAnimator = null;
             }
             
             if (voiceOrb != null) {
