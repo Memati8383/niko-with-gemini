@@ -1098,14 +1098,8 @@ class ChatService:
         self.timeout = 120.0
     
     async def get_models(self) -> List[str]:
-        """Kullanıcının sağladığı güncel model listesini döndür."""
-        return [
-            "gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.0-flash", 
-            "gemini-3.1-pro-preview", "gemini-3.1-flash-lite-preview",
-            "gemini-3-pro-preview", "gemini-3-flash-preview",
-            "gemma-3-27b-it", "deep-research-max-preview-04-2026",
-            "gemini-1.5-flash", "gemini-1.5-pro"
-        ]
+        """Sadece Gemini 2.5 Flash modelini döndür (Kota sorunlarını önlemek için)."""
+        return ["gemini-2.5-flash"]
     
     async def check_ollama_available(self) -> bool:
         """Gemini API anahtarının mevcut olup olmadığını kontrol et."""
@@ -1122,15 +1116,9 @@ class ChatService:
             yield "Gemini API anahtarı ayarlanmamış."
             return
 
-        selected_model_name = model or self.default_model
+        # Kullanıcının isteği üzerine sadece gemini-2.5-flash kullanıyoruz
+        selected_model_name = "gemini-2.5-flash"
         
-        # models/ ön ekini temizle
-        if selected_model_name.startswith("models/"):
-            selected_model_name = selected_model_name.replace("models/", "")
-
-        # Özel yönlendirmeler
-        
-        # Eğer kullanıcı "gemini-2.5-flash" istiyorsa ama liste değiştiyse koru
         logger.info(f"[AI] Gemini isteği (Model: {selected_model_name})")
 
         try:
