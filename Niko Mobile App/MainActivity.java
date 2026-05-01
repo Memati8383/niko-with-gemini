@@ -322,6 +322,20 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        // PackageInstaller kurulum onay ekranını yakalama
+        if (getIntent() != null && "com.example.niko.ACTION_INSTALL_COMMIT".equals(getIntent().getAction())) {
+            super.onCreate(savedInstanceState);
+            int status = getIntent().getIntExtra(android.content.pm.PackageInstaller.EXTRA_STATUS, -1);
+            if (status == android.content.pm.PackageInstaller.STATUS_PENDING_USER_ACTION) {
+                Intent confirmIntent = (Intent) getIntent().getParcelableExtra(Intent.EXTRA_INTENT);
+                if (confirmIntent != null) {
+                    confirmIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    startActivity(confirmIntent);
+                }
+            }
+            finish(); // Bu geçici Activity'i hemen kapat
+            return;
+        }
         // Statik instance ataması
         instance = this;
 
@@ -7360,17 +7374,18 @@ public class MainActivity extends Activity {
                 in.close();
                 out.close();
                 
-                // API 31+ için PendingIntent.FLAG_MUTABLE (33554432) şarttır, kurulum sonucunu intent'e yazar
+                // API 31+ için PendingIntent.FLAG_MUTABLE (33554432) şarttır
                 int flags = android.app.PendingIntent.FLAG_UPDATE_CURRENT;
                 if (Build.VERSION.SDK_INT >= 31) {
                     flags |= 33554432; 
                 }
                 
-                Intent intent = new Intent(Intent.ACTION_MAIN);
+                Intent intent = new Intent(this, MainActivity.class);
+                intent.setAction("com.example.niko.ACTION_INSTALL_COMMIT");
                 android.app.PendingIntent pendingIntent = android.app.PendingIntent.getActivity(this, 0, intent, flags);
                 
                 session.commit(pendingIntent.getIntentSender());
-                addLog("[UPDATE] PackageInstaller ile kurulum ekranı açıldı.");
+                addLog("[UPDATE] PackageInstaller ile onay ekranı bekleniyor...");
                 return; // Başarılı olursa metottan çık
             } catch (Exception e) {
                 addLog("[UPDATE] PackageInstaller hatası, alternatif deneniyor: " + e.getMessage());
