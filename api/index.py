@@ -1094,13 +1094,13 @@ class ChatService:
         self.default_model = os.getenv("DEFAULT_MODEL", "gemini-1.5-flash")
         self.client = None
         if self.api_key:
-            # v1beta yerine v1 kullanarak 404 hatalarını önle
-            self.client = genai.Client(api_key=self.api_key, http_options={'api_version': 'v1'})
+            # En yeni modeller (2.5 gibi) için v1beta kullanımı önerilir
+            self.client = genai.Client(api_key=self.api_key, http_options={'api_version': 'v1beta'})
         self.timeout = 120.0
     
     async def get_models(self) -> List[str]:
         """Mevcut Gemini modellerini getir."""
-        return ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash", "gemini-2.0-flash-lite-preview-02-05"]
+        return ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"]
     
     async def check_ollama_available(self) -> bool:
         """Gemini API anahtarının mevcut olup olmadığını kontrol et."""
@@ -1123,9 +1123,13 @@ class ChatService:
         if selected_model_name.startswith("models/"):
             selected_model_name = selected_model_name.replace("models/", "")
 
-        # Yanlış model isimlerini düzelt
-        if "llama" in selected_model_name.lower() or "gemma" in selected_model_name.lower() or "2.5" in selected_model_name:
+        # Yanlış model isimlerini düzelt (Llama/Gemma için Flash'a dön)
+        if "llama" in selected_model_name.lower() or "gemma" in selected_model_name.lower():
             selected_model_name = "gemini-1.5-flash"
+        
+        # 2.5 Flash desteğini koru
+        if "2.5-flash" in selected_model_name:
+            selected_model_name = "gemini-2.5-flash"
 
         try:
             # Resim desteği (images listesi base64 formatında)
