@@ -938,6 +938,7 @@ async function sendMessage() {
     
     // Add bot message placeholder with typing indicator
     const botMessage = appendMessage('bot', '');
+    botMessage.classList.add('generating');
     const messageText = botMessage.querySelector('.message-text');
     messageText.innerHTML = '<div class="typing-indicator"><span></span><span></span><span></span></div>';
     

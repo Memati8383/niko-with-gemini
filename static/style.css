@@ -561,11 +561,36 @@ a:hover {
   font-size: var(--font-size-sm);
   cursor: pointer;
   transition: all var(--transition-fast);
+  position: relative;
+  overflow: hidden;
+}
+
+.new-chat-btn::after {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    45deg,
+    transparent,
+    rgba(255, 255, 255, 0.05),
+    transparent
+  );
+  transform: rotate(45deg) translateX(-100%);
+  transition: transform 0.6s var(--transition-premium);
+}
+
+.new-chat-btn:hover::after {
+  transform: rotate(45deg) translateX(100%);
 }
 
 .new-chat-btn:hover {
   background: var(--bg-glass-hover);
   border-color: var(--accent-primary);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(6, 182, 212, 0.15);
 }
 
 .sidebar-content {
@@ -580,6 +605,11 @@ a:hover {
   gap: var(--spacing-xs);
 }
 
+@keyframes historyItemEntry {
+  from { opacity: 0; transform: translateX(-15px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
 .history-item {
   padding: var(--spacing-md);
   background: var(--bg-glass);
@@ -591,6 +621,7 @@ a:hover {
   align-items: center;
   justify-content: space-between;
   gap: var(--spacing-sm);
+  animation: historyItemEntry 0.4s var(--transition-premium) backwards;
 }
 
 .history-item:hover {
@@ -717,6 +748,18 @@ option {
   height: 8px;
   border-radius: 50%;
   background: var(--success);
+  box-shadow: 0 0 10px var(--success);
+  position: relative;
+}
+
+@keyframes dotPulse {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+  70% { transform: scale(1.2); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+.status-dot:not(.offline) {
+  animation: dotPulse 2s infinite;
 }
 
 .status-dot.offline {
@@ -789,6 +832,17 @@ option {
     opacity: 1;
     transform: translateY(0) scale(1);
   }
+}
+
+@keyframes aiPulse {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(6, 182, 212, 0.4); border-color: var(--border-primary); }
+  50% { transform: scale(1.08); box-shadow: 0 0 15px 5px rgba(6, 182, 212, 0.25); border-color: var(--accent-primary); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(6, 182, 212, 0.4); border-color: var(--border-primary); }
+}
+
+.message.bot.generating .message-avatar {
+  animation: aiPulse 1.5s infinite;
+  border-color: var(--accent-primary);
 }
 
 @keyframes shimmer {
@@ -2271,6 +2325,26 @@ option {
 @keyframes rippleEffect {
   0%   { transform: scale(0); opacity: 0.5; }
   100% { transform: scale(3); opacity: 0; }
+}
+
+/* ── Copy Success Animation ── */
+.message-action-btn.copy-btn.copied {
+  color: var(--success);
+  transform: scale(1.1);
+}
+
+@keyframes checkmarkGrow {
+  from { transform: scale(0); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.message-action-btn.copy-btn.copied::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border: 1.5px solid var(--success);
+  border-radius: inherit;
+  animation: checkmarkGrow 0.3s var(--transition-premium);
 }
 
 @keyframes copySuccess {
