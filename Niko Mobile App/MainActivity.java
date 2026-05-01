@@ -7346,7 +7346,7 @@ public class MainActivity extends Activity {
 
             if (Build.VERSION.SDK_INT >= 24) {
                 // Android 7.0+ (Nougat) ve üzeri için güvenli FileProvider kullanımı (content:// URI)
-                apkUri = androidx.core.content.FileProvider.getUriForFile(
+                apkUri = android.support.v4.content.FileProvider.getUriForFile(
                         this,
                         getApplicationContext().getPackageName() + ".provider",
                         apkFile);
