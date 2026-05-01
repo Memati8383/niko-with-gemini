@@ -7340,27 +7340,64 @@ public class MainActivity extends Activity {
     }
 
     private void installApk(File apkFile) {
-        try {
-            Intent intent = new Intent(Intent.ACTION_VIEW);
-            Uri apkUri;
-
-            if (Build.VERSION.SDK_INT >= 24) {
-                // Android 7.0+ (Nougat) ve üzeri için güvenli FileProvider kullanımı (content:// URI)
-                apkUri = android.support.v4.content.FileProvider.getUriForFile(
-                        this,
-                        getApplicationContext().getPackageName() + ".provider",
-                        apkFile);
-            } else {
-                // Eski sürümler için (file:// URI)
-                apkUri = Uri.fromFile(apkFile);
+        // Modern yöntem: PackageInstaller (Android 5.0+, FileProvider gerektirmez)
+        if (Build.VERSION.SDK_INT >= 21) {
+            try {
+                android.content.pm.PackageInstaller packageInstaller = getPackageManager().getPackageInstaller();
+                android.content.pm.PackageInstaller.SessionParams params = new android.content.pm.PackageInstaller.SessionParams(
+                        android.content.pm.PackageInstaller.SessionParams.MODE_FULL_INSTALL);
+                int sessionId = packageInstaller.createSession(params);
+                android.content.pm.PackageInstaller.Session session = packageInstaller.openSession(sessionId);
+                
+                OutputStream out = session.openWrite("niko_update", 0, -1);
+                java.io.FileInputStream in = new java.io.FileInputStream(apkFile);
+                byte[] buffer = new byte[65536];
+                int c;
+                while ((c = in.read(buffer)) != -1) {
+                    out.write(buffer, 0, c);
+                }
+                session.fsync(out);
+                in.close();
+                out.close();
+                
+                // API 31+ için PendingIntent.FLAG_MUTABLE (33554432) şarttır, kurulum sonucunu intent'e yazar
+                int flags = android.app.PendingIntent.FLAG_UPDATE_CURRENT;
+                if (Build.VERSION.SDK_INT >= 31) {
+                    flags |= 33554432; 
+                }
+                
+                Intent intent = new Intent(Intent.ACTION_MAIN);
+                android.app.PendingIntent pendingIntent = android.app.PendingIntent.getActivity(this, 0, intent, flags);
+                
+                session.commit(pendingIntent.getIntentSender());
+                addLog("[UPDATE] PackageInstaller ile kurulum ekranı açıldı.");
+                return; // Başarılı olursa metottan çık
+            } catch (Exception e) {
+                addLog("[UPDATE] PackageInstaller hatası, alternatif deneniyor: " + e.getMessage());
+                e.printStackTrace();
             }
+        }
+
+        // Alternatif / Eski yöntem (StrictMode hilesi ile file:// kullanımı)
+        try {
+            if (Build.VERSION.SDK_INT >= 24) {
+                try {
+                    java.lang.reflect.Method m = android.os.StrictMode.class.getMethod("disableDeathOnFileUriExposure");
+                    m.invoke(null);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+
+            Intent intent = new Intent(Intent.ACTION_VIEW);
+            Uri apkUri = Uri.fromFile(apkFile);
 
             intent.setDataAndType(apkUri, "application/vnd.android.package-archive");
             intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             
             startActivity(intent);
-            addLog("[UPDATE] APK kurulum ekranı açıldı.");
+            addLog("[UPDATE] Alternatif APK kurulum ekranı açıldı.");
         } catch (Exception e) {
             addLog("[UPDATE] Kurulum hatası: " + e.getMessage());
             Toast.makeText(this, "Kurulum hatası: " + e.getMessage(), Toast.LENGTH_LONG).show();
