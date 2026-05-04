@@ -1354,30 +1354,6 @@ public class MainActivity extends Activity {
      * @param q Kullanıcı sorusu veya komutu
      */
     private void askAI(String q) {
-        String normalized = q == null ? "" : q.trim().toLowerCase(Locale.getDefault());
-        boolean resetMemoryForThisRequest = false;
-        if (normalized.equals("yeni sohbet") || normalized.equals("sohbeti sıfırla") || normalized.equals("sıfırla")) {
-            sessionId = null;
-            sessionPrefs.edit().remove("session_id").apply();
-            runOnUiThread(() -> {
-                aiResponseContainer.setVisibility(View.VISIBLE);
-                txtAIResponse.setText("Yeni sohbet başlatıldı. Önceki konuşma hafızası sıfırlandı.");
-                Toast.makeText(this, "Yeni sohbet başlatıldı", Toast.LENGTH_SHORT).show();
-            });
-            speak("Yeni sohbet başlatıldı.", false);
-            return;
-        }
-        if (normalized.startsWith("yeni sohbet:")) {
-            sessionId = null;
-            sessionPrefs.edit().remove("session_id").apply();
-            q = q.substring("yeni sohbet:".length()).trim();
-            resetMemoryForThisRequest = true;
-        }
-        if (q == null || q.trim().isEmpty()) {
-            return;
-        }
-        final boolean finalResetMemoryForThisRequest = resetMemoryForThisRequest;
-
         // UI Geri Bildirimi: Kullanıcıya işlemin başladığını göster
         runOnUiThread(() -> {
             aiResponseContainer.setVisibility(View.VISIBLE);
@@ -1422,7 +1398,6 @@ public class MainActivity extends Activity {
                 payload.put("rag_search", false);
                 payload.put("stream", false);
                 payload.put("mode", "normal");
-                payload.put("reset_memory", finalResetMemoryForThisRequest);
 
                 addLog("[AI] İstek gönderiliyor. Model: " + (selectedModel != null ? selectedModel : "Varsayılan"));
 
