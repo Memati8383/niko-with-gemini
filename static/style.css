@@ -732,80 +732,120 @@ a:hover {
   display: block;
 }
 
-.menu-toggle {
-  display: flex;
-  padding: 10px;
-  background: transparent;
-  border: none;
-  color: var(--text-primary);
-  cursor: pointer;
-  border-radius: var(--radius-md);
-  transition: all var(--transition-fast);
-}
-
-.menu-toggle:hover {
-  background: var(--bg-glass);
-}
-
-/* From Uiverse.io by Cevorob - Adjusted for Niko AI */
-.burger {
+/* ── Kenar menü (hamburger) düğmesi ── */
+.menu-burger {
   position: relative;
-  width: 22px;
-  height: 16px;
-  background: transparent;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  margin: 0;
+  border: 1px solid rgba(0, 212, 255, 0.22);
+  border-radius: 12px;
+  background: linear-gradient(145deg, rgba(13, 22, 48, 0.75) 0%, rgba(6, 11, 24, 0.9) 100%);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.06) inset,
+    0 4px 20px rgba(0, 0, 0, 0.35);
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: inherit;
+  transition:
+    border-color 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.28s ease,
+    background 0.28s ease,
+    transform 0.18s ease;
+}
+
+.menu-burger:hover {
+  border-color: rgba(0, 212, 255, 0.45);
+  background: linear-gradient(145deg, rgba(0, 114, 255, 0.12) 0%, rgba(13, 22, 48, 0.85) 100%);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.08) inset,
+    0 0 0 1px rgba(0, 212, 255, 0.08),
+    0 8px 28px rgba(0, 212, 255, 0.12);
+}
+
+.menu-burger:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 3px;
+}
+
+.menu-burger:active {
+  transform: scale(0.94);
+}
+
+.menu-burger.is-active {
+  border-color: rgba(0, 212, 255, 0.5);
+  background: linear-gradient(145deg, rgba(0, 212, 255, 0.12) 0%, rgba(13, 22, 48, 0.92) 100%);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.06) inset,
+    0 0 32px rgba(0, 212, 255, 0.15);
+}
+
+.menu-burger-box {
+  position: relative;
+  width: 20px;
+  height: 14px;
   display: block;
 }
 
-.burger input {
-  display: none;
-}
-
-.burger span {
-  display: block;
+.menu-burger-line {
   position: absolute;
-  height: 2px;
-  width: 100%;
-  background: var(--text-primary);
-  border-radius: 2px;
-  opacity: 1;
   left: 0;
-  transform: rotate(0deg);
-  transition: .25s cubic-bezier(0.4, 0, 0.2, 1);
+  right: 0;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #e2e8f0 0%, #94a3b8 40%, #7dd3fc 100%);
+  transform-origin: 50% 50%;
+  transition:
+    transform 0.38s cubic-bezier(0.65, 0, 0.35, 1),
+    opacity 0.26s ease,
+    top 0.38s cubic-bezier(0.65, 0, 0.35, 1),
+    background 0.28s ease,
+    box-shadow 0.28s ease;
 }
 
-.burger span:nth-of-type(1) {
-  top: 0px;
-  transform-origin: left center;
+.menu-burger-line:nth-child(1) {
+  top: 0;
 }
 
-.burger span:nth-of-type(2) {
-  top: 50%;
-  transform: translateY(-50%);
-  transform-origin: left center;
+.menu-burger-line:nth-child(2) {
+  top: 6px;
 }
 
-.burger span:nth-of-type(3) {
-  top: 100%;
-  transform-origin: left center;
-  transform: translateY(-100%);
+.menu-burger-line:nth-child(3) {
+  top: 12px;
 }
 
-.burger input:checked ~ span:nth-of-type(1) {
+.menu-burger.is-active .menu-burger-line {
+  background: linear-gradient(90deg, #00d4ff, #22d3ee);
+  box-shadow: 0 0 10px rgba(0, 212, 255, 0.35);
+}
+
+.menu-burger.is-active .menu-burger-line:nth-child(1) {
+  top: 6px;
   transform: rotate(45deg);
-  top: -1px;
-  left: 2px;
 }
 
-.burger input:checked ~ span:nth-of-type(2) {
-  width: 0%;
+.menu-burger.is-active .menu-burger-line:nth-child(2) {
   opacity: 0;
+  transform: scaleX(0.2);
 }
 
-.burger input:checked ~ span:nth-of-type(3) {
+.menu-burger.is-active .menu-burger-line:nth-child(3) {
+  top: 6px;
   transform: rotate(-45deg);
-  top: 15px;
-  left: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menu-burger,
+  .menu-burger-line {
+    transition-duration: 0.01ms;
+  }
 }
 
 /* Dropdown seçeneklerinin koyu temada okunabilir olmasını sağla */
@@ -1544,9 +1584,28 @@ option {
     transform: translateX(0);
   }
 
-  .menu-toggle {
-    display: flex;
-    padding: 8px;
+  .menu-burger {
+    width: 42px;
+    height: 42px;
+    border-radius: 11px;
+  }
+
+  .menu-burger-box {
+    width: 18px;
+    height: 12px;
+  }
+
+  .menu-burger-line:nth-child(2) {
+    top: 5px;
+  }
+
+  .menu-burger-line:nth-child(3) {
+    top: 10px;
+  }
+
+  .menu-burger.is-active .menu-burger-line:nth-child(1),
+  .menu-burger.is-active .menu-burger-line:nth-child(3) {
+    top: 5px;
   }
 
   /* Chat Header Mobile */

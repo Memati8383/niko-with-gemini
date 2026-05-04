@@ -33,7 +33,6 @@ const elements = {
     // Sidebar
     sidebar: document.getElementById('sidebar'),
     menuToggle: document.getElementById('menuToggle'),
-    burger: document.getElementById('burger'),
     newChatBtn: document.getElementById('newChatBtn'),
     historyList: document.getElementById('historyList'),
     clearAllBtn: document.getElementById('clearAllBtn'),
@@ -235,16 +234,26 @@ function renderModelSelector() {
 // ============================================================================
 
 /**
+ * Kenar menü düğmesinin görünümünü ve aria-expanded ile senkronize et
+ */
+function syncSidebarToggleButton() {
+    if (!elements.menuToggle || !elements.sidebar) return;
+    const open = window.innerWidth <= 768
+        ? elements.sidebar.classList.contains('open')
+        : !elements.sidebar.classList.contains('collapsed');
+    elements.menuToggle.classList.toggle('is-active', open);
+    elements.menuToggle.setAttribute('aria-expanded', String(open));
+}
+
+/**
  * Toggle sidebar visibility (for mobile)
  */
 function toggleSidebar() {
     const sidebar = elements.sidebar;
     
     if (window.innerWidth <= 768) {
-        // Mobile behavior
         sidebar.classList.toggle('open');
         
-        // Toggle overlay
         let overlay = document.querySelector('.sidebar-overlay');
         if (!overlay) {
             overlay = document.createElement('div');
@@ -252,24 +261,15 @@ function toggleSidebar() {
             overlay.addEventListener('click', toggleSidebar);
             document.body.appendChild(overlay);
         }
-        overlay.classList.toggle('active', sidebar.classList.contains('open'));
+        const isOpen = sidebar.classList.contains('open');
+        overlay.classList.toggle('active', isOpen);
+        document.body.style.overflow = isOpen ? 'hidden' : '';
     } else {
-        // Desktop behavior
         sidebar.classList.toggle('collapsed');
+        document.body.style.overflow = '';
     }
     
-    // Sync burger checkbox state
-    if (elements.burger) {
-        if (window.innerWidth <= 768) {
-            elements.burger.checked = sidebar.classList.contains('open');
-        } else {
-            elements.burger.checked = !sidebar.classList.contains('collapsed');
-        }
-        const menuOpen = window.innerWidth <= 768
-            ? sidebar.classList.contains('open')
-            : !sidebar.classList.contains('collapsed');
-        elements.burger.setAttribute('aria-expanded', String(menuOpen));
-    }
+    syncSidebarToggleButton();
 }
 
 /**
@@ -301,6 +301,8 @@ function startNewChat() {
         elements.sidebar.classList.remove('open');
         const overlay = document.querySelector('.sidebar-overlay');
         if (overlay) overlay.classList.remove('active');
+        document.body.style.overflow = '';
+        syncSidebarToggleButton();
     }
     
     // Refresh history to update active state
@@ -440,12 +442,7 @@ async function init() {
     // Set up event listeners
     setupEventListeners();
 
-    if (elements.burger && elements.sidebar) {
-        const menuOpen = window.innerWidth <= 768
-            ? elements.sidebar.classList.contains('open')
-            : !elements.sidebar.classList.contains('collapsed');
-        elements.burger.setAttribute('aria-expanded', String(menuOpen));
-    }
+    syncSidebarToggleButton();
     
     // Load user profile
     loadUserProfile();
@@ -468,11 +465,19 @@ async function init() {
  */
 function setupEventListeners() {
     // Sidebar toggle
-    if (elements.burger) {
-        elements.burger.addEventListener('change', toggleSidebar);
-    } else {
+    if (elements.menuToggle) {
         elements.menuToggle.addEventListener('click', toggleSidebar);
     }
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key !== 'Escape' || window.innerWidth > 768) return;
+        if (!elements.sidebar.classList.contains('open')) return;
+        elements.sidebar.classList.remove('open');
+        const overlay = document.querySelector('.sidebar-overlay');
+        if (overlay) overlay.classList.remove('active');
+        document.body.style.overflow = '';
+        syncSidebarToggleButton();
+    });
     
     // New chat
     elements.newChatBtn.addEventListener('click', startNewChat);
@@ -567,7 +572,9 @@ function setupEventListeners() {
             elements.sidebar.classList.remove('open');
             const overlay = document.querySelector('.sidebar-overlay');
             if (overlay) overlay.classList.remove('active');
+            document.body.style.overflow = '';
         }
+        syncSidebarToggleButton();
     });
     
     // Event delegation for code copy buttons in chat messages
@@ -1214,6 +1221,8 @@ async function loadHistoryItem(sessionId) {
             elements.sidebar.classList.remove('open');
             const overlay = document.querySelector('.sidebar-overlay');
             if (overlay) overlay.classList.remove('active');
+            document.body.style.overflow = '';
+            syncSidebarToggleButton();
         }
         
         scrollToBottom(false);
