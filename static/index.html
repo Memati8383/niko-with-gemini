@@ -3,9 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Niko AI ile Türkçe yapay zeka sohbeti: kod, araştırma ve günlük görevler için Gemini tabanlı asistan.">
+    <meta name="theme-color" content="#060a12">
+    <meta name="color-scheme" content="dark">
+    <meta property="og:title" content="Niko AI - Yapay Zeka Sohbet">
+    <meta property="og:description" content="Türkçe yapay zeka asistanı ile sohbet edin; model seçin, web araması kullanın.">
+    <meta property="og:type" content="website">
     <title>Niko AI - Yapay Zeka Sohbet</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🤖</text></svg>">
-    <link rel="stylesheet" href="style.css?v=1.1">
+    <link rel="stylesheet" href="style.css?v=1.2">
     <!-- Kod renklendirme için Prism.js -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
@@ -19,13 +25,14 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markup.min.js"></script>
 </head>
 <body>
-    <div class="noise-overlay"></div>
+    <a class="skip-link" href="#main-chat">İçeriğe atla</a>
+    <div class="noise-overlay" aria-hidden="true"></div>
     <div class="app-container">
         <!-- Yan Menü -->
-        <aside class="sidebar" id="sidebar">
+        <aside class="sidebar" id="sidebar" aria-label="Sohbet geçmişi ve yeni sohbet">
             <div class="sidebar-header">
                 <span class="sidebar-logo">🤖 Niko AI</span>
-                <button class="new-chat-btn" id="newChatBtn" title="Yeni Sohbet">
+                <button type="button" class="new-chat-btn" id="newChatBtn" title="Yeni sohbet">
                     + Yeni Sohbet
                 </button>
             </div>
@@ -37,24 +44,25 @@
             </div>
             
             <div class="sidebar-footer">
-                <button class="new-chat-btn" id="clearAllBtn" style="width: 100%; background: var(--error-bg); border-color: var(--error); color: var(--error);">
+                <button type="button" class="new-chat-btn" id="clearAllBtn" style="width: 100%; background: var(--error-bg); border-color: var(--error); color: var(--error);">
                     🗑️ Tümünü Temizle
                 </button>
             </div>
         </aside>
 
         <!-- Ana İçerik -->
-        <main class="main-content">
+        <main class="main-content" id="main-chat">
             <!-- Sohbet Başlığı -->
-            <header class="chat-header">
+            <header class="chat-header" role="banner">
                 <div class="chat-header-left">
                     <label class="burger menu-toggle" id="menuToggle" title="Menü" for="burger">
-                        <input type="checkbox" id="burger">
+                        <input type="checkbox" id="burger" aria-controls="sidebar" aria-expanded="false" aria-label="Kenar menüsünü aç veya kapat">
                         <span></span>
                         <span></span>
                         <span></span>
                     </label>
-                    <select class="model-selector" id="modelSelector">
+                    <label for="modelSelector" class="sr-only">Yapay zeka modeli</label>
+                    <select class="model-selector" id="modelSelector" aria-describedby="connectionStatus">
                         <option value="">Model Yükleniyor...</option>
                     </select>
                 </div>
@@ -74,12 +82,26 @@
             </header>
 
             <!-- Sohbet Mesajları -->
-            <div class="chat-messages" id="chatMessages">
+            <div class="chat-messages" id="chatMessages" role="region" aria-label="Sohbet mesajları">
                 <!-- Hoş Geldin Mesajı -->
                 <div class="welcome-message" id="welcomeMessage">
-                    <div class="welcome-icon">🤖</div>
-                    <h2>Niko AI'ya Hoş Geldiniz!</h2>
-                    <p>Size nasıl yardımcı olabilirim?</p>
+                    <div class="welcome-icon" aria-hidden="true">🤖</div>
+                    <h2>Niko AI'ya hoş geldiniz</h2>
+                    <p>Aşağıdan yazın veya hızlı bir öneri seçin; Enter ile gönderin, yeni satır için Shift+Enter.</p>
+                    <div class="welcome-prompts" role="group" aria-label="Örnek sorular">
+                        <button type="button" class="welcome-prompt-btn" data-welcome-prompt="Bugün öğrenmem gereken bir konuyu kısa ve net şekilde özetle.">
+                            Günlük özet
+                        </button>
+                        <button type="button" class="welcome-prompt-btn" data-welcome-prompt="Bu TypeScript fonksiyonunu gözden geçir ve olası hataları listele.">
+                            Kod incelemesi
+                        </button>
+                        <button type="button" class="welcome-prompt-btn" data-welcome-prompt="Basit bir yemek tarifini adım adım, malzemelerle birlikte yaz.">
+                            Tarif fikri
+                        </button>
+                        <button type="button" class="welcome-prompt-btn" data-welcome-prompt="Kısa bir e-postayı profesyonel ve nazik tonda yeniden yaz.">
+                            E-posta tonu
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -89,21 +111,23 @@
                     <div class="chat-input-box">
 
                         <div class="chat-input-row">
+                            <label for="messageInput" class="sr-only">Mesaj</label>
                             <textarea 
                                 id="messageInput" 
-                                placeholder="Mesajınızı yazın..."
+                                placeholder="Mesajınızı yazın…"
                                 rows="1"
+                                autocomplete="off"
                             ></textarea>
                             <div class="input-actions">
 
-                                <button class="input-action-btn" id="webSearchBtn" title="Web Araması">
-                                    🔍
+                                <button type="button" class="input-action-btn" id="webSearchBtn" title="Web araması" aria-pressed="false" aria-label="Web aramasını aç veya kapat">
+                                    <span aria-hidden="true">🔍</span>
                                 </button>
 
                             </div>
                         </div>
                     </div>
-                    <button class="send-btn" id="sendBtn" title="Gönder" disabled>
+                    <button type="button" class="send-btn" id="sendBtn" title="Gönder" aria-label="Mesajı gönder" disabled>
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                         <line x1="22" y1="2" x2="11" y2="13"/>
                         <polygon points="22 2 15 22 11 13 2 9 22 2"/>
@@ -115,9 +139,9 @@
     </div>
 
     <!-- Profil Penceresi -->
-    <div class="modal-overlay" id="profileModal">
+    <div class="modal-overlay" id="profileModal" role="dialog" aria-modal="true" aria-labelledby="profileModalTitle">
         <div class="modal">
-            <h3 class="modal-title">Profil</h3>
+            <h3 class="modal-title" id="profileModalTitle">Profil</h3>
             <form id="profileForm" class="auth-form" style="gap: var(--spacing-md);">
                 <!-- Profil Resmi Section -->
                 <div class="profile-pic-container" style="margin-bottom: 2rem;">
@@ -205,23 +229,23 @@
     <!-- Sosyal Medya Butonu -->
     <div class="social-fab-container" id="socialFabContainer">
         <div class="social-fab-options">
-            <a href="https://github.com/Memati8383/niko-with-gemini" target="_blank" class="social-btn github" title="GitHub">
+            <a href="https://github.com/Memati8383/niko-with-gemini" target="_blank" rel="noopener noreferrer" class="social-btn github" title="GitHub">
                 <svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
             </a>
-            <a href="https://t.me/AlemdarFerit" target="_blank" class="social-btn telegram" title="Telegram">
+            <a href="https://t.me/AlemdarFerit" target="_blank" rel="noopener noreferrer" class="social-btn telegram" title="Telegram">
                  <svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 11.944 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
             </a>
-            <a href="https://tiktok.com/@erdoganfedaisi0 " target="_blank" class="social-btn tiktok" title="TikTok">
+            <a href="https://www.tiktok.com/@erdoganfedaisi0" target="_blank" rel="noopener noreferrer" class="social-btn tiktok" title="TikTok">
                 <svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93v6.14c0 1.39-.02 2.79-.02 4.18 0 1.39-.35 2.73-1.02 3.96-.94 1.74-2.68 3-4.63 3.33-1.48.25-3.04.14-4.46-.38-2.63-1-4.2-3.66-3.87-6.52.28-2.39 2.01-4.39 4.39-4.85.45-.09.91-.12 1.37-.12v4.25c-.53.05-1.09.2-1.54.55-.91.73-1.02 2.1-.23 2.97.74.83 2.11.85 2.9.15.54-.48.83-1.18.83-1.92V.02z"/></svg>
             </a>
-             <a href="https://instagram.com/ferit22901" target="_blank" class="social-btn instagram" title="Instagram">
+             <a href="https://instagram.com/ferit22901" target="_blank" rel="noopener noreferrer" class="social-btn instagram" title="Instagram">
                 <svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.069-4.85.069-3.204 0-3.584-.012-4.849-.069-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z"/></svg>
             </a>
         </div>
-        <button class="social-fab-toggle" id="socialFabToggle">
-            <span class="fab-icon">+</span>
+        <button type="button" class="social-fab-toggle" id="socialFabToggle" aria-label="Sosyal bağlantıları aç veya kapat" aria-expanded="false">
+            <span class="fab-icon" aria-hidden="true">+</span>
         </button>
     </div>
-    <script src="script.js?v=1.0"></script>
+    <script src="script.js?v=1.1"></script>
 </body>
 </html>

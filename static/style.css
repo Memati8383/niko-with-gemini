@@ -1743,6 +1743,29 @@ option {
   border: 0;
 }
 
+.skip-link {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 10000;
+  padding: 0.65rem 1.1rem;
+  background: linear-gradient(120deg, #00d4ff, #0072ff);
+  color: #060a12;
+  font-weight: 700;
+  font-size: 0.9rem;
+  text-decoration: none;
+  border-radius: 0 0 12px 0;
+  transform: translateY(-130%);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
 /* ===== Karşılama Mesajı ===== */
 .welcome-message {
   display: flex;
@@ -2663,6 +2686,48 @@ body::before {
   color: rgba(148,163,184,0.8);
   font-weight: 400;
   margin-top: 0.25rem;
+  max-width: 26rem;
+  line-height: 1.55;
+}
+
+.welcome-prompts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  align-items: stretch;
+  max-width: 38rem;
+  margin-top: 1.35rem;
+  padding: 0 0.75rem;
+}
+
+.welcome-prompt-btn {
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: rgba(226, 232, 240, 0.95);
+  background: rgba(13, 22, 48, 0.65);
+  border: 1px solid rgba(0, 212, 255, 0.22);
+  border-radius: 999px;
+  padding: 0.55rem 1rem;
+  min-height: 44px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+.welcome-prompt-btn:hover {
+  border-color: rgba(0, 212, 255, 0.45);
+  background: rgba(0, 114, 255, 0.12);
+  box-shadow: 0 0 0 1px rgba(0, 212, 255, 0.08);
+}
+
+.welcome-prompt-btn:focus-visible {
+  outline: 2px solid #00d4ff;
+  outline-offset: 3px;
+}
+
+.welcome-prompt-btn:active {
+  transform: scale(0.98);
 }
 
 /* ── MESAJ BALONCUKLARI ── */

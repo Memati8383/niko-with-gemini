@@ -262,6 +262,10 @@ function toggleSidebar() {
         } else {
             elements.burger.checked = !sidebar.classList.contains('collapsed');
         }
+        const menuOpen = window.innerWidth <= 768
+            ? sidebar.classList.contains('open')
+            : !sidebar.classList.contains('collapsed');
+        elements.burger.setAttribute('aria-expanded', String(menuOpen));
     }
 }
 
@@ -433,6 +437,13 @@ async function init() {
     
     // Set up event listeners
     setupEventListeners();
+
+    if (elements.burger && elements.sidebar) {
+        const menuOpen = window.innerWidth <= 768
+            ? elements.sidebar.classList.contains('open')
+            : !elements.sidebar.classList.contains('collapsed');
+        elements.burger.setAttribute('aria-expanded', String(menuOpen));
+    }
     
     // Load user profile
     loadUserProfile();
@@ -495,7 +506,22 @@ function setupEventListeners() {
     elements.webSearchBtn.addEventListener('click', () => {
         state.webSearchEnabled = !state.webSearchEnabled;
         elements.webSearchBtn.classList.toggle('active', state.webSearchEnabled);
+        elements.webSearchBtn.setAttribute('aria-pressed', String(state.webSearchEnabled));
     });
+
+    // Hoş geldin — hızlı öneri düğmeleri
+    if (elements.welcomeMessage) {
+        elements.welcomeMessage.addEventListener('click', (e) => {
+            const btn = e.target.closest('[data-welcome-prompt]');
+            if (!btn || !(btn instanceof HTMLElement)) return;
+            const text = btn.getAttribute('data-welcome-prompt');
+            if (!text) return;
+            elements.messageInput.value = text;
+            updateSendButtonState();
+            autoResizeTextarea();
+            elements.messageInput.focus();
+        });
+    }
     
 
 
@@ -1624,6 +1650,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (dragMoved) { dragMoved = false; return; }
         const isActive = fabContainer.classList.toggle('active');
         fabToggle.classList.toggle('active', isActive);
+        fabToggle.setAttribute('aria-expanded', String(isActive));
 
         // Staggered animasyon için her butona delay ver
         const btns = fabContainer.querySelectorAll('.social-btn');
@@ -1639,6 +1666,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!fabContainer.contains(e.target) && fabContainer.classList.contains('active')) {
             fabContainer.classList.remove('active');
             fabToggle.classList.remove('active');
+            fabToggle.setAttribute('aria-expanded', 'false');
             fabContainer.querySelectorAll('.social-btn').forEach(btn => {
                 btn.style.transitionDelay = '';
             });
