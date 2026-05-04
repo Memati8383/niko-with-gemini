@@ -41,6 +41,8 @@
 
 html {
   height: 100%;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
@@ -49,9 +51,11 @@ body {
   color: var(--text-main);
   min-height: 100%;
   min-height: 100dvh;
+  min-height: 100svh;
   line-height: 1.55;
   letter-spacing: -0.02em;
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
 
 body::before {
@@ -128,12 +132,20 @@ body::before {
   display: grid;
   min-height: 100vh;
   min-height: 100dvh;
+  min-height: 100svh;
   grid-template-columns: 1fr;
+  width: 100%;
 }
 
 @media (min-width: 960px) {
   .auth-page {
-    grid-template-columns: minmax(280px, 1fr) minmax(420px, 520px);
+    grid-template-columns: minmax(260px, 1fr) minmax(min(100%, 420px), 520px);
+  }
+}
+
+@media (min-width: 1200px) {
+  .auth-page {
+    grid-template-columns: minmax(300px, 1fr) minmax(440px, 540px);
   }
 }
 
@@ -152,6 +164,10 @@ body::before {
 @media (min-width: 960px) {
   .auth-showcase {
     display: flex;
+    min-height: 100dvh;
+    min-height: 100svh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
 }
 
@@ -248,13 +264,20 @@ body::before {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: clamp(1rem, 4vw, 2rem);
+  padding: clamp(0.75rem, 3vw, 2rem);
+  padding-left: max(clamp(0.75rem, 3vw, 2rem), env(safe-area-inset-left, 0px));
+  padding-right: max(clamp(0.75rem, 3vw, 2rem), env(safe-area-inset-right, 0px));
+  padding-bottom: max(clamp(0.75rem, 3vw, 2rem), env(safe-area-inset-bottom, 0px));
+  padding-top: max(clamp(0.75rem, 3vw, 2rem), env(safe-area-inset-top, 0px));
   position: relative;
+  min-width: 0;
+  align-self: stretch;
 }
 
 .auth-container {
   width: 100%;
   max-width: 440px;
+  min-width: 0;
   animation: authEnter 0.65s var(--ease-out) both;
 }
 
@@ -279,6 +302,7 @@ body::before {
   padding: clamp(1.75rem, 4vw, 2.5rem) clamp(1.5rem, 4vw, 2.25rem);
   box-shadow: var(--shadow-card);
   overflow: hidden;
+  max-width: 100%;
 }
 
 .auth-card::before {
@@ -438,12 +462,19 @@ input::placeholder {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.85rem;
+  min-width: 0;
 }
 
-@media (max-width: 520px) {
+@media (max-width: 560px) {
   .form-row {
     grid-template-columns: 1fr;
     gap: 0;
+  }
+}
+
+@media (min-width: 561px) and (max-width: 959px) {
+  .form-row {
+    gap: 1rem;
   }
 }
 
@@ -520,7 +551,8 @@ input::placeholder {
 .verify-desc strong {
   color: var(--text-main);
   font-weight: 600;
-  word-break: break-all;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 /* Mesajlar */
@@ -571,7 +603,7 @@ input::placeholder {
 /* Birincil düğme */
 .auth-button {
   width: 100%;
-  min-height: 52px;
+  min-height: 48px;
   margin-top: 0.5rem;
   padding: 0.75rem 1.25rem;
   font-family: inherit;
@@ -593,6 +625,8 @@ input::placeholder {
   position: relative;
   overflow: hidden;
   transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .auth-button::before {
@@ -644,20 +678,25 @@ input::placeholder {
   }
 }
 
-/* OTP */
+/* OTP — grid ile tüm genişliklerde taşma yok */
 .code-wrapper {
-  display: flex;
-  justify-content: center;
-  flex-wrap: nowrap;
-  gap: clamp(0.35rem, 2vw, 0.6rem);
-  margin-bottom: 1rem;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: clamp(0.2rem, 1.5vw, 0.55rem);
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto 1rem;
+  min-width: 0;
 }
 
 .code-input {
-  width: clamp(2.35rem, 11vw, 3rem);
-  height: clamp(2.85rem, 13vw, 3.35rem);
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  aspect-ratio: 1;
+  max-height: 3.5rem;
   text-align: center;
-  font-size: clamp(1.1rem, 4.5vw, 1.35rem);
+  font-size: clamp(1rem, 4.2vw, 1.3rem);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   padding: 0;
@@ -695,7 +734,10 @@ input::placeholder {
 }
 
 .resend-link {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
   text-align: center;
   margin-top: 0.35rem;
   color: rgba(0, 212, 255, 0.9);
@@ -703,9 +745,11 @@ input::placeholder {
   font-weight: 600;
   font-size: 0.875rem;
   cursor: pointer;
-  padding: 0.5rem;
+  min-height: 44px;
+  padding: 0.5rem 0.75rem;
   border-radius: var(--radius-md);
   transition: background 0.2s ease, color 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .resend-link.disabled {
@@ -782,14 +826,191 @@ input::placeholder {
   background: rgba(255, 255, 255, 0.08);
 }
 
+/* ——— Tablet ve mobil (vitrin gizliyken form odak) ——— */
+@media (max-width: 959px) {
+  .auth-main {
+    align-items: flex-start;
+    padding-top: max(1rem, env(safe-area-inset-top, 0px));
+  }
+
+  .auth-showcase {
+    padding: clamp(1.5rem, 4vw, 2.5rem);
+  }
+
+  .auth-header {
+    margin-bottom: 1.35rem;
+  }
+
+  .auth-logo {
+    font-size: clamp(1.35rem, 5vw, 1.65rem);
+  }
+
+  .auth-subtitle {
+    font-size: 0.85rem;
+    padding: 0 0.25rem;
+  }
+}
+
+/* ——— Telefon ——— */
 @media (max-width: 480px) {
+  .bg-grid {
+    background-size: 28px 28px;
+  }
+
   .auth-card {
-    border-radius: 20px;
-    padding: 1.5rem 1.25rem 1.35rem;
+    border-radius: 18px;
+    padding: 1.35rem max(1rem, env(safe-area-inset-left, 0px)) 1.25rem max(1rem, env(safe-area-inset-right, 0px));
+    padding-top: 1.35rem;
+    padding-bottom: max(1.25rem, env(safe-area-inset-bottom, 0px));
+  }
+
+  .auth-header {
+    margin-bottom: 1.2rem;
+  }
+
+  .logo-mark,
+  .email-icon-wrap {
+    width: 56px;
+    height: 56px;
+    margin-bottom: 0.75rem;
+  }
+
+  .logo-mark img {
+    width: 38px;
+    height: 38px;
+  }
+
+  .email-icon-wrap {
+    width: 60px;
+    height: 60px;
+  }
+
+  .email-icon-wrap img {
+    width: 40px;
+    height: 40px;
+  }
+
+  .form-group {
+    margin-bottom: 1rem;
+  }
+
+  .form-group label {
+    font-size: 0.68rem;
+  }
+
+  /* iOS: odakta otomatik yakınlaştırmayı önle */
+  input {
+    font-size: 16px;
   }
 
   .code-input {
     border-radius: 10px;
+    font-size: clamp(0.95rem, 5.5vw, 1.2rem);
+    max-height: 3rem;
+  }
+
+  .code-wrapper {
+    gap: clamp(0.15rem, 1.2vw, 0.35rem);
+  }
+
+  .verify-desc {
+    font-size: 0.8125rem;
+    margin-bottom: 1.15rem;
+    padding: 0 0.15rem;
+  }
+
+  .error-message,
+  .success-message {
+    font-size: 0.8125rem;
+    padding: 0.65rem 0.75rem;
+  }
+
+  .auth-footer {
+    font-size: 0.8125rem;
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+  }
+
+  .verify-timer {
+    font-size: 0.8125rem;
+    padding: 0 0.25rem;
+  }
+}
+
+/* ——— Çok dar ekran (ör. 320px) ——— */
+@media (max-width: 360px) {
+  .auth-main {
+    padding-left: max(0.5rem, env(safe-area-inset-left, 0px));
+    padding-right: max(0.5rem, env(safe-area-inset-right, 0px));
+  }
+
+  .auth-card {
+    padding-left: 0.85rem;
+    padding-right: 0.85rem;
+    border-radius: 16px;
+  }
+
+  .code-wrapper {
+    gap: 0.12rem;
+  }
+
+  .code-input {
+    min-height: 40px;
+    max-height: 2.65rem;
+    border-radius: 8px;
+    font-size: 1rem;
+  }
+}
+
+/* ——— Yatay mod (kısa yükseklik) ——— */
+@media (max-height: 520px) and (orientation: landscape) {
+  .auth-main {
+    align-items: flex-start;
+    padding-top: max(0.5rem, env(safe-area-inset-top, 0px));
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));
+  }
+
+  .auth-header {
+    margin-bottom: 0.85rem;
+  }
+
+  .logo-mark,
+  .email-icon-wrap {
+    width: 48px;
+    height: 48px;
+    margin-bottom: 0.5rem;
+  }
+
+  .logo-mark img {
+    width: 32px;
+    height: 32px;
+  }
+
+  .email-icon-wrap img {
+    width: 34px;
+    height: 34px;
+  }
+
+  .auth-logo {
+    font-size: 1.25rem;
+  }
+
+  .auth-subtitle {
+    font-size: 0.8rem;
+  }
+
+  .form-group {
+    margin-bottom: 0.65rem;
+  }
+
+  .auth-card {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+  }
+
+  .code-input {
+    max-height: 2.5rem;
+    min-height: 40px;
   }
 }
 
