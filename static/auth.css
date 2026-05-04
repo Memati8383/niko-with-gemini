@@ -231,10 +231,10 @@ body::before {
 }
 
 .auth-showcase-mark {
-  width: 56px;
-  height: 56px;
-  border-radius: 18px;
-  padding: 5px;
+  width: 84px;
+  height: 84px;
+  border-radius: 28px;
+  padding: 8px;
   margin-bottom: 1.75rem;
 }
 
@@ -244,8 +244,8 @@ body::before {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  border-radius: 13px;
-  filter: drop-shadow(0 0 14px rgba(0, 212, 255, 0.45));
+  border-radius: 20px;
+  filter: drop-shadow(0 0 16px rgba(0, 212, 255, 0.5));
 }
 
 .auth-showcase-title {
@@ -380,11 +380,11 @@ body::before {
 }
 
 .logo-mark {
-  width: 64px;
-  height: 64px;
-  border-radius: 20px;
-  padding: 6px;
-  margin: 0 auto 1rem;
+  width: 100px;
+  height: 100px;
+  border-radius: 32px;
+  padding: 10px;
+  margin: 0 auto 1.1rem;
 }
 
 .logo-mark img {
@@ -392,19 +392,17 @@ body::before {
   z-index: 1;
   width: 100%;
   height: 100%;
-  max-width: 48px;
-  max-height: 48px;
   object-fit: contain;
-  border-radius: 14px;
-  filter: drop-shadow(0 0 16px rgba(0, 212, 255, 0.5));
+  border-radius: 22px;
+  filter: drop-shadow(0 0 20px rgba(0, 212, 255, 0.55));
 }
 
 .email-icon-wrap {
-  width: 72px;
-  height: 72px;
-  border-radius: 22px;
-  padding: 7px;
-  margin: 0 auto 1rem;
+  width: 108px;
+  height: 108px;
+  border-radius: 34px;
+  padding: 10px;
+  margin: 0 auto 1.1rem;
 }
 
 .email-icon-wrap img {
@@ -412,11 +410,9 @@ body::before {
   z-index: 1;
   width: 100%;
   height: 100%;
-  max-width: 54px;
-  max-height: 54px;
   object-fit: contain;
-  border-radius: 15px;
-  filter: drop-shadow(0 0 18px rgba(0, 212, 255, 0.55));
+  border-radius: 24px;
+  filter: drop-shadow(0 0 22px rgba(0, 212, 255, 0.58));
 }
 
 .auth-logo {
@@ -919,34 +915,30 @@ input::placeholder {
 
   .logo-mark,
   .email-icon-wrap {
-    width: 56px;
-    height: 56px;
-    border-radius: 18px;
-    padding: 5px;
-    margin-bottom: 0.75rem;
+    width: 88px;
+    height: 88px;
+    border-radius: 28px;
+    padding: 9px;
+    margin-bottom: 0.85rem;
   }
 
   .logo-mark img {
     width: 100%;
     height: 100%;
-    max-width: 44px;
-    max-height: 44px;
-    border-radius: 12px;
+    border-radius: 20px;
   }
 
   .email-icon-wrap {
-    width: 60px;
-    height: 60px;
-    border-radius: 19px;
-    padding: 6px;
+    width: 96px;
+    height: 96px;
+    border-radius: 30px;
+    padding: 9px;
   }
 
   .email-icon-wrap img {
     width: 100%;
     height: 100%;
-    max-width: 46px;
-    max-height: 46px;
-    border-radius: 13px;
+    border-radius: 22px;
   }
 
   .form-group {
@@ -1035,27 +1027,23 @@ input::placeholder {
 
   .logo-mark,
   .email-icon-wrap {
-    width: 48px;
-    height: 48px;
-    border-radius: 15px;
-    padding: 4px;
-    margin-bottom: 0.5rem;
+    width: 72px;
+    height: 72px;
+    border-radius: 24px;
+    padding: 7px;
+    margin-bottom: 0.55rem;
   }
 
   .logo-mark img {
     width: 100%;
     height: 100%;
-    max-width: 38px;
-    max-height: 38px;
-    border-radius: 10px;
+    border-radius: 16px;
   }
 
   .email-icon-wrap img {
     width: 100%;
     height: 100%;
-    max-width: 40px;
-    max-height: 40px;
-    border-radius: 11px;
+    border-radius: 17px;
   }
 
   .auth-logo {
