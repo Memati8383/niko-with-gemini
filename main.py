@@ -1762,6 +1762,12 @@ async def auth_css():
     return FileResponse("static/auth.css", media_type="text/css")
 
 
+@app.get("/admin-panel.css")
+async def admin_panel_css():
+    """Admin paneli stil dosyasını sun"""
+    return FileResponse("static/admin-panel.css", media_type="text/css")
+
+
 @app.get("/script.js")
 async def script_js():
     """Ana JavaScript dosyasını sun"""
