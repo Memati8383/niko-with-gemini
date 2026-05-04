@@ -216,6 +216,7 @@ def build_full_prompt(
             "## Sohbet Hafızası (Aynı Oturum)\n"
             "Aşağıdaki mesajlar bu oturumdaki önceki konuşmalardır. "
             "Yanıt verirken bunu hafıza olarak kullan. "
+            "Kullanıcı geçmiş konuşmadan bir bilgiyi sorarsa önce bu bloktan cevapla. "
             "Kesin olmayan bilgileri kesinmiş gibi söyleme; emin değilsen kısa doğrulama sorusu sor.\n\n"
             f"{cleaned_conversation_context}"
         )

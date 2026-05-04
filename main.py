@@ -98,6 +98,9 @@ def build_session_memory_context(session_data: Dict, max_messages: int = 12, max
             lowered = compact_content.lower()
             candidate_note = None
             patterns = [
+                r"\bbilgisayarımda\s+(.{3,120}?)\s+var\b",
+                r"\bsistemim(?:de)?\s+(.{3,120}?)\s+var\b",
+                r"\bbende\s+(.{3,120}?)\s+var\b",
                 r"\bbenim adım\s+([a-zA-ZçğıöşüÇĞİÖŞÜ][a-zA-ZçğıöşüÇĞİÖŞÜ\s]{1,30})",
                 r"\badım\s+([a-zA-ZçğıöşüÇĞİÖŞÜ][a-zA-ZçğıöşüÇĞİÖŞÜ\s]{1,30})",
                 r"\bistanbuldayım\b|\bankaradayım\b|\biz izmirdeyiz\b",
@@ -110,7 +113,11 @@ def build_session_memory_context(session_data: Dict, max_messages: int = 12, max
                     if match.lastindex:
                         value = match.group(1).strip(" .,!?:;")
                         if value:
-                            candidate_note = value
+                            # Donanım/sistem kalıpları için etiketi netleştir
+                            if "bilgisayarımda" in pattern or "sistemim" in pattern or "bende" in pattern:
+                                candidate_note = f"Sistem bilgisi: {value}"
+                            else:
+                                candidate_note = value
                     else:
                         candidate_note = compact_content.strip(" .,!?:;")
                     break
