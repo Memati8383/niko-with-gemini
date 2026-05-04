@@ -142,6 +142,34 @@ def build_session_memory_context(session_data: Dict, max_messages: int = 12, max
         context_text = "...\n" + context_text[-max_chars:]
     return context_text
 
+
+def extract_latest_system_specs_from_session(session_data: Dict) -> str:
+    """Oturumdaki kullanıcı mesajlarından en son sistem/donanım bilgisini çıkar."""
+    messages = session_data.get("messages", []) if isinstance(session_data, dict) else []
+    if not messages:
+        return ""
+
+    # Son mesaj güncel kullanıcı sorusu olabilir, bu yüzden sondan bir önceki mesaja kadar bak.
+    previous_messages = messages[:-1] if len(messages) > 1 else messages
+    patterns = [
+        r"\bbilgisayarımda\s+(.{3,140}?)\s+var\b",
+        r"\bsistemim(?:de)?\s+(.{3,140}?)\s+var\b",
+        r"\bbende\s+(.{3,140}?)\s+var\b"
+    ]
+
+    for msg in reversed(previous_messages):
+        role = str(msg.get("role", "")).strip().lower()
+        if role != "user":
+            continue
+        content = re.sub(r"\s+", " ", str(msg.get("content", "")).strip().lower())
+        if not content:
+            continue
+        for pattern in patterns:
+            match = re.search(pattern, content)
+            if match and match.group(1):
+                return match.group(1).strip(" .,!?:;")
+    return ""
+
 # Renkli log formatlayıcı
 class ColorfulFormatter(logging.Formatter):
     grey = "\x1b[38;20m"
@@ -2194,6 +2222,31 @@ async def chat(request: ChatRequest, current_user: str = Depends(get_current_use
     
     # Kullanıcı mesajını geçmişe kaydet (Gereksinimler: 3.7)
     history_service.add_message(current_user, session_id, "user", request.message)
+
+    # Bazı hatırlama sorularında modeli beklemeden, oturum bilgisinden net cevap ver.
+    lowered_message = (request.message or "").strip().lower()
+    asks_for_specs = bool(
+        re.search(
+            r"(bilgisayar|sistem).*(özellik|neydi|neler|donanım)|"
+            r"özelliklerim|sistemim ne",
+            lowered_message
+        )
+    )
+    if asks_for_specs:
+        try:
+            current_session = history_service.get_session(current_user, session_id)
+            specs = extract_latest_system_specs_from_session(current_session)
+            if specs:
+                direct_reply = f"Senin sistemin şuydu biraderim: {specs}."
+                history_service.add_message(current_user, session_id, "bot", direct_reply)
+                return {
+                    "reply": direct_reply,
+                    "thought": "",
+                    "audio": "",
+                    "id": session_id
+                }
+        except Exception as e:
+            logger.warning(f"Sistem bilgisi hatırlatma fallback'i çalışmadı: {e}")
     
     # Etkinse aramadan bağlam oluştur
     web_results = ""
