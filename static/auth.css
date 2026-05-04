@@ -185,22 +185,67 @@ body::before {
   max-width: 28rem;
 }
 
+/* Uygulama ikonu — squircle plaka, ince neon çerçeve, üst cam parlaması (asset ile uyum) */
+.auth-showcase-mark,
+.logo-mark,
+.email-icon-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;
+  margin-right: auto;
+  isolation: isolate;
+  flex-shrink: 0;
+  background: linear-gradient(
+    168deg,
+    rgba(22, 38, 72, 0.9) 0%,
+    rgba(8, 14, 32, 0.96) 42%,
+    rgba(3, 6, 14, 1) 100%
+  );
+  border: 1px solid rgba(0, 220, 255, 0.45);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.6) inset,
+    0 1px 0 rgba(255, 255, 255, 0.14) inset,
+    0 0 0 1px rgba(0, 212, 255, 0.06),
+    0 0 36px rgba(0, 212, 255, 0.32),
+    0 14px 40px rgba(0, 0, 0, 0.55);
+}
+
+.auth-showcase-mark::before,
+.logo-mark::before,
+.email-icon-wrap::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.16) 0%,
+    rgba(255, 255, 255, 0.03) 26%,
+    transparent 52%
+  );
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0.55;
+}
+
 .auth-showcase-mark {
   width: 56px;
   height: 56px;
-  border-radius: 16px;
-  padding: 6px;
-  background: rgba(0, 212, 255, 0.08);
-  border: 1px solid rgba(0, 212, 255, 0.22);
-  box-shadow: 0 0 40px rgba(0, 212, 255, 0.15);
+  border-radius: 18px;
+  padding: 5px;
   margin-bottom: 1.75rem;
 }
 
 .auth-showcase-mark img {
+  position: relative;
+  z-index: 1;
   width: 100%;
   height: 100%;
   object-fit: contain;
-  border-radius: 10px;
+  border-radius: 13px;
+  filter: drop-shadow(0 0 14px rgba(0, 212, 255, 0.45));
 }
 
 .auth-showcase-title {
@@ -334,40 +379,44 @@ body::before {
   z-index: 1;
 }
 
-.logo-mark,
-.email-icon-wrap {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+.logo-mark {
   width: 64px;
   height: 64px;
+  border-radius: 20px;
+  padding: 6px;
   margin: 0 auto 1rem;
-  border-radius: 18px;
-  background: linear-gradient(145deg, rgba(0, 212, 255, 0.12) 0%, rgba(0, 82, 204, 0.08) 100%);
-  border: 1px solid rgba(0, 212, 255, 0.25);
-  box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.04) inset,
-    0 12px 40px rgba(0, 0, 0, 0.35);
 }
 
 .logo-mark img {
-  width: 44px;
-  height: 44px;
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  max-width: 48px;
+  max-height: 48px;
   object-fit: contain;
-  border-radius: 12px;
+  border-radius: 14px;
+  filter: drop-shadow(0 0 16px rgba(0, 212, 255, 0.5));
 }
 
 .email-icon-wrap {
   width: 72px;
   height: 72px;
-  border-radius: 20px;
+  border-radius: 22px;
+  padding: 7px;
+  margin: 0 auto 1rem;
 }
 
 .email-icon-wrap img {
-  width: 48px;
-  height: 48px;
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  max-width: 54px;
+  max-height: 54px;
   object-fit: contain;
-  border-radius: 12px;
+  border-radius: 15px;
+  filter: drop-shadow(0 0 18px rgba(0, 212, 255, 0.55));
 }
 
 .auth-logo {
@@ -872,22 +921,32 @@ input::placeholder {
   .email-icon-wrap {
     width: 56px;
     height: 56px;
+    border-radius: 18px;
+    padding: 5px;
     margin-bottom: 0.75rem;
   }
 
   .logo-mark img {
-    width: 38px;
-    height: 38px;
+    width: 100%;
+    height: 100%;
+    max-width: 44px;
+    max-height: 44px;
+    border-radius: 12px;
   }
 
   .email-icon-wrap {
     width: 60px;
     height: 60px;
+    border-radius: 19px;
+    padding: 6px;
   }
 
   .email-icon-wrap img {
-    width: 40px;
-    height: 40px;
+    width: 100%;
+    height: 100%;
+    max-width: 46px;
+    max-height: 46px;
+    border-radius: 13px;
   }
 
   .form-group {
@@ -978,17 +1037,25 @@ input::placeholder {
   .email-icon-wrap {
     width: 48px;
     height: 48px;
+    border-radius: 15px;
+    padding: 4px;
     margin-bottom: 0.5rem;
   }
 
   .logo-mark img {
-    width: 32px;
-    height: 32px;
+    width: 100%;
+    height: 100%;
+    max-width: 38px;
+    max-height: 38px;
+    border-radius: 10px;
   }
 
   .email-icon-wrap img {
-    width: 34px;
-    height: 34px;
+    width: 100%;
+    height: 100%;
+    max-width: 40px;
+    max-height: 40px;
+    border-radius: 11px;
   }
 
   .auth-logo {
