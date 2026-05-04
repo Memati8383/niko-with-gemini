@@ -9,9 +9,11 @@
     <meta property="og:title" content="Niko AI - Yapay Zeka Sohbet">
     <meta property="og:description" content="Türkçe yapay zeka asistanı ile sohbet edin; model seçin, web araması kullanın.">
     <meta property="og:type" content="website">
+    <meta property="og:image" content="/static/icons/niko_icon_8.png">
     <title>Niko AI - Yapay Zeka Sohbet</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🤖</text></svg>">
-    <link rel="stylesheet" href="style.css?v=1.3">
+    <link rel="icon" type="image/png" href="/static/icons/niko_icon_8.png">
+    <link rel="apple-touch-icon" href="/static/icons/niko_icon_8.png">
+    <link rel="stylesheet" href="style.css?v=1.4">
     <!-- Kod renklendirme için Prism.js -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
@@ -31,7 +33,10 @@
         <!-- Yan Menü -->
         <aside class="sidebar" id="sidebar" aria-label="Sohbet geçmişi ve yeni sohbet">
             <div class="sidebar-header">
-                <span class="sidebar-logo">🤖 Niko AI</span>
+                <div class="sidebar-logo">
+                    <img src="/static/icons/niko_icon_8.png" alt="" class="app-brand-icon" width="26" height="26" decoding="async">
+                    <span class="sidebar-logo-text">Niko AI</span>
+                </div>
                 <button type="button" class="new-chat-btn" id="newChatBtn" title="Yeni sohbet">
                     + Yeni Sohbet
                 </button>
@@ -61,6 +66,7 @@
                         <span></span>
                         <span></span>
                     </label>
+                    <img src="/static/icons/niko_icon_8.png" alt="" class="chat-header-brand-icon" width="28" height="28" decoding="async">
                     <label for="modelSelector" class="sr-only">Yapay zeka modeli</label>
                     <select class="model-selector" id="modelSelector" aria-describedby="connectionStatus">
                         <option value="">Model Yükleniyor...</option>
@@ -85,7 +91,9 @@
             <div class="chat-messages" id="chatMessages" role="region" aria-label="Sohbet mesajları">
                 <!-- Hoş Geldin Mesajı -->
                 <div class="welcome-message" id="welcomeMessage">
-                    <div class="welcome-icon" aria-hidden="true">🤖</div>
+                    <div class="welcome-icon-wrap" aria-hidden="true">
+                        <img class="welcome-icon-img" src="/static/icons/niko_icon_8.png" alt="" width="96" height="96" decoding="async">
+                    </div>
                     <h2>Niko AI'ya hoş geldiniz</h2>
                     <p>Aşağıdan yazın veya hızlı bir öneri seçin; Enter ile gönderin, yeni satır için Shift+Enter.</p>
                     <div class="welcome-prompts" role="group" aria-label="Örnek sorular">
@@ -192,7 +200,8 @@
 
             <div id="adminPanelSection" style="display: none; margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.05);">
                 <a href="/admin" class="admin-badge-btn">
-                    <span style="font-size: 1.2rem;">👑</span> Yönetici Paneli
+                    <img src="/static/icons/niko_icon_8.png" alt="" width="22" height="22" decoding="async" class="admin-badge-icon">
+                    <span>Yönetici Paneli</span>
                 </a>
             </div>
 
@@ -210,7 +219,7 @@
     <!-- Onay Penceresi -->
     <div class="modal-overlay" id="confirmModal">
         <div class="modal">
-            <div id="confirmIcon" style="font-size: 3rem; margin-bottom: 1.5rem; text-align: center; display: none;"></div>
+            <div id="confirmIcon" class="confirm-icon-slot" style="margin-bottom: 1.5rem; text-align: center; display: none;"></div>
             <h3 class="modal-title" id="confirmTitle">Onay</h3>
             <p class="modal-description" id="confirmDescription">Bu işlemi gerçekleştirmek istediğinizden emin misiniz?</p>
             <div class="modal-actions">
@@ -246,6 +255,6 @@
             <span class="fab-icon" aria-hidden="true">+</span>
         </button>
     </div>
-    <script src="script.js?v=1.1"></script>
+    <script src="script.js?v=1.2"></script>
 </body>
 </html>

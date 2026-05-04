@@ -554,6 +554,21 @@ a:hover {
 }
 
 .sidebar-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.app-brand-icon {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+  flex-shrink: 0;
+  border-radius: 8px;
+}
+
+.sidebar-logo-text {
   font-size: var(--font-size-xl);
   font-weight: 700;
   background: var(--accent-gradient);
@@ -706,6 +721,15 @@ a:hover {
   display: flex;
   align-items: center;
   gap: var(--spacing-md);
+}
+
+.chat-header-brand-icon {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  flex-shrink: 0;
+  border-radius: 8px;
+  display: block;
 }
 
 .menu-toggle {
@@ -1316,6 +1340,41 @@ option {
   background: var(--warning-bg);
 }
 
+.toast-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.toast-icon img {
+  display: block;
+  object-fit: contain;
+  border-radius: 6px;
+}
+
+.confirm-icon-slot .confirm-modal-app-icon {
+  display: inline-block;
+  vertical-align: middle;
+  object-fit: contain;
+}
+
+.message-avatar .message-avatar-app-icon {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: 32px;
+  max-height: 32px;
+  object-fit: contain;
+  margin: auto;
+}
+
+.admin-badge-btn .admin-badge-icon {
+  flex-shrink: 0;
+  border-radius: 6px;
+  object-fit: contain;
+}
+
 @keyframes slideIn {
   from {
     opacity: 0;
@@ -1578,8 +1637,13 @@ option {
     padding: 24px 16px;
   }
 
-  .welcome-icon {
-    font-size: 2.5rem;
+  .welcome-icon-img {
+    width: 4rem;
+    height: 4rem;
+    margin-bottom: 0;
+  }
+
+  .welcome-icon-wrap {
     margin-bottom: 12px;
   }
 
@@ -1787,11 +1851,6 @@ option {
   text-align: center;
   padding: var(--spacing-2xl);
   margin: auto;
-}
-
-.welcome-icon {
-  font-size: 4rem;
-  margin-bottom: var(--spacing-lg);
 }
 
 .welcome-message h2 {
@@ -2463,7 +2522,7 @@ option {
   box-shadow: 4px 0 32px rgba(0,0,0,0.4);
 }
 
-.sidebar-logo {
+.sidebar-logo-text {
   font-family: var(--font-display);
   font-size: 1.1rem;
   font-weight: 800;
@@ -2599,9 +2658,16 @@ option {
   to   { opacity: 1; transform: translateY(0); }
 }
 
-.welcome-icon {
-  font-size: 3.5rem;
+.welcome-icon-wrap {
   margin-bottom: 0.75rem;
+}
+
+.welcome-icon-img {
+  width: 5.5rem;
+  height: 5.5rem;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto;
   filter: drop-shadow(0 0 20px rgba(0,212,255,0.5));
   animation: iconFloat 4s ease-in-out infinite;
 }

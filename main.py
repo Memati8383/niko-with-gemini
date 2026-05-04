@@ -1770,10 +1770,8 @@ async def health_check():
 
 @app.get("/favicon.ico")
 async def favicon():
-    """Favicon'u veya konsol hatalarını durdurmak için 204 İçerik Yok sun"""
-    # Tarayıcının şikayet etmesini durdurmak için 204 İçerik Yok döndürmek yeterlidir.
-    # Alternatif olarak 1x1 şeffaf bir piksel de sunulabilir.
-    return PlainTextResponse("", status_code=204)
+    """Tarayıcı varsayılan favicon isteği için uygulama ikonu."""
+    return FileResponse("static/icons/niko_icon_8.png", media_type="image/png")
 
 
 # ============================================================================

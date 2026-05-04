@@ -3,6 +3,9 @@
  * Main application script for the chat interface
  */
 
+/** Uygulama marka ikonu (tüm sayfalar /static mount ile uyumlu) */
+const NIKO_ICON_URL = '/static/icons/niko_icon_8.png';
+
 // ============================================================================
 // Global State
 // ============================================================================
@@ -339,14 +342,7 @@ function showToast(message, type = 'info', duration = 3000) {
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
     
-    const icon = {
-        success: '✓',
-        error: '✕',
-        warning: '⚠',
-        info: 'ℹ'
-    }[type] || 'ℹ';
-    
-    toast.innerHTML = `<span>${icon}</span><span>${message}</span>`;
+    toast.innerHTML = `<span class="toast-icon" aria-hidden="true"><img src="${NIKO_ICON_URL}" alt="" width="22" height="22" decoding="async"></span><span>${message}</span>`;
     
     elements.toastContainer.appendChild(toast);
     
@@ -373,10 +369,15 @@ function showConfirmModal(title, description, icon = '') {
         elements.confirmTitle.textContent = title;
         elements.confirmDescription.textContent = description;
         
-        if (icon) {
+        if (icon === '__app_icon__') {
+            elements.confirmIcon.innerHTML = `<img src="${NIKO_ICON_URL}" alt="" class="confirm-modal-app-icon" width="64" height="64" decoding="async">`;
+            elements.confirmIcon.style.display = 'block';
+        } else if (icon) {
+            elements.confirmIcon.innerHTML = '';
             elements.confirmIcon.textContent = icon;
             elements.confirmIcon.style.display = 'block';
         } else {
+            elements.confirmIcon.innerHTML = '';
             elements.confirmIcon.style.display = 'none';
         }
 
@@ -394,6 +395,7 @@ function showConfirmModal(title, description, icon = '') {
         
         const cleanup = () => {
             elements.confirmModal.classList.remove('active');
+            elements.confirmIcon.innerHTML = '';
             elements.confirmOkBtn.removeEventListener('click', handleConfirm);
             elements.confirmCancelBtn.removeEventListener('click', handleCancel);
         };
@@ -759,7 +761,9 @@ function appendMessage(role, content) {
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${role}`;
     
-    let avatar = role === 'user' ? '👤' : '🤖';
+    let avatar = role === 'user'
+        ? '👤'
+        : `<img src="${NIKO_ICON_URL}" alt="" class="message-avatar-app-icon" width="32" height="32" decoding="async">`;
     if (role === 'user' && state.profileImage) {
         avatar = `<img src="${state.profileImage}" alt="${state.username}">`;
     }
@@ -1473,7 +1477,7 @@ async function deleteAccount() {
     const confirmed = await showConfirmModal(
         'Hesabımı Sil',
         'Hesabınızı silmek istediğinizden emin misiniz? Hesabınız 30 gün boyunca askıya alınacak ve bu süre sonunda kalıcı olarak silinecektir. 30 gün içinde tekrar giriş yaparak işlemi iptal edebilirsiniz.',
-        '⚠️'
+        '__app_icon__'
     );
     
     if (!confirmed) return;
