@@ -71,3 +71,6 @@ desktop.ini
 
 # Cloudflare tunnel
 *.json.lock
+
+# Agent skills
+.agent/
