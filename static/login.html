@@ -3,71 +3,92 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#050810">
+    <meta name="color-scheme" content="dark">
     <title>Niko AI — Giriş Yap</title>
     <link rel="icon" type="image/png" href="/niko-icon.png">
     <link rel="apple-touch-icon" href="/niko-icon.png">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/auth.css">
+    <link rel="stylesheet" href="/auth.css?v=2">
 </head>
 <body>
+    <a class="auth-skip" href="#loginForm">Forma atla</a>
+    <div class="bg-mesh" aria-hidden="true"></div>
+    <div class="bg-grid" aria-hidden="true"></div>
 
-    <div class="bg-mesh"></div>
-    <div class="bg-grid"></div>
-
-    <div class="auth-container">
-        <div class="auth-card">
-            <div class="auth-header">
-                <div class="logo-mark">
-                    <img src="/niko-icon.png" alt="Niko AI" width="48" height="48" decoding="async">
+    <div class="auth-page">
+        <aside class="auth-showcase" aria-hidden="true">
+            <div class="auth-showcase-inner">
+                <div class="auth-showcase-mark">
+                    <img src="/niko-icon.png" alt="" width="44" height="44" decoding="async">
                 </div>
-                <h1 class="auth-logo">Niko AI</h1>
-                <p class="auth-subtitle">Yapay Zeka Sohbet Asistanı</p>
+                <h2 class="auth-showcase-title">Sohbete tek adımda dönün</h2>
+                <p class="auth-showcase-lead">Gemini tabanlı Niko AI ile kod, araştırma ve günlük görevlerinizde yanınızdayız.</p>
+                <ul class="auth-showcase-list">
+                    <li>Model seçimi ve web araması</li>
+                    <li>Geçmiş sohbetleriniz güvenle saklanır</li>
+                    <li>Türkçe arayüz ve hızlı yanıtlar</li>
+                </ul>
             </div>
+            <p class="auth-showcase-foot">Niko AI</p>
+        </aside>
 
-            <form id="loginForm" class="auth-form" novalidate>
+        <main class="auth-main">
+            <div class="auth-container">
+                <div class="auth-card">
+                    <header class="auth-header">
+                        <div class="logo-mark">
+                            <img src="/niko-icon.png" alt="Niko AI" width="44" height="44" decoding="async">
+                        </div>
+                        <h1 class="auth-logo">Giriş yap</h1>
+                        <p class="auth-subtitle">Hesabınızla devam edin</p>
+                    </header>
 
-                <div id="errorMessage" class="error-message" style="display:none;">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-                    </svg>
-                    <span class="msg-text"></span>
+                    <form id="loginForm" class="auth-form" novalidate>
+
+                        <div id="errorMessage" class="error-message" style="display:none;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                            </svg>
+                            <span class="msg-text"></span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="username">Kullanıcı adı</label>
+                            <input
+                                type="text"
+                                id="username"
+                                name="username"
+                                placeholder="kullanici_adiniz"
+                                required
+                                autocomplete="username"
+                                spellcheck="false"
+                            >
+                        </div>
+
+                        <div class="form-group">
+                            <label for="password">Şifre</label>
+                            <input
+                                type="password"
+                                id="password"
+                                name="password"
+                                placeholder="••••••••"
+                                required
+                                autocomplete="current-password"
+                            >
+                        </div>
+
+                        <button type="submit" class="auth-button" id="submitBtn">
+                            <span class="button-text">Giriş yap</span>
+                            <div class="button-loader" style="display:none;" aria-hidden="true"></div>
+                        </button>
+                    </form>
+
+                    <footer class="auth-footer">
+                        Hesabınız yok mu? <a href="signup.html">Kayıt ol</a>
+                    </footer>
                 </div>
-
-                <div class="form-group">
-                    <label for="username">Kullanıcı Adı</label>
-                    <input
-                        type="text"
-                        id="username"
-                        name="username"
-                        placeholder="kullanici_adiniz"
-                        required
-                        autocomplete="username"
-                        spellcheck="false"
-                    >
-                </div>
-
-                <div class="form-group">
-                    <label for="password">Şifre</label>
-                    <input
-                        type="password"
-                        id="password"
-                        name="password"
-                        placeholder="••••••••"
-                        required
-                        autocomplete="current-password"
-                    >
-                </div>
-
-                <button type="submit" class="auth-button" id="submitBtn">
-                    <span class="button-text">Giriş Yap</span>
-                    <div class="button-loader" style="display:none;"></div>
-                </button>
-            </form>
-
-            <div class="auth-footer">
-                Hesabınız yok mu? <a href="signup.html">Kayıt Ol</a>
             </div>
-        </div>
+        </main>
     </div>
 
     <script>

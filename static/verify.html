@@ -3,123 +3,98 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#050810">
+    <meta name="color-scheme" content="dark">
     <title>Niko AI — E-posta Doğrulama</title>
     <link rel="icon" type="image/png" href="/niko-icon.png">
     <link rel="apple-touch-icon" href="/niko-icon.png">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/auth.css">
-    <style>
-        .email-icon-wrap {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 72px;
-            height: 72px;
-            border-radius: 18px;
-            background: rgba(37,99,235,0.1);
-            border: 1px solid rgba(37,99,235,0.2);
-            margin: 0 auto 20px;
-        }
-
-        .email-icon-wrap img {
-            width: 56px;
-            height: 56px;
-            object-fit: contain;
-            border-radius: 14px;
-        }
-
-        .verify-desc {
-            text-align: center;
-            color: var(--text-muted);
-            font-size: 13.5px;
-            line-height: 1.6;
-            margin-bottom: 28px;
-        }
-
-        .verify-desc strong {
-            color: var(--text-main);
-            font-weight: 600;
-        }
-
-        /* Animated focus ring on active input */
-        .code-input:focus {
-            transform: translateY(-1px);
-        }
-
-        .code-input.filled {
-            border-color: rgba(37,99,235,0.45);
-            background: rgba(37,99,235,0.08);
-            color: #93c5fd;
-        }
-    </style>
+    <link rel="stylesheet" href="/auth.css?v=2">
 </head>
 <body>
+    <a class="auth-skip" href="#verifyForm">Forma atla</a>
+    <div class="bg-mesh" aria-hidden="true"></div>
+    <div class="bg-grid" aria-hidden="true"></div>
 
-    <div class="bg-mesh"></div>
-    <div class="bg-grid"></div>
-
-    <div class="auth-container">
-        <div class="auth-card">
-            <div class="auth-header">
-                <div class="email-icon-wrap">
-                    <img src="/niko-icon.png" alt="Niko AI" decoding="async">
+    <div class="auth-page">
+        <aside class="auth-showcase" aria-hidden="true">
+            <div class="auth-showcase-inner">
+                <div class="auth-showcase-mark">
+                    <img src="/niko-icon.png" alt="" width="44" height="44" decoding="async">
                 </div>
-                <h1 class="auth-logo">E-posta Doğrulama</h1>
-                <p class="auth-subtitle">Gelen kutunuzu kontrol edin</p>
+                <h2 class="auth-showcase-title">Gelen kutunuzu kontrol edin</h2>
+                <p class="auth-showcase-lead">Kod birkaç dakika içinde ulaşabilir; spam klasörüne de göz atın.</p>
+                <ul class="auth-showcase-list">
+                    <li>6 haneli kodu yapıştırabilir veya tek tek girebilirsiniz</li>
+                    <li>Süre dolunca yeni kod talep edebilirsiniz</li>
+                    <li>Doğrulama sonrası giriş sayfasına yönlendirilirsiniz</li>
+                </ul>
             </div>
+            <p class="auth-showcase-foot">E-posta doğrulama</p>
+        </aside>
 
-            <p class="verify-desc">
-                <strong id="displayEmail">…</strong> adresine<br>6 haneli doğrulama kodu gönderdik.
-            </p>
+        <main class="auth-main">
+            <div class="auth-container">
+                <div class="auth-card">
+                    <header class="auth-header">
+                        <div class="email-icon-wrap">
+                            <img src="/niko-icon.png" alt="Niko AI" width="48" height="48" decoding="async">
+                        </div>
+                        <h1 class="auth-logo">Kodu girin</h1>
+                        <p class="auth-subtitle">E-postanızdaki 6 haneli kodu aşağıya yazın</p>
+                    </header>
 
-            <form id="verifyForm" class="auth-form" novalidate>
-                <div class="code-wrapper">
-                    <input type="text" class="code-input" inputmode="numeric" maxlength="1" pattern="\d" required autofocus>
-                    <input type="text" class="code-input" inputmode="numeric" maxlength="1" pattern="\d" required>
-                    <input type="text" class="code-input" inputmode="numeric" maxlength="1" pattern="\d" required>
-                    <input type="text" class="code-input" inputmode="numeric" maxlength="1" pattern="\d" required>
-                    <input type="text" class="code-input" inputmode="numeric" maxlength="1" pattern="\d" required>
-                    <input type="text" class="code-input" inputmode="numeric" maxlength="1" pattern="\d" required>
+                    <p class="verify-desc">
+                        <strong id="displayEmail">…</strong> adresine<br>6 haneli doğrulama kodu gönderdik.
+                    </p>
+
+                    <form id="verifyForm" class="auth-form" novalidate>
+                        <div class="code-wrapper">
+                            <input type="text" class="code-input" inputmode="numeric" maxlength="1" pattern="\d" required autofocus aria-label="Kod 1. hane">
+                            <input type="text" class="code-input" inputmode="numeric" maxlength="1" pattern="\d" required aria-label="Kod 2. hane">
+                            <input type="text" class="code-input" inputmode="numeric" maxlength="1" pattern="\d" required aria-label="Kod 3. hane">
+                            <input type="text" class="code-input" inputmode="numeric" maxlength="1" pattern="\d" required aria-label="Kod 4. hane">
+                            <input type="text" class="code-input" inputmode="numeric" maxlength="1" pattern="\d" required aria-label="Kod 5. hane">
+                            <input type="text" class="code-input" inputmode="numeric" maxlength="1" pattern="\d" required aria-label="Kod 6. hane">
+                        </div>
+
+                        <div id="errorMessage" class="error-message" style="display:none;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                            </svg>
+                            <span class="msg-text"></span>
+                        </div>
+
+                        <div id="successMessage" class="success-message" style="display:none;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                            <span class="msg-text"></span>
+                        </div>
+
+                        <button type="submit" class="auth-button" id="submitBtn">
+                            <span class="button-text">Doğrula</span>
+                            <div class="button-loader" style="display:none;" aria-hidden="true"></div>
+                        </button>
+                    </form>
+
+                    <div class="verify-timer" id="timerContainer">
+                        Yeni kod için bekleyin: <span id="timer">01:00</span>
+                    </div>
+
+                    <a id="resendBtn" class="resend-link disabled" role="button" tabindex="0">Kodu tekrar gönder</a>
+
+                    <footer class="auth-footer">
+                        <a href="login.html">← Giriş sayfasına dön</a>
+                    </footer>
                 </div>
-
-                <div id="errorMessage" class="error-message" style="display:none;">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-                    </svg>
-                    <span class="msg-text"></span>
-                </div>
-
-                <div id="successMessage" class="success-message" style="display:none;">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="20 6 9 17 4 12"/>
-                    </svg>
-                    <span class="msg-text"></span>
-                </div>
-
-                <button type="submit" class="auth-button" id="submitBtn">
-                    <span class="button-text">Doğrula</span>
-                    <div class="button-loader" style="display:none;"></div>
-                </button>
-            </form>
-
-            <div class="verify-timer" id="timerContainer">
-                Yeni kod için bekleyin: <span id="timer">01:00</span>
             </div>
-
-            <a id="resendBtn" class="resend-link disabled">Kodu tekrar gönder</a>
-
-            <div class="auth-footer">
-                <a href="login.html">← Giriş sayfasına dön</a>
-            </div>
-        </div>
+        </main>
     </div>
 
     <script>
-        /* ── Display email ── */
         const email = localStorage.getItem('pendingVerificationEmail') || 'E-posta';
         document.getElementById('displayEmail').textContent = email;
 
-        /* ── Code inputs ── */
         const inputs = document.querySelectorAll('.code-input');
 
         inputs.forEach((input, idx) => {
@@ -132,7 +107,6 @@
                 } else {
                     input.classList.remove('filled');
                 }
-                // Auto-submit when all filled
                 if ([...inputs].every(i => i.value)) submitForm();
             });
 
@@ -166,7 +140,6 @@
             });
         });
 
-        /* ── Timer ── */
         const resendBtn     = document.getElementById('resendBtn');
         const timerSpan     = document.getElementById('timer');
         const timerContainer = document.getElementById('timerContainer');
@@ -187,7 +160,6 @@
         }
         updateTimer();
 
-        /* ── Submit ── */
         document.getElementById('verifyForm').addEventListener('submit', (e) => {
             e.preventDefault();
             submitForm();
@@ -224,7 +196,6 @@
                 } else {
                     errEl.querySelector('.msg-text').textContent = data.error || 'Geçersiz kod. Lütfen tekrar deneyin.';
                     errEl.style.display = 'flex';
-                    // shake inputs
                     inputs.forEach(i => { i.value = ''; i.classList.remove('filled'); });
                     inputs[0].focus();
                 }
@@ -238,7 +209,6 @@
             }
         }
 
-        /* ── Resend ── */
         resendBtn.addEventListener('click', async () => {
             if (resendBtn.classList.contains('disabled')) return;
 

@@ -3,180 +3,156 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#050810">
+    <meta name="color-scheme" content="dark">
     <title>Niko AI — Kayıt Ol</title>
     <link rel="icon" type="image/png" href="/niko-icon.png">
     <link rel="apple-touch-icon" href="/niko-icon.png">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/auth.css">
-    <style>
-        /* Password strength bar */
-        .strength-bar {
-            display: flex;
-            gap: 4px;
-            margin-top: 7px;
-            height: 3px;
-        }
-        .strength-segment {
-            flex: 1;
-            border-radius: 99px;
-            background: var(--input-border);
-            transition: background 0.3s ease;
-        }
-        .strength-segment.active-weak   { background: #f87171; }
-        .strength-segment.active-medium { background: #fbbf24; }
-        .strength-segment.active-strong { background: #34d399; }
-        .strength-label {
-            font-size: 11px;
-            margin-top: 4px;
-            color: var(--text-subtle);
-            display: block;
-            font-weight: 500;
-            height: 14px;
-        }
-        .strength-label.weak   { color: #f87171; }
-        .strength-label.medium { color: #fbbf24; }
-        .strength-label.strong { color: #34d399; }
-
-        /* Optional badge */
-        .optional-badge {
-            display: inline-block;
-            font-size: 10px;
-            font-weight: 600;
-            padding: 2px 6px;
-            border-radius: 5px;
-            background: rgba(37,99,235,0.12);
-            color: #60a5fa;
-            letter-spacing: 0.5px;
-            margin-left: 6px;
-            vertical-align: middle;
-            text-transform: uppercase;
-        }
-    </style>
+    <link rel="stylesheet" href="/auth.css?v=2">
 </head>
 <body>
+    <a class="auth-skip" href="#signupForm">Forma atla</a>
+    <div class="bg-mesh" aria-hidden="true"></div>
+    <div class="bg-grid" aria-hidden="true"></div>
 
-    <div class="bg-mesh"></div>
-    <div class="bg-grid"></div>
-
-    <div class="auth-container">
-        <div class="auth-card">
-            <div class="auth-header">
-                <div class="logo-mark">
-                    <img src="/niko-icon.png" alt="Niko AI" width="48" height="48" decoding="async">
+    <div class="auth-page">
+        <aside class="auth-showcase" aria-hidden="true">
+            <div class="auth-showcase-inner">
+                <div class="auth-showcase-mark">
+                    <img src="/niko-icon.png" alt="" width="44" height="44" decoding="async">
                 </div>
-                <h1 class="auth-logo">Niko AI</h1>
-                <p class="auth-subtitle">Yeni bir hesap oluşturun</p>
+                <h2 class="auth-showcase-title">Dakikalar içinde başlayın</h2>
+                <p class="auth-showcase-lead">Ücretsiz hesap oluşturun; isteğe bağlı e-posta ile hesabınızı doğrulayın.</p>
+                <ul class="auth-showcase-list">
+                    <li>Güçlü şifre önerileri ve anlık geri bildirim</li>
+                    <li>İsteğe bağlı profil ve e-posta</li>
+                    <li>Doğrulama sonrası tam özellikler</li>
+                </ul>
             </div>
+            <p class="auth-showcase-foot">Yeni hesap</p>
+        </aside>
 
-            <form id="signupForm" class="auth-form" novalidate>
-
-                <div id="errorMessage" class="error-message" style="display:none;">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-                    </svg>
-                    <span class="msg-text"></span>
-                </div>
-
-                <div id="successMessage" class="success-message" style="display:none;">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="20 6 9 17 4 12"/>
-                    </svg>
-                    <span class="msg-text"></span>
-                </div>
-
-                <div class="form-group">
-                    <label for="username">Kullanıcı Adı</label>
-                    <input
-                        type="text"
-                        id="username"
-                        name="username"
-                        placeholder="kullanici_adi"
-                        required
-                        autocomplete="username"
-                        minlength="3"
-                        maxlength="30"
-                        spellcheck="false"
-                    >
-                    <span class="field-hint">En az 3 karakter · Harf, rakam ve alt çizgi</span>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="password">Şifre</label>
-                        <input
-                            type="password"
-                            id="password"
-                            name="password"
-                            placeholder="••••••••"
-                            required
-                            autocomplete="new-password"
-                            minlength="8"
-                        >
-                        <div class="strength-bar">
-                            <div class="strength-segment" id="s1"></div>
-                            <div class="strength-segment" id="s2"></div>
-                            <div class="strength-segment" id="s3"></div>
+        <main class="auth-main">
+            <div class="auth-container">
+                <div class="auth-card">
+                    <header class="auth-header">
+                        <div class="logo-mark">
+                            <img src="/niko-icon.png" alt="Niko AI" width="44" height="44" decoding="async">
                         </div>
-                        <span class="strength-label" id="strengthLabel"></span>
-                    </div>
+                        <h1 class="auth-logo">Hesap oluştur</h1>
+                        <p class="auth-subtitle">Bilgilerinizi girin, hemen sohbete katılın</p>
+                    </header>
 
-                    <div class="form-group">
-                        <label for="confirmPassword">Tekrar</label>
-                        <input
-                            type="password"
-                            id="confirmPassword"
-                            name="confirmPassword"
-                            placeholder="••••••••"
-                            required
-                            autocomplete="new-password"
-                        >
-                    </div>
+                    <form id="signupForm" class="auth-form" novalidate>
+
+                        <div id="errorMessage" class="error-message" style="display:none;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                            </svg>
+                            <span class="msg-text"></span>
+                        </div>
+
+                        <div id="successMessage" class="success-message" style="display:none;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                            <span class="msg-text"></span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="username">Kullanıcı adı</label>
+                            <input
+                                type="text"
+                                id="username"
+                                name="username"
+                                placeholder="kullanici_adi"
+                                required
+                                autocomplete="username"
+                                minlength="3"
+                                maxlength="30"
+                                spellcheck="false"
+                            >
+                            <span class="field-hint">En az 3 karakter · Harf ile başlayın; harf, rakam ve alt çizgi</span>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="password">Şifre</label>
+                                <input
+                                    type="password"
+                                    id="password"
+                                    name="password"
+                                    placeholder="••••••••"
+                                    required
+                                    autocomplete="new-password"
+                                    minlength="8"
+                                >
+                                <div class="strength-bar">
+                                    <div class="strength-segment" id="s1"></div>
+                                    <div class="strength-segment" id="s2"></div>
+                                    <div class="strength-segment" id="s3"></div>
+                                </div>
+                                <span class="strength-label" id="strengthLabel"></span>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="confirmPassword">Şifre tekrar</label>
+                                <input
+                                    type="password"
+                                    id="confirmPassword"
+                                    name="confirmPassword"
+                                    placeholder="••••••••"
+                                    required
+                                    autocomplete="new-password"
+                                >
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="email">
+                                E-posta
+                                <span class="optional-badge">Opsiyonel</span>
+                            </label>
+                            <input
+                                type="email"
+                                id="email"
+                                name="email"
+                                placeholder="ad@email.com"
+                                autocomplete="email"
+                            >
+                        </div>
+
+                        <div class="form-group">
+                            <label for="fullName">
+                                Ad soyad
+                                <span class="optional-badge">Opsiyonel</span>
+                            </label>
+                            <input
+                                type="text"
+                                id="fullName"
+                                name="fullName"
+                                placeholder="Adınız Soyadınız"
+                                autocomplete="name"
+                            >
+                        </div>
+
+                        <button type="submit" class="auth-button" id="submitBtn">
+                            <span class="button-text">Hesap oluştur</span>
+                            <div class="button-loader" style="display:none;" aria-hidden="true"></div>
+                        </button>
+                    </form>
+
+                    <footer class="auth-footer">
+                        Zaten hesabınız var mı? <a href="login.html">Giriş yap</a>
+                    </footer>
                 </div>
-
-                <div class="form-group">
-                    <label for="email">
-                        E-posta
-                        <span class="optional-badge">Opsiyonel</span>
-                    </label>
-                    <input
-                        type="email"
-                        id="email"
-                        name="email"
-                        placeholder="ad@email.com"
-                        autocomplete="email"
-                    >
-                </div>
-
-                <div class="form-group">
-                    <label for="fullName">
-                        Ad Soyad
-                        <span class="optional-badge">Opsiyonel</span>
-                    </label>
-                    <input
-                        type="text"
-                        id="fullName"
-                        name="fullName"
-                        placeholder="Adınız Soyadınız"
-                        autocomplete="name"
-                    >
-                </div>
-
-                <button type="submit" class="auth-button" id="submitBtn">
-                    <span class="button-text">Hesap Oluştur</span>
-                    <div class="button-loader" style="display:none;"></div>
-                </button>
-            </form>
-
-            <div class="auth-footer">
-                Zaten hesabınız var mı? <a href="login.html">Giriş Yap</a>
             </div>
-        </div>
+        </main>
     </div>
 
     <script>
         if (localStorage.getItem('token')) window.location.href = '/';
 
-        /* ── Password strength ── */
         const pwdInput = document.getElementById('password');
         const segments = [document.getElementById('s1'), document.getElementById('s2'), document.getElementById('s3')];
         const strengthLabel = document.getElementById('strengthLabel');
@@ -213,7 +189,6 @@
             strengthLabel.className = `strength-label ${level}`;
         });
 
-        /* ── Validation ── */
         function validateUsername(u) {
             if (u.length < 3 || u.length > 30) return 'Kullanıcı adı 3-30 karakter olmalı';
             if (!/^[a-zA-Z]/.test(u)) return 'Kullanıcı adı harf ile başlamalı';
@@ -232,7 +207,6 @@
             return null;
         }
 
-        /* ── Submit ── */
         document.getElementById('signupForm').addEventListener('submit', async (e) => {
             e.preventDefault();
 
