@@ -190,7 +190,8 @@ def build_full_prompt(
     web_results: str = "",
     include_system_prompt: bool = True,
     user_info: Optional[Mapping[str, Any]] = None,
-    model_name: str = ""
+    model_name: str = "",
+    conversation_context: str = ""
 ) -> str:
     """
     Yapay zeka modeli için tam istemi oluşturur.
@@ -199,6 +200,7 @@ def build_full_prompt(
     
     cleaned_user_message = (user_message or "").strip()
     cleaned_web_results = (web_results or "").strip()
+    cleaned_conversation_context = (conversation_context or "").strip()
 
     # İstenirse sistem istemini ekle
     if include_system_prompt:
@@ -208,6 +210,16 @@ def build_full_prompt(
             system_prompt = f"{system_prompt}\n\n{dynamic_sections}"
         parts.append(system_prompt)
     
+    # Varsa sohbet hafıza bağlamını ekle
+    if cleaned_conversation_context:
+        parts.append(
+            "## Sohbet Hafızası (Aynı Oturum)\n"
+            "Aşağıdaki mesajlar bu oturumdaki önceki konuşmalardır. "
+            "Yanıt verirken bunu hafıza olarak kullan. "
+            "Kesin olmayan bilgileri kesinmiş gibi söyleme; emin değilsen kısa doğrulama sorusu sor.\n\n"
+            f"{cleaned_conversation_context}"
+        )
+
     # Varsa arama bağlamını ekle
     context = ""
     if cleaned_web_results:

@@ -61,6 +61,80 @@ def remove_emojis(text: str) -> str:
     # Bu regex çoğu emojiyi ve dingbat sembolünü kapsar
     return re.sub(r'[^\w\s,.\?\!\'\"₺@#%&()\-+=:;]', '', text).strip()
 
+
+def build_session_memory_context(session_data: Dict, max_messages: int = 12, max_chars: int = 3000) -> str:
+    """
+    Aynı oturumdaki önceki konuşmaları modele verilecek kısa hafıza metnine dönüştür.
+    Son kullanıcı mesajı zaten ayrı verildiği için bu bağlamdan hariç tutulur.
+    """
+    messages = session_data.get("messages", []) if isinstance(session_data, dict) else []
+    if len(messages) <= 1:
+        return ""
+
+    # Son mesaj mevcut isteğin kullanıcı mesajı olduğundan geçmişten çıkarılır.
+    previous_messages = messages[:-1]
+    if not previous_messages:
+        return ""
+
+    selected_messages = previous_messages[-max_messages:]
+    formatted_messages: List[str] = []
+    user_memory_notes: List[str] = []
+    seen_notes = set()
+
+    for msg in selected_messages:
+        role = str(msg.get("role", "")).strip().lower()
+        content = str(msg.get("content", "")).strip()
+        if not content:
+            continue
+
+        speaker = "Kullanıcı" if role == "user" else "Niko"
+        compact_content = re.sub(r"\s+", " ", content)
+        if len(compact_content) > 400:
+            compact_content = compact_content[:400] + "..."
+        formatted_messages.append(f"{speaker}: {compact_content}")
+
+        # Basit ve hızlı kullanıcı bilgi çıkarımı (oturum içi kalıcı not)
+        if role == "user":
+            lowered = compact_content.lower()
+            candidate_note = None
+            patterns = [
+                r"\bbenim adım\s+([a-zA-ZçğıöşüÇĞİÖŞÜ][a-zA-ZçğıöşüÇĞİÖŞÜ\s]{1,30})",
+                r"\badım\s+([a-zA-ZçğıöşüÇĞİÖŞÜ][a-zA-ZçğıöşüÇĞİÖŞÜ\s]{1,30})",
+                r"\bistanbuldayım\b|\bankaradayım\b|\biz izmirdeyiz\b",
+                r"\ben sevdiğim\s+([a-zA-ZçğıöşüÇĞİÖŞÜ\s]{2,40})",
+                r"\bsevdiğim\s+([a-zA-ZçğıöşüÇĞİÖŞÜ\s]{2,40})"
+            ]
+            for pattern in patterns:
+                match = re.search(pattern, lowered)
+                if match:
+                    if match.lastindex:
+                        value = match.group(1).strip(" .,!?:;")
+                        if value:
+                            candidate_note = value
+                    else:
+                        candidate_note = compact_content.strip(" .,!?:;")
+                    break
+
+            if candidate_note:
+                normalized_note = re.sub(r"\s+", " ", candidate_note).strip()
+                if normalized_note and normalized_note not in seen_notes:
+                    seen_notes.add(normalized_note)
+                    user_memory_notes.append(normalized_note)
+
+    if not formatted_messages:
+        return ""
+
+    context_parts: List[str] = []
+    if user_memory_notes:
+        memory_lines = "\n".join(f"- {note}" for note in user_memory_notes[-6:])
+        context_parts.append(f"Kullanıcı hakkında notlar:\n{memory_lines}")
+    context_parts.append("Son konuşma akışı:\n" + "\n".join(formatted_messages))
+    context_text = "\n\n".join(context_parts)
+
+    if len(context_text) > max_chars:
+        context_text = "...\n" + context_text[-max_chars:]
+    return context_text
+
 # Renkli log formatlayıcı
 class ColorfulFormatter(logging.Formatter):
     grey = "\x1b[38;20m"
@@ -258,6 +332,7 @@ class ChatRequest(BaseModel):
     model_name: str = ""
     model: Optional[str] = None
     mode: Optional[str] = "normal"
+    reset_memory: bool = False
     images: Optional[List[str]] = None  # base64 kodlanmış resimler
     stream: bool = True  # Akışlı yanıt varsayılanı, istemci tarafından değiştirilebilir
 
@@ -2101,6 +2176,10 @@ async def chat(request: ChatRequest, current_user: str = Depends(get_current_use
     if not chat_service.api_keys:
         raise HTTPException(status_code=500, detail="Gemini API anahtarı ayarlanmamış. Lütfen yöneticiye danışın.")
     
+    # İstemci bellek sıfırlama talep ettiyse yeni oturum oluştur
+    if request.reset_memory:
+        request.session_id = None
+
     # Yeni oturum oluştur veya mevcut olanı kullan
     session_id = request.session_id
     if not session_id or not history_service.session_exists(current_user, session_id):
@@ -2124,6 +2203,14 @@ async def chat(request: ChatRequest, current_user: str = Depends(get_current_use
             pass
             
             
+    # Oturum hafızası: önceki mesajlardan kısa bağlam üret
+    conversation_context = ""
+    try:
+        session_data = history_service.get_session(current_user, session_id)
+        conversation_context = build_session_memory_context(session_data)
+    except Exception as e:
+        logger.warning(f"Oturum hafızası yüklenemedi: {e}")
+
     # prompts.py kullanarak tam özelleştirilmiş istemi oluştur
     
     # Emojileri temizle (Kullanıcı girdisini temizle)
@@ -2133,7 +2220,8 @@ async def chat(request: ChatRequest, current_user: str = Depends(get_current_use
         clean_message,
         web_results=web_results,
         user_info=user_info,
-        model_name=request.model
+        model_name=request.model,
+        conversation_context=conversation_context
     )
     
     # KONSOL ÇIKTISI: Soru ve Prompt
