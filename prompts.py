@@ -7,6 +7,7 @@ Niko AI Sohbet Uygulaması için sistem istemleri.
 Bu istemler, yapay zeka asistanının kişiliğini, davranışını ve bağlam yönetimini tanımlar.
 """
 import datetime
+from typing import Any, Mapping, Optional
 
 # ============================================================================
 # Ana Sistem İstemi - Türkçe Yapay Zeka Asistanı
@@ -82,6 +83,92 @@ Lütfen genel bilgini kullanarak yanıt ver.
 # Yardımcı Fonksiyonlar
 # ============================================================================
 
+TURKISH_MONTHS = (
+    "",
+    "Ocak",
+    "Şubat",
+    "Mart",
+    "Nisan",
+    "Mayıs",
+    "Haziran",
+    "Temmuz",
+    "Ağustos",
+    "Eylül",
+    "Ekim",
+    "Kasım",
+    "Aralık",
+)
+
+TURKISH_WEEKDAYS = (
+    "Pazartesi",
+    "Salı",
+    "Çarşamba",
+    "Perşembe",
+    "Cuma",
+    "Cumartesi",
+    "Pazar",
+)
+
+
+def _format_current_datetime_tr(now: datetime.datetime) -> str:
+    """Verilen datetime nesnesini Türkçe okunur formata çevirir."""
+    return (
+        f"{now.day} {TURKISH_MONTHS[now.month]} {now.year} "
+        f"{TURKISH_WEEKDAYS[now.weekday()]}, Saat: {now.strftime('%H:%M')}"
+    )
+
+
+def _build_dynamic_system_sections(
+    user_info: Optional[Mapping[str, Any]],
+    model_name: str
+) -> str:
+    """Sistem istemine eklenecek dinamik bölümleri üretir."""
+    dynamic_sections = []
+
+    # Dinamik Tarih ve Saat Entegrasyonu
+    now = datetime.datetime.now()
+    current_time_str = _format_current_datetime_tr(now)
+    dynamic_sections.append(
+        "## Sistem Bilgisi:\n"
+        f"Şu anki tarih ve saat: {current_time_str}. "
+        "Zamanla ilgili sorularda bu bilgiyi referans al."
+    )
+
+    # Kullanıcı bilgisi varsa kişiselleştir
+    if user_info:
+        full_name = str(user_info.get("full_name", "")).strip()
+        username = str(user_info.get("username", "")).strip()
+
+        if full_name:
+            dynamic_sections.append(
+                "## Kullanıcı Bilgisi:\n"
+                f"Şu an konuştuğun kişinin adı: {full_name}. "
+                f"Ona '{full_name} biraderim' diye hitap etmeyi unutma."
+            )
+        elif username:
+            dynamic_sections.append(
+                "## Kullanıcı Bilgisi:\n"
+                f"Şu an konuştuğun kullanıcı: {username}. "
+                f"Ona '{username} biraderim' diye hitap et."
+            )
+
+    # Inatçı modeller için Türkçe zorlama yaması
+    normalized_model_name = (model_name or "").lower()
+    should_enforce_turkish = (
+        normalized_model_name
+        and ("llama" in normalized_model_name or "gemma" in normalized_model_name)
+        and "alibayram/doktorllama3" not in normalized_model_name
+    )
+
+    if should_enforce_turkish:
+        dynamic_sections.append(
+            "!!! DİKKAT !!!: KESİNLİKLE VE SADECE TÜRKÇE CEVAP VER. "
+            "ASLA İNGİLİZCE KONUŞMA. MUST ANSWER IN TURKISH."
+        )
+
+    return "\n\n".join(dynamic_sections)
+
+
 def format_web_search_context(search_results: str) -> str:
     """
     Web arama sonuçlarını bir bağlam istemine dönüştürür.
@@ -102,7 +189,7 @@ def build_full_prompt(
     user_message: str,
     web_results: str = "",
     include_system_prompt: bool = True,
-    user_info: dict = None,
+    user_info: Optional[Mapping[str, Any]] = None,
     model_name: str = ""
 ) -> str:
     """
@@ -110,44 +197,26 @@ def build_full_prompt(
     """
     parts = []
     
+    cleaned_user_message = (user_message or "").strip()
+    cleaned_web_results = (web_results or "").strip()
+
     # İstenirse sistem istemini ekle
     if include_system_prompt:
+        dynamic_sections = _build_dynamic_system_sections(user_info, model_name)
         system_prompt = SYSTEM_PROMPT
-        
-        # Dinamik Tarih ve Saat Entegrasyonu
-        now = datetime.datetime.now()
-        aylar = ["", "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"]
-        gunler = ["Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi", "Pazar"]
-        current_time_str = f"{now.day} {aylar[now.month]} {now.year} {gunler[now.weekday()]}, Saat: {now.strftime('%H:%M')}"
-        system_prompt += f"\n\n## Sistem Bilgisi:\nŞu anki tarih ve saat: {current_time_str}. Zamanla ilgili sorularda bu bilgiyi referans al.\n"
-
-        if user_info and user_info.get("full_name"):
-            system_prompt += f"\n\n## Kullanıcı Bilgisi:\nŞu an konuştuğun kişinin adı: {user_info.get('full_name')}. Ona '{user_info.get('full_name')} biraderim' diye hitap etmeyi unutma."
-        elif user_info and user_info.get("username"):
-            system_prompt += f"\n\n## Kullanıcı Bilgisi:\nŞu an konuştuğun kullanıcı: {user_info.get('username')}. Ona '{user_info.get('username')} biraderim' diye hitap et."
-        
-        # Inatçı modeller için Türkçe zorlama yaması (Medllama artık buraya girmiyor, yukarıda handle edildi)
-        # alibayram/doktorllama3 gibi zaten Türkçe olan modelleri hariç tutuyoruz.
-        should_enforce_turkish = (
-            model_name and 
-            ("llama" in model_name.lower() or "gemma" in model_name.lower()) and
-            "alibayram/doktorllama3" not in model_name.lower()
-        )
-        
-        if should_enforce_turkish:
-             system_prompt += "\n\n!!! DİKKAT !!!: KESİNLİKLE VE SADECE TÜRKÇE CEVAP VER. ASLA İNGİLİZCE KONUŞMA. MUST ANSWER IN TURKISH."
-
+        if dynamic_sections:
+            system_prompt = f"{system_prompt}\n\n{dynamic_sections}"
         parts.append(system_prompt)
     
     # Varsa arama bağlamını ekle
     context = ""
-    if web_results and web_results.strip():
-        context = format_web_search_context(web_results)
+    if cleaned_web_results:
+        context = format_web_search_context(cleaned_web_results)
     
     if context:
         parts.append(context)
     
     # Kullanıcı mesajını ekle
-    parts.append(f"Kullanıcı: {user_message}")
+    parts.append(f"Kullanıcı: {cleaned_user_message}")
     
     return "\n\n".join(parts)

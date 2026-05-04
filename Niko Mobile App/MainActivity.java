@@ -70,7 +70,9 @@ import java.net.HttpURLConnection; // HTTP bağlantı yönetimi
 import java.net.URL; // Web adresi nesnesi
 import java.net.URLEncoder; // URL karakter kodlama
 import android.net.ConnectivityManager; // İnternet bağlantı kontrolü
-import android.net.NetworkInfo; // Ağ detayları
+import android.net.Network; // Aktif ağ (API 23+)
+import android.net.NetworkCapabilities; // Ağ yetenekleri (API 23+)
+import android.net.NetworkInfo; // Ağ detayları (API 22 ve altı)
 
 import java.util.Date; // Tarih nesnesi
 import java.text.SimpleDateFormat; // Tarih formatlama
@@ -80,7 +82,6 @@ import java.util.concurrent.ExecutorService; // İş parçacığı havuzu yönet
 import java.util.concurrent.Executors; // İş parçacığı oluşturucu
 import java.util.concurrent.atomic.AtomicInteger; // Güvenli tamsayı işlemleri
 import java.util.concurrent.TimeUnit; // Zaman birimleri dönüşümü
-import android.os.AsyncTask; // Arka plan görevleri
 import java.util.Locale; // Dil ve bölge ayarları
 
 // --- Grafik, Animasyon ve Metin Stil İşlemleri ---
@@ -307,18 +308,20 @@ public class MainActivity extends Activity {
     /** Merkezi API sunucu adresi */
     private static String API_BASE_URL = "https://niko-with-gemini.vercel.app";
 
-    private static final String GITHUB_VERSION_URL = "https://raw.githubusercontent.com/Memati8383/niko-with-gemini/refs/heads/main/version.json";
-    private static final String GITHUB_APK_URL = "https://github.com/Memati8383/niko-with-gemini/releases/latest/download/niko.apk";
+    /** Uzak sürüm kaynağı (repo kökündeki version.json) */
+    private static final String GITHUB_VERSION_JSON_URL = "https://raw.githubusercontent.com/Memati8383/niko-with-gemini/refs/heads/main/version.json";
+    private static final String GITHUB_RELEASES_LATEST_API = "https://api.github.com/repos/Memati8383/niko-with-gemini/releases/latest";
+    private static final String GITHUB_FALLBACK_APK_URL = "https://github.com/Memati8383/niko-with-gemini/releases/latest/download/niko.apk";
+    private static final String GITHUB_API_USER_AGENT = "NikoAndroid/1.0 (update-check)";
+    private static final String UPDATE_PREFS_NAME = "update_settings";
+    private static final String PREF_SKIPPED_VERSION = "skipped_version";
 
     private SharedPreferences updatePrefs;
-    private String latestVersion = "";
-    private String updateDescription = "";
-    private String updateChangelog = "";
-    private long updateFileSize = 0;
-
     private android.app.Dialog updateDialog;
     private android.widget.ProgressBar updateProgressBar;
     private android.widget.TextView updateProgressText;
+    /** Açık güncelleme teklifi (indirme başlatılırken kullanılır) */
+    private PendingUpdate pendingUpdateOffer;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -449,7 +452,7 @@ public class MainActivity extends Activity {
         authToken = authPrefs.getString("access_token", null);
         authUsername = authPrefs.getString("username", null);
 
-        updatePrefs = getSharedPreferences("update_settings", MODE_PRIVATE);
+        updatePrefs = getSharedPreferences(UPDATE_PREFS_NAME, MODE_PRIVATE);
 
         imgTopProfile.setOnClickListener(v -> {
             vibrateFeedback();
@@ -1358,14 +1361,14 @@ public class MainActivity extends Activity {
         });
 
         // Önceki görevi iptal et (Hızlı art arda isteklerde karışıklığı önler)
-        if (currentAiTask != null && !currentAiTask.isDone()) {
-            currentAiTask.cancel(true);
-        }
-
-        // Görevi ExecutorService ile çalıştır (Thread yönetimi optimize edildi)
-        currentAiTask = executorService.submit(() -> {
-            HttpURLConnection conn = null;
-            try {
+        final java.util.concurrent.Future<?>[] taskHolder = new java.util.concurrent.Future<?>[1];
+        synchronized (this) {
+            if (currentAiTask != null && !currentAiTask.isDone()) {
+                currentAiTask.cancel(true);
+            }
+            taskHolder[0] = executorService.submit(() -> {
+                HttpURLConnection conn = null;
+                try {
                 // Sunucu URL'si (API_BASE_URL dinamik olarak güncellenir)
                 URL url = new URL(API_BASE_URL + "/chat");
 
@@ -1493,9 +1496,15 @@ public class MainActivity extends Activity {
                 if (conn != null) {
                     conn.disconnect();
                 }
-                currentAiTask = null; // Görev tamamlandı
+                synchronized (MainActivity.this) {
+                    if (currentAiTask == taskHolder[0]) {
+                        currentAiTask = null;
+                    }
+                }
             }
-        });
+            });
+            currentAiTask = taskHolder[0];
+        }
     }
 
     /*
@@ -4273,6 +4282,19 @@ public class MainActivity extends Activity {
     private boolean isNetworkAvailable() {
         try {
             ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+            if (cm == null) {
+                return true;
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                Network network = cm.getActiveNetwork();
+                if (network == null) {
+                    return false;
+                }
+                NetworkCapabilities caps = cm.getNetworkCapabilities(network);
+                return caps != null
+                        && caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET);
+            }
+            @SuppressWarnings("deprecation")
             NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
             return activeNetwork != null && activeNetwork.isConnectedOrConnecting();
         } catch (Exception e) {
@@ -6337,205 +6359,551 @@ public class MainActivity extends Activity {
         }).start();
     }
 
-    // ================= OTOMATİK GÜNCELLEME (PREMIUM) =================
+    // ================= OTOMATİK GÜNCELLEME =================
+    /**
+     * Uzak version.json ile sürüm karşılaştırması; GitHub Releases API ile APK doğrudan
+     * indirme bağlantısı, açıklama ve boyut. HTTP bağlantıları her kullanımda kapatılır.
+     */
+    private static final class PendingUpdate {
+        final String versionName;
+        final String headline;
+        final String summary;
+        final String changelogText;
+        final String apkUrl;
+        final long apkSizeBytes;
 
-    private static final String GITHUB_RELEASES_API = "https://api.github.com/repos/Memati8383/niko-with-gemini/releases/latest";
+        PendingUpdate(String versionName, String headline, String summary, String changelogText, String apkUrl,
+                long apkSizeBytes) {
+            this.versionName = versionName != null ? versionName : "";
+            this.headline = headline != null ? headline : "";
+            this.summary = summary != null ? summary : "";
+            this.changelogText = changelogText != null ? changelogText : "";
+            this.apkUrl = (apkUrl != null && !apkUrl.isEmpty()) ? apkUrl : GITHUB_FALLBACK_APK_URL;
+            this.apkSizeBytes = apkSizeBytes;
+        }
+
+        static PendingUpdate fallback(String versionName) {
+            return new PendingUpdate(versionName, "Niko güncellemesi", "Yeni sürüm mevcut.", "",
+                    GITHUB_FALLBACK_APK_URL, 0);
+        }
+    }
+
+    private interface ApkDownloadProgressListener {
+        void onProgress(long downloaded, long totalBytes);
+    }
+
+    private static boolean isHttpRedirect(int code) {
+        return code == HttpURLConnection.HTTP_MOVED_PERM
+                || code == HttpURLConnection.HTTP_MOVED_TEMP
+                || code == HttpURLConnection.HTTP_SEE_OTHER
+                || code == 307
+                || code == 308;
+    }
 
     /**
-     * Uygulama her açıldığında güncelleme kontrolü yapar.
-     * 24 saat bekleme süresi KALDIRILDI - her açılışta kontrol yapılır.
-     * Bilgiler GitHub Releases API'den otomatik çekilir.
+     * GET: yönlendirmeleri manuel takip eder (GitHub raw / release URL'leri için güvenilir).
      */
-    private void checkForUpdates() {
-        addLog("[UPDATE] Güncelleme kontrolü başlatılıyor...");
+    private String httpGetStringFollowingRedirects(String initialUrl, String[][] extraHeaders) throws IOException {
+        final int maxHops = 10;
+        String current = initialUrl;
+        for (int hop = 0; hop < maxHops; hop++) {
+            URL url = new URL(current);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            try {
+                conn.setRequestMethod("GET");
+                conn.setConnectTimeout(15000);
+                conn.setReadTimeout(25000);
+                conn.setInstanceFollowRedirects(false);
+                conn.setRequestProperty("Cache-Control", "no-cache");
+                if (extraHeaders != null) {
+                    for (String[] pair : extraHeaders) {
+                        if (pair != null && pair.length >= 2 && pair[0] != null && pair[1] != null) {
+                            conn.setRequestProperty(pair[0], pair[1]);
+                        }
+                    }
+                }
+                int code = conn.getResponseCode();
+                if (isHttpRedirect(code)) {
+                    String loc = conn.getHeaderField("Location");
+                    if (loc == null || loc.isEmpty()) {
+                        throw new IOException("HTTP " + code + ": Location eksik");
+                    }
+                    current = new URL(url, loc).toString();
+                    continue;
+                }
+                if (code != HttpURLConnection.HTTP_OK) {
+                    throw new IOException("HTTP " + code);
+                }
+                StringBuilder sb = new StringBuilder(4096);
+                try (BufferedReader reader = new BufferedReader(
+                        new InputStreamReader(conn.getInputStream(), "UTF-8"))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        sb.append(line);
+                    }
+                }
+                return sb.toString();
+            } finally {
+                conn.disconnect();
+            }
+        }
+        throw new IOException("Çok fazla yönlendirme");
+    }
 
+    private PendingUpdate parseReleaseJson(String versionFromJson, JSONObject release) {
+        String releaseName = release.optString("name", "").trim();
+        String rawBody = release.optString("body", "");
+        String cleaned = cleanMarkdownForUpdate(rawBody);
+
+        String summary;
+        String changelogText;
+        if (!cleaned.isEmpty()) {
+            String[] parts = cleaned.split("\n", 2);
+            summary = parts[0].trim();
+            if (parts.length > 1) {
+                changelogText = parts[1].trim();
+                if (changelogText.length() > 1200) {
+                    changelogText = changelogText.substring(0, 1197) + "...";
+                }
+            } else {
+                changelogText = "";
+            }
+        } else if (!releaseName.isEmpty()) {
+            summary = releaseName;
+            changelogText = "";
+        } else {
+            summary = "Yeni özellikler ve iyileştirmeler";
+            changelogText = "";
+        }
+
+        String headline = !releaseName.isEmpty() ? releaseName : ("Sürüm " + versionFromJson);
+
+        String apkUrl = "";
+        long apkSize = 0L;
+        JSONArray assets = release.optJSONArray("assets");
+        if (assets != null) {
+            for (int i = 0; i < assets.length(); i++) {
+                JSONObject asset = assets.optJSONObject(i);
+                if (asset == null) {
+                    continue;
+                }
+                String assetName = asset.optString("name", "").toLowerCase(Locale.ROOT);
+                if (assetName.endsWith(".apk")) {
+                    apkUrl = asset.optString("browser_download_url", "");
+                    apkSize = asset.optLong("size", 0L);
+                    break;
+                }
+            }
+        }
+        if (apkUrl.isEmpty()) {
+            apkUrl = GITHUB_FALLBACK_APK_URL;
+        }
+        return new PendingUpdate(versionFromJson, headline, summary, changelogText, apkUrl, apkSize);
+    }
+
+    private void checkForUpdates() {
+        if (isFinishing()) {
+            return;
+        }
+        addLog("[UPDATE] Güncelleme kontrolü başlatılıyor...");
         new Thread(() -> {
             try {
-                // 1. Önce version.json'dan sadece sürüm numarasını al
-                URL versionUrl = new URL(GITHUB_VERSION_URL);
-                HttpURLConnection versionConn = (HttpURLConnection) versionUrl.openConnection();
-                versionConn.setConnectTimeout(10000);
-                versionConn.setReadTimeout(10000);
-                versionConn.setRequestProperty("Cache-Control", "no-cache");
-
-                if (versionConn.getResponseCode() != 200) {
-                    addLog("[UPDATE] version.json alınamadı: " + versionConn.getResponseCode());
+                String versionJson = httpGetStringFollowingRedirects(GITHUB_VERSION_JSON_URL, null);
+                JSONObject versionObj = new JSONObject(versionJson);
+                String remoteVersion = versionObj.optString("version", "").trim();
+                if (remoteVersion.isEmpty()) {
+                    addLog("[UPDATE] version.json içinde sürüm yok");
                     return;
                 }
 
-                BufferedReader versionReader = new BufferedReader(new InputStreamReader(versionConn.getInputStream()));
-                StringBuilder versionSb = new StringBuilder();
-                String line;
-                while ((line = versionReader.readLine()) != null)
-                    versionSb.append(line);
-                versionReader.close();
-
-                JSONObject versionInfo = new JSONObject(versionSb.toString());
-                latestVersion = versionInfo.optString("version", "1.0.1");
-
-                String currentVersion = getCurrentVersion();
-                addLog("[UPDATE] Sürüm Kontrolü -> Mevcut: [" + currentVersion + "] | Sunucudaki En Yeni: ["
-                        + latestVersion + "]");
-
-                // Güncelleme gerekli mi kontrol et
-                if (compareVersions(latestVersion, currentVersion) <= 0) {
+                String currentVersion = getCurrentVersionName();
+                addLog("[UPDATE] Sürüm: yerel=" + currentVersion + " uzak=" + remoteVersion);
+                if (compareSemver(remoteVersion, currentVersion) <= 0) {
                     addLog("[UPDATE] Uygulama güncel.");
                     return;
                 }
 
-                // 2. Güncelleme varsa, GitHub Sürümler (Releases) API'sinden detayları çek
-                addLog("[UPDATE] Yeni sürüm bulundu, detaylar çekiliyor...");
-                fetchReleaseDetails();
+                PendingUpdate pending;
+                try {
+                    String[][] ghHeaders = new String[][] {
+                            { "Accept", "application/vnd.github+json" },
+                            { "User-Agent", GITHUB_API_USER_AGENT },
+                            { "X-GitHub-Api-Version", "2022-11-28" }
+                    };
+                    String releaseJson = httpGetStringFollowingRedirects(GITHUB_RELEASES_LATEST_API, ghHeaders);
+                    pending = parseReleaseJson(remoteVersion, new JSONObject(releaseJson));
+                    addLog("[UPDATE] Yayın bilgisi alındı");
+                } catch (Exception ex) {
+                    addLog("[UPDATE] Yayın API hatası (yedek mod): " + ex.getMessage());
+                    pending = PendingUpdate.fallback(remoteVersion);
+                }
 
+                final PendingUpdate offer = pending;
+                runOnUiThread(() -> offerAppUpdateIfNeeded(offer));
             } catch (Exception e) {
-                addLog("[UPDATE] Hata: " + e.getMessage());
+                addLog("[UPDATE] Kontrol başarısız: " + e.getMessage());
             }
-        }).start();
+        }, "niko-update-check").start();
     }
 
-    /**
-     * GitHub Sürümler (Releases) API'sinden güncelleme detaylarını çeker.
-     * Açıklama, değişiklik listesi ve APK boyutunu otomatik alır.
-     */
-    private void fetchReleaseDetails() {
-        try {
-            URL releaseUrl = new URL(GITHUB_RELEASES_API);
-            HttpURLConnection releaseConn = (HttpURLConnection) releaseUrl.openConnection();
-            releaseConn.setConnectTimeout(10000);
-            releaseConn.setReadTimeout(10000);
-            releaseConn.setRequestProperty("Accept", "application/vnd.github.v3+json");
-            releaseConn.setRequestProperty("User-Agent", "NikoApp");
+    private void offerAppUpdateIfNeeded(final PendingUpdate pending) {
+        if (isFinishing() || pending == null) {
+            return;
+        }
+        String skipped = updatePrefs.getString(PREF_SKIPPED_VERSION, "");
+        if (skipped.equals(pending.versionName)) {
+            addLog("[UPDATE] v" + pending.versionName + " kullanıcı tarafından atlandı");
+            return;
+        }
+        dismissUpdateDialog();
+        pendingUpdateOffer = pending;
+        showUpdateOfferDialog(pending);
+    }
 
-            if (releaseConn.getResponseCode() != 200) {
-                addLog("[UPDATE] GitHub API yanıt vermedi: " + releaseConn.getResponseCode());
-                // API başarısız olsa bile varsayılan değerlerle devam et
-                updateDescription = "Yeni özellikler ve iyileştirmeler";
-                updateChangelog = "";
-                updateFileSize = 0;
-                runOnUiThread(this::showPremiumUpdateDialog);
+    private void dismissUpdateDialog() {
+        try {
+            if (updateDialog != null && updateDialog.isShowing()) {
+                updateDialog.dismiss();
+            }
+        } catch (Exception ignored) {
+        }
+        updateDialog = null;
+        updateProgressBar = null;
+        updateProgressText = null;
+    }
+
+    private void showUpdateOfferDialog(final PendingUpdate u) {
+        final android.app.Dialog dialog = new android.app.Dialog(this,
+                android.R.style.Theme_DeviceDefault_Dialog_NoActionBar);
+        dialog.setCancelable(true);
+        dialog.setCanceledOnTouchOutside(true);
+        updateDialog = dialog;
+        dialog.setOnDismissListener(d -> pendingUpdateOffer = null);
+
+        android.widget.ScrollView scroll = new android.widget.ScrollView(this);
+        scroll.setFillViewport(true);
+
+        LinearLayout root = new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL);
+        int pad = (int) (20 * getResources().getDisplayMetrics().density);
+        root.setPadding(pad, pad, pad, pad);
+
+        android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+        bg.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
+        bg.setCornerRadius(24);
+        bg.setColors(new int[] { Color.parseColor("#1E1E32"), Color.parseColor("#0D0D18") });
+        bg.setOrientation(android.graphics.drawable.GradientDrawable.Orientation.TL_BR);
+        bg.setStroke(2, Color.parseColor("#3300E5FF"));
+        root.setBackground(bg);
+
+        TextView title = new TextView(this);
+        title.setText("Yeni güncelleme");
+        title.setTextColor(Color.WHITE);
+        title.setTextSize(20);
+        title.setTypeface(android.graphics.Typeface.create("sans-serif-black", android.graphics.Typeface.BOLD));
+        root.addView(title);
+
+        TextView ver = new TextView(this);
+        ver.setText(getCurrentVersionName() + "  →  " + u.versionName);
+        ver.setTextColor(Color.parseColor("#00E5FF"));
+        ver.setTextSize(14);
+        ver.setPadding(0, pad / 2, 0, pad);
+        root.addView(ver);
+
+        TextView head = new TextView(this);
+        head.setText(u.headline);
+        head.setTextColor(Color.parseColor("#E8E8E8"));
+        head.setTextSize(16);
+        head.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.BOLD));
+        root.addView(head);
+
+        TextView sum = new TextView(this);
+        sum.setText(u.summary);
+        sum.setTextColor(Color.parseColor("#CCCCCC"));
+        sum.setTextSize(14);
+        sum.setPadding(0, pad / 3, 0, pad / 2);
+        root.addView(sum);
+
+        if (!u.changelogText.isEmpty()) {
+            TextView chLabel = new TextView(this);
+            chLabel.setText("Değişiklikler");
+            chLabel.setTextColor(Color.parseColor("#FFD700"));
+            chLabel.setTextSize(13);
+            chLabel.setPadding(0, pad / 2, 0, pad / 4);
+            root.addView(chLabel);
+
+            TextView ch = new TextView(this);
+            ch.setText(u.changelogText);
+            ch.setTextColor(Color.parseColor("#B0B0B0"));
+            ch.setTextSize(12);
+            ch.setLineSpacing(4, 1.15f);
+            root.addView(ch);
+        }
+
+        if (u.apkSizeBytes > 0) {
+            TextView size = new TextView(this);
+            size.setText(String.format(Locale.getDefault(), "Paket: %.1f MB",
+                    u.apkSizeBytes / (1024.0 * 1024.0)));
+            size.setTextColor(Color.parseColor("#88FFFFFF"));
+            size.setTextSize(12);
+            size.setPadding(0, pad / 2, 0, 0);
+            root.addView(size);
+        }
+
+        LinearLayout progressArea = new LinearLayout(this);
+        progressArea.setOrientation(LinearLayout.VERTICAL);
+        progressArea.setVisibility(View.GONE);
+        progressArea.setPadding(0, pad, 0, 0);
+
+        updateProgressBar = new android.widget.ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
+        updateProgressBar.setMax(100);
+        updateProgressBar.setProgress(0);
+        updateProgressBar.setIndeterminate(false);
+        LinearLayout.LayoutParams pbLp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, (int) (8 * getResources().getDisplayMetrics().density));
+        updateProgressBar.setLayoutParams(pbLp);
+        progressArea.addView(updateProgressBar);
+
+        updateProgressText = new TextView(this);
+        updateProgressText.setText("");
+        updateProgressText.setTextColor(Color.parseColor("#00E5FF"));
+        updateProgressText.setTextSize(12);
+        updateProgressText.setGravity(android.view.Gravity.CENTER);
+        updateProgressText.setPadding(0, pad / 2, 0, 0);
+        progressArea.addView(updateProgressText);
+
+        root.addView(progressArea);
+
+        TextView btnUpdate = new TextView(this);
+        btnUpdate.setText("İndir ve kur");
+        btnUpdate.setTextColor(Color.parseColor("#0A0A14"));
+        btnUpdate.setTextSize(15);
+        btnUpdate.setGravity(android.view.Gravity.CENTER);
+        btnUpdate.setPadding(0, pad, 0, pad / 2);
+        android.graphics.drawable.GradientDrawable btnBg = new android.graphics.drawable.GradientDrawable();
+        btnBg.setCornerRadius(20);
+        btnBg.setColors(new int[] { Color.parseColor("#00E5FF"), Color.parseColor("#00B4D8") });
+        btnUpdate.setBackground(btnBg);
+        btnUpdate.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.BOLD));
+
+        LinearLayout actions = new LinearLayout(this);
+        actions.setOrientation(LinearLayout.HORIZONTAL);
+        actions.setGravity(android.view.Gravity.CENTER);
+        actions.setPadding(0, pad / 2, 0, 0);
+
+        TextView btnLater = new TextView(this);
+        btnLater.setText("Sonra");
+        btnLater.setTextColor(Color.parseColor("#888888"));
+        btnLater.setPadding(pad, pad / 2, pad, pad / 2);
+        btnLater.setOnClickListener(v -> {
+            vibrateFeedback();
+            dialog.dismiss();
+        });
+        actions.addView(btnLater);
+
+        TextView btnSkip = new TextView(this);
+        btnSkip.setText("Bu sürümü atla");
+        btnSkip.setTextColor(Color.parseColor("#FF6B6B"));
+        btnSkip.setPadding(pad, pad / 2, pad, pad / 2);
+        btnSkip.setOnClickListener(v -> {
+            vibrateFeedback();
+            updatePrefs.edit().putString(PREF_SKIPPED_VERSION, u.versionName).apply();
+            addLog("[UPDATE] v" + u.versionName + " atlandı");
+            Toast.makeText(this, "Bu sürüm atlandı", Toast.LENGTH_SHORT).show();
+            dialog.dismiss();
+        });
+        actions.addView(btnSkip);
+
+        btnUpdate.setOnClickListener(v -> {
+            vibrateFeedback();
+            btnUpdate.setVisibility(View.GONE);
+            actions.setVisibility(View.GONE);
+            progressArea.setVisibility(View.VISIBLE);
+            updateProgressText.setText("Bağlanıyor…");
+            startApkDownload(u);
+        });
+
+        root.addView(btnUpdate);
+        root.addView(actions);
+
+        scroll.addView(root);
+        dialog.setContentView(scroll);
+        android.view.Window win = dialog.getWindow();
+        if (win != null) {
+            win.setBackgroundDrawableResource(android.R.color.transparent);
+            win.setLayout((int) (getResources().getDisplayMetrics().widthPixels * 0.9),
+                    android.view.WindowManager.LayoutParams.WRAP_CONTENT);
+        }
+        dialog.show();
+        addLog("[UPDATE] Güncelleme iletişim kutusu: v" + u.versionName);
+    }
+
+    private void startApkDownload(final PendingUpdate u) {
+        new Thread(() -> {
+            File apkOut;
+            try {
+                apkOut = resolveUpdateApkFile();
+            } catch (IOException e) {
+                addLog("[UPDATE] Dosya hazırlığı: " + e.getMessage());
+                runOnUiThread(() -> {
+                    if (updateProgressText != null) {
+                        updateProgressText.setText("Dosya hatası");
+                        updateProgressText.setTextColor(Color.parseColor("#FF6B6B"));
+                    }
+                    Toast.makeText(MainActivity.this, e.getMessage(), Toast.LENGTH_LONG).show();
+                });
                 return;
             }
-
-            BufferedReader releaseReader = new BufferedReader(new InputStreamReader(releaseConn.getInputStream()));
-            StringBuilder releaseSb = new StringBuilder();
-            String line;
-            while ((line = releaseReader.readLine()) != null)
-                releaseSb.append(line);
-            releaseReader.close();
-
-            JSONObject releaseInfo = new JSONObject(releaseSb.toString());
-
-            // Sürüm başlığı ve açıklaması
-            String releaseName = releaseInfo.optString("name", "");
-            String releaseBody = releaseInfo.optString("body", "");
-
-            // Markdown işaretlerini temizle
-            releaseBody = cleanMarkdown(releaseBody);
-
-            // İlk satırı açıklama olarak kullan, geri kalanı değişiklik listesi (changelog)
-            if (!releaseBody.isEmpty()) {
-                String[] bodyParts = releaseBody.split("\n", 2);
-                updateDescription = bodyParts[0].trim();
-                if (bodyParts.length > 1) {
-                    String rawChangelog = bodyParts[1].trim();
-                    // Değişiklik listesini en fazla 500 karakterle sınırla
-                    if (rawChangelog.length() > 500) {
-                        rawChangelog = rawChangelog.substring(0, 497) + "...";
+            final File dest = apkOut;
+            try {
+                addLog("[UPDATE] İndirme başlıyor");
+                downloadApkToFile(u.apkUrl, dest, (downloaded, total) -> runOnUiThread(() -> {
+                    if (updateProgressBar == null || updateProgressText == null) {
+                        return;
                     }
-                    updateChangelog = rawChangelog;
-                } else {
-                    updateChangelog = "";
-                }
-            } else if (!releaseName.isEmpty()) {
-                updateDescription = releaseName;
-                updateChangelog = "";
-            } else {
-                updateDescription = "Yeni özellikler ve iyileştirmeler";
-                updateChangelog = "";
-            }
-
-            // APK dosyasının boyutunu bul (kaynaklar içinden)
-            updateFileSize = 0;
-            JSONArray assets = releaseInfo.optJSONArray("assets");
-            if (assets != null) {
-                for (int i = 0; i < assets.length(); i++) {
-                    JSONObject asset = assets.getJSONObject(i);
-                    String assetName = asset.optString("name", "").toLowerCase();
-                    if (assetName.endsWith(".apk")) {
-                        updateFileSize = asset.optLong("size", 0);
-                        addLog("[UPDATE] APK boyutu: " + (updateFileSize / 1024) + " KB");
-                        break;
+                    if (total > 0) {
+                        updateProgressBar.setIndeterminate(false);
+                        int pct = (int) Math.min(100L, (downloaded * 100L) / total);
+                        updateProgressBar.setProgress(pct);
+                        updateProgressText.setText(String.format(Locale.getDefault(),
+                                "İndiriliyor %d — %.1f / %.1f MB", pct,
+                                downloaded / (1024.0 * 1024.0), total / (1024.0 * 1024.0)));
+                    } else {
+                        updateProgressBar.setIndeterminate(true);
+                        updateProgressText.setText(String.format(Locale.getDefault(),
+                                "İndiriliyor… %.1f MB", downloaded / (1024.0 * 1024.0)));
                     }
-                }
+                }));
+
+                addLog("[UPDATE] İndirme tamamlandı");
+                runOnUiThread(() -> {
+                    if (isFinishing()) {
+                        return;
+                    }
+                    dismissUpdateDialog();
+                    installApkFile(dest);
+                });
+            } catch (Exception e) {
+                addLog("[UPDATE] İndirme hatası: " + e.getMessage());
+                runOnUiThread(() -> {
+                    if (updateProgressBar != null) {
+                        updateProgressBar.setIndeterminate(false);
+                    }
+                    if (updateProgressText != null) {
+                        updateProgressText.setText("İndirme başarısız");
+                        updateProgressText.setTextColor(Color.parseColor("#FF6B6B"));
+                    }
+                    Toast.makeText(MainActivity.this, "İndirme başarısız: " + e.getMessage(), Toast.LENGTH_LONG)
+                            .show();
+                });
             }
-
-            addLog("[UPDATE] Detaylar alındı - Açıklama: "
-                    + updateDescription.substring(0, Math.min(50, updateDescription.length())) + "...");
-            runOnUiThread(this::showPremiumUpdateDialog);
-
-        } catch (Exception e) {
-            addLog("[UPDATE] Release detayları alınamadı: " + e.getMessage());
-            // Hata olsa bile varsayılan değerlerle iletişim kutusu göster
-            updateDescription = "Yeni sürüm mevcut: " + latestVersion;
-            updateChangelog = "";
-            updateFileSize = 0;
-            runOnUiThread(this::showPremiumUpdateDialog);
-        }
+        }, "niko-apk-download").start();
     }
 
-    /**
-     * Markdown işaretlerini temizler.
-     * Başlıklar, bağlantılar, kalın/italik gibi biçimlendirmeleri kaldırır.
-     */
-    private String cleanMarkdown(String text) {
-        if (text == null || text.isEmpty())
+    private File resolveUpdateApkFile() throws IOException {
+        File dir = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
+        if (dir == null) {
+            dir = getCacheDir();
+        }
+        if (!dir.exists() && !dir.mkdirs()) {
+            throw new IOException("İndirme klasörü oluşturulamadı");
+        }
+        File f = new File(dir, "niko_update.apk");
+        if (f.exists() && !f.delete()) {
+            throw new IOException("Eski APK silinemedi");
+        }
+        return f;
+    }
+
+    private void downloadApkToFile(String urlString, File destFile, ApkDownloadProgressListener listener)
+            throws IOException {
+        final int maxHops = 12;
+        String current = urlString;
+        for (int hop = 0; hop < maxHops; hop++) {
+            URL url = new URL(current);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            try {
+                conn.setRequestMethod("GET");
+                conn.setConnectTimeout(30000);
+                conn.setReadTimeout(180000);
+                conn.setInstanceFollowRedirects(false);
+                int code = conn.getResponseCode();
+                if (isHttpRedirect(code)) {
+                    String loc = conn.getHeaderField("Location");
+                    if (loc == null || loc.isEmpty()) {
+                        throw new IOException("Yönlendirme: Location eksik");
+                    }
+                    current = new URL(url, loc).toString();
+                    continue;
+                }
+                if (code != HttpURLConnection.HTTP_OK) {
+                    throw new IOException("HTTP " + code);
+                }
+                long total = Build.VERSION.SDK_INT >= Build.VERSION_CODES.N ? conn.getContentLengthLong()
+                        : conn.getContentLength();
+                if (total <= 0) {
+                    total = -1L;
+                }
+                try (InputStream in = conn.getInputStream();
+                        FileOutputStream out = new FileOutputStream(destFile)) {
+                    byte[] buf = new byte[16384];
+                    int n;
+                    long read = 0;
+                    long lastUi = 0L;
+                    while ((n = in.read(buf)) != -1) {
+                        out.write(buf, 0, n);
+                        read += n;
+                        long now = System.currentTimeMillis();
+                        if (listener != null && (now - lastUi > 120L || (total > 0 && read >= total))) {
+                            lastUi = now;
+                            listener.onProgress(read, total);
+                        }
+                    }
+                    if (listener != null) {
+                        listener.onProgress(read, total > 0 ? total : read);
+                    }
+                }
+                return;
+            } finally {
+                conn.disconnect();
+            }
+        }
+        throw new IOException("APK: çok fazla yönlendirme");
+    }
+
+    private String cleanMarkdownForUpdate(String text) {
+        if (text == null || text.isEmpty()) {
             return "";
-
+        }
         String cleaned = text;
-
-        // Başlıkları temizle (# ## ### vb.)
         cleaned = cleaned.replaceAll("(?m)^#+\\s*", "");
-
-        // Kalın ve italik işaretlerini temizle
         cleaned = cleaned.replaceAll("\\*\\*(.+?)\\*\\*", "$1");
         cleaned = cleaned.replaceAll("\\*(.+?)\\*", "$1");
         cleaned = cleaned.replaceAll("__(.+?)__", "$1");
         cleaned = cleaned.replaceAll("_(.+?)_", "$1");
-
-        // Bağlantıları temizle
         cleaned = cleaned.replaceAll("\\[(.+?)\\]\\(.+?\\)", "$1");
-
-        // Kod bloklarını temizle
         cleaned = cleaned.replaceAll("```[\\s\\S]*?```", "");
         cleaned = cleaned.replaceAll("`(.+?)`", "$1");
-
-        // Yatay çizgileri temizle (--- veya ***)
         cleaned = cleaned.replaceAll("(?m)^[-*]{3,}$", "");
-
-        // Resim etiketlerini temizle ![alt](url)
         cleaned = cleaned.replaceAll("!\\[.*?\\]\\(.*?\\)", "");
-
-        // Tablo işaretlerini temizle
         cleaned = cleaned.replaceAll("\\|", " ");
-
-        // Birden fazla boş satırı tek satıra indir
         cleaned = cleaned.replaceAll("\\n{3,}", "\n\n");
-
-        // Satır başındaki ve sonundaki boşlukları temizle
-        cleaned = cleaned.trim();
-
-        return cleaned;
+        return cleaned.trim();
     }
 
-    private String getCurrentVersion() {
+    @SuppressWarnings("deprecation")
+    private String getCurrentVersionName() {
         try {
-            return getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
-        } catch (Exception e) {
-            return "1.0.1";
+            android.content.pm.PackageInfo info = getPackageManager().getPackageInfo(getPackageName(), 0);
+            String vn = info.versionName;
+            return vn != null ? vn : "0.0.0";
+        } catch (PackageManager.NameNotFoundException e) {
+            return "0.0.0";
         }
     }
 
-    private int compareVersions(String v1, String v2) {
+    /** v1 daha yeniyse pozitif */
+    private int compareSemver(String v1, String v2) {
         try {
             String[] p1 = v1.split("\\.");
             String[] p2 = v2.split("\\.");
@@ -6543,847 +6911,38 @@ public class MainActivity extends Activity {
             for (int i = 0; i < len; i++) {
                 int n1 = i < p1.length ? Integer.parseInt(p1[i].replaceAll("[^0-9]", "")) : 0;
                 int n2 = i < p2.length ? Integer.parseInt(p2[i].replaceAll("[^0-9]", "")) : 0;
-                if (n1 != n2)
+                if (n1 != n2) {
                     return n1 - n2;
+                }
             }
-        } catch (Exception e) {
+        } catch (Exception ignored) {
             return 0;
         }
         return 0;
     }
 
-    /**
-     * Premium tasarımlı güncelleme iletişim kutusu.
-     * Modern, buzlu cam (glassmorphism) tarzı, animasyonlu.
-     * Ultra premium tasarım: nabız animasyonları, gradyan (geçişli) efektler,
-     * gölgeler.
-     */
-    private void showPremiumUpdateDialog() {
-        String skipped = updatePrefs.getString("skipped_version", "");
-        if (skipped.equals(latestVersion)) {
-            addLog("[UPDATE] Sürüm " + latestVersion + " atlanmış, iletişim kutusu gösterilmiyor.");
-            return;
-        }
-
-        // İletişim kutusu oluştur
-        updateDialog = new android.app.Dialog(this, android.R.style.Theme_DeviceDefault_Dialog_NoActionBar);
-        updateDialog.setCancelable(true);
-        updateDialog.setCanceledOnTouchOutside(true);
-
-        // KaydırmaGörünümü sarıcısı (uzun değişiklik listesi için)
-        android.widget.ScrollView scrollView = new android.widget.ScrollView(this);
-        scrollView.setVerticalScrollBarEnabled(false);
-        scrollView.setOverScrollMode(View.OVER_SCROLL_NEVER);
-
-        // Ana container
-        LinearLayout mainLayout = new LinearLayout(this);
-        mainLayout.setOrientation(LinearLayout.VERTICAL);
-        mainLayout.setPadding(56, 48, 56, 40);
-
-        // Premium Buzlu Cam (Glassmorphism) arka plan
-        android.graphics.drawable.GradientDrawable bgGradient = new android.graphics.drawable.GradientDrawable();
-        bgGradient.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
-        bgGradient.setCornerRadius(40);
-        bgGradient.setColors(new int[] {
-                Color.parseColor("#1E1E32"),
-                Color.parseColor("#12121F"),
-                Color.parseColor("#0A0A14")
-        });
-        bgGradient.setOrientation(android.graphics.drawable.GradientDrawable.Orientation.TL_BR);
-        bgGradient.setStroke(2, Color.parseColor("#2200E5FF"));
-        mainLayout.setBackground(bgGradient);
-
-        // Elevation efekti
-        mainLayout.setElevation(32);
-
-        // ===== BAŞLIK BÖLÜMÜ =====
-        android.widget.FrameLayout headerFrame = new android.widget.FrameLayout(this);
-        LinearLayout.LayoutParams headerFrameParams = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        headerFrameParams.setMargins(0, 0, 0, 28);
-        headerFrame.setLayoutParams(headerFrameParams);
-
-        LinearLayout headerLayout = new LinearLayout(this);
-        headerLayout.setOrientation(LinearLayout.HORIZONTAL);
-        headerLayout.setGravity(android.view.Gravity.CENTER_VERTICAL);
-
-        // Premium İkon Kapsayıcısı (Nabız ve Parlama efekti)
-        android.widget.FrameLayout iconContainer = new android.widget.FrameLayout(this);
-        LinearLayout.LayoutParams iconContainerParams = new LinearLayout.LayoutParams(80, 80);
-        iconContainerParams.setMargins(0, 0, 24, 0);
-        iconContainer.setLayoutParams(iconContainerParams);
-
-        // Dış parlama katmanı (nabız animasyonu için)
-        View glowRing = new View(this);
-        android.widget.FrameLayout.LayoutParams glowParams = new android.widget.FrameLayout.LayoutParams(80, 80);
-        glowRing.setLayoutParams(glowParams);
-        android.graphics.drawable.GradientDrawable glowDrawable = new android.graphics.drawable.GradientDrawable();
-        glowDrawable.setShape(android.graphics.drawable.GradientDrawable.OVAL);
-        glowDrawable.setColor(Color.TRANSPARENT);
-        glowDrawable.setStroke(4, Color.parseColor("#4400E5FF"));
-        glowRing.setBackground(glowDrawable);
-        iconContainer.addView(glowRing);
-
-        // Nabız animasyonu
-        android.animation.ObjectAnimator pulseAnimator = android.animation.ObjectAnimator.ofFloat(glowRing, "alpha", 1f,
-                0.3f, 1f);
-        pulseAnimator.setDuration(2000);
-        pulseAnimator.setRepeatCount(android.animation.ObjectAnimator.INFINITE);
-        pulseAnimator.start();
-
-        android.animation.ObjectAnimator scaleX = android.animation.ObjectAnimator.ofFloat(glowRing, "scaleX", 1f, 1.2f,
-                1f);
-        android.animation.ObjectAnimator scaleY = android.animation.ObjectAnimator.ofFloat(glowRing, "scaleY", 1f, 1.2f,
-                1f);
-        scaleX.setDuration(2000);
-        scaleY.setDuration(2000);
-        scaleX.setRepeatCount(android.animation.ObjectAnimator.INFINITE);
-        scaleY.setRepeatCount(android.animation.ObjectAnimator.INFINITE);
-        scaleX.start();
-        scaleY.start();
-
-        // Ana ikon (gradyan daire + ok simgesi)
-        TextView iconView = new TextView(this);
-        android.widget.FrameLayout.LayoutParams iconViewParams = new android.widget.FrameLayout.LayoutParams(64, 64);
-        iconViewParams.gravity = android.view.Gravity.CENTER;
-        iconView.setLayoutParams(iconViewParams);
-        iconView.setText("⬆");
-        iconView.setTextSize(28);
-        iconView.setGravity(android.view.Gravity.CENTER);
-        iconView.setTextColor(Color.WHITE);
-        android.graphics.drawable.GradientDrawable iconBg = new android.graphics.drawable.GradientDrawable();
-        iconBg.setShape(android.graphics.drawable.GradientDrawable.OVAL);
-        iconBg.setColors(
-                new int[] { Color.parseColor("#00E5FF"), Color.parseColor("#00B4D8"), Color.parseColor("#0080FF") });
-        iconBg.setGradientType(android.graphics.drawable.GradientDrawable.RADIAL_GRADIENT);
-        iconBg.setGradientRadius(64);
-        iconView.setBackground(iconBg);
-        iconView.setElevation(8);
-        iconContainer.addView(iconView);
-
-        // Zıplama animasyonu (ikon için)
-        android.animation.ObjectAnimator bounceAnim = android.animation.ObjectAnimator.ofFloat(iconView, "translationY",
-                0f, -8f, 0f);
-        bounceAnim.setDuration(1500);
-        bounceAnim.setRepeatCount(android.animation.ObjectAnimator.INFINITE);
-        bounceAnim.setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator());
-        bounceAnim.start();
-
-        headerLayout.addView(iconContainer);
-
-        // Başlık metinleri
-        LinearLayout titleContainer = new LinearLayout(this);
-        titleContainer.setOrientation(LinearLayout.VERTICAL);
-
-        // "YENİ GÜNCELLEME" etiketi
-        TextView txtUpdateLabel = new TextView(this);
-        txtUpdateLabel.setText("✨ YENİ GÜNCELLEME MEV­CUT");
-        txtUpdateLabel.setTextColor(Color.parseColor("#00E5FF"));
-        txtUpdateLabel.setTextSize(11);
-        txtUpdateLabel.setLetterSpacing(0.2f);
-        txtUpdateLabel
-                .setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.BOLD));
-        txtUpdateLabel.setPadding(0, 0, 0, 6);
-        titleContainer.addView(txtUpdateLabel);
-
-        // Sürüm numarası (büyük)
-        TextView txtVersionTitle = new TextView(this);
-        txtVersionTitle.setText("Sürüm " + latestVersion);
-        txtVersionTitle.setTextColor(Color.WHITE);
-        txtVersionTitle.setTextSize(26);
-        txtVersionTitle
-                .setTypeface(android.graphics.Typeface.create("sans-serif-black", android.graphics.Typeface.BOLD));
-        txtVersionTitle.setShadowLayer(12, 0, 0, Color.parseColor("#4400E5FF"));
-        titleContainer.addView(txtVersionTitle);
-
-        headerLayout.addView(titleContainer);
-        headerFrame.addView(headerLayout);
-        mainLayout.addView(headerFrame);
-
-        // ===== SÜRÜM KARŞILAŞTIRMASI =====
-        LinearLayout versionCompare = new LinearLayout(this);
-        versionCompare.setOrientation(LinearLayout.HORIZONTAL);
-        versionCompare.setGravity(android.view.Gravity.CENTER_VERTICAL);
-        LinearLayout.LayoutParams versionCompareParams = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        versionCompareParams.setMargins(0, 0, 0, 24);
-        versionCompare.setLayoutParams(versionCompareParams);
-        versionCompare.setPadding(20, 16, 20, 16);
-
-        // Sürüm çipi arka planı
-        android.graphics.drawable.GradientDrawable versionChipBg = new android.graphics.drawable.GradientDrawable();
-        versionChipBg.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
-        versionChipBg.setCornerRadius(16);
-        versionChipBg.setColor(Color.parseColor("#15FFFFFF"));
-        versionCompare.setBackground(versionChipBg);
-
-        // Mevcut sürüm
-        TextView txtCurrentVer = new TextView(this);
-        txtCurrentVer.setText(getCurrentVersion());
-        txtCurrentVer.setTextColor(Color.parseColor("#FF6B6B"));
-        txtCurrentVer.setTextSize(14);
-        txtCurrentVer.setTypeface(android.graphics.Typeface.MONOSPACE, android.graphics.Typeface.BOLD);
-        versionCompare.addView(txtCurrentVer);
-
-        // Ok işareti
-        TextView txtArrow = new TextView(this);
-        txtArrow.setText("  →  ");
-        txtArrow.setTextColor(Color.parseColor("#66FFFFFF"));
-        txtArrow.setTextSize(16);
-        versionCompare.addView(txtArrow);
-
-        // Yeni sürüm
-        TextView txtNewVer = new TextView(this);
-        txtNewVer.setText(latestVersion);
-        txtNewVer.setTextColor(Color.parseColor("#4CAF50"));
-        txtNewVer.setTextSize(14);
-        txtNewVer.setTypeface(android.graphics.Typeface.MONOSPACE, android.graphics.Typeface.BOLD);
-        versionCompare.addView(txtNewVer);
-
-        mainLayout.addView(versionCompare);
-
-        // ===== AYIRICI ÇİZGİ (gradyan) =====
-        View divider1 = new View(this);
-        LinearLayout.LayoutParams dividerParams = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, 2);
-        dividerParams.setMargins(0, 0, 0, 24);
-        divider1.setLayoutParams(dividerParams);
-        android.graphics.drawable.GradientDrawable dividerGradient = new android.graphics.drawable.GradientDrawable();
-        dividerGradient.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
-        dividerGradient.setColors(new int[] { Color.TRANSPARENT, Color.parseColor("#3300E5FF"), Color.TRANSPARENT });
-        dividerGradient.setOrientation(android.graphics.drawable.GradientDrawable.Orientation.LEFT_RIGHT);
-        divider1.setBackground(dividerGradient);
-        mainLayout.addView(divider1);
-
-        // ===== AÇIKLAMA BÖLÜMÜ =====
-        TextView txtDesc = new TextView(this);
-        txtDesc.setText(updateDescription);
-        txtDesc.setTextColor(Color.parseColor("#E0E0E0"));
-        txtDesc.setTextSize(15);
-        txtDesc.setLineSpacing(10, 1.3f);
-        txtDesc.setPadding(0, 0, 0, 20);
-        txtDesc.setTypeface(android.graphics.Typeface.create("sans-serif", android.graphics.Typeface.NORMAL));
-        mainLayout.addView(txtDesc);
-
-        // ===== DEĞİŞİKLİK LİSTESİ BÖLÜMÜ (varsa) =====
-        if (updateChangelog != null && !updateChangelog.isEmpty()) {
-            // Ana Değişiklik Listesi kapsayıcısı
-            LinearLayout changelogContainer = new LinearLayout(this);
-            changelogContainer.setOrientation(LinearLayout.VERTICAL);
-            LinearLayout.LayoutParams changelogParams = new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-            changelogParams.setMargins(0, 8, 0, 20);
-            changelogContainer.setLayoutParams(changelogParams);
-
-            // Premium başlık bölümü
-            LinearLayout changelogHeader = new LinearLayout(this);
-            changelogHeader.setOrientation(LinearLayout.HORIZONTAL);
-            changelogHeader.setGravity(android.view.Gravity.CENTER_VERTICAL);
-            changelogHeader.setPadding(0, 0, 0, 16);
-
-            // Başlık ikonu için kapsayıcı (gradyan arka plan)
-            android.widget.FrameLayout iconFrame = new android.widget.FrameLayout(this);
-            LinearLayout.LayoutParams iconFrameParams = new LinearLayout.LayoutParams(36, 36);
-            iconFrameParams.setMargins(0, 0, 14, 0);
-            iconFrame.setLayoutParams(iconFrameParams);
-
-            android.graphics.drawable.GradientDrawable iconBgDrawable = new android.graphics.drawable.GradientDrawable();
-            iconBgDrawable.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
-            iconBgDrawable.setCornerRadius(10);
-            iconBgDrawable.setColors(new int[] { Color.parseColor("#FFD700"), Color.parseColor("#FFA500") });
-            iconBgDrawable.setOrientation(android.graphics.drawable.GradientDrawable.Orientation.TL_BR);
-            iconFrame.setBackground(iconBgDrawable);
-
-            TextView changelogIconText = new TextView(this);
-            changelogIconText.setText("📝");
-            changelogIconText.setTextSize(16);
-            changelogIconText.setGravity(android.view.Gravity.CENTER);
-            android.widget.FrameLayout.LayoutParams iconTextParams = new android.widget.FrameLayout.LayoutParams(
-                    android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
-                    android.widget.FrameLayout.LayoutParams.MATCH_PARENT);
-            changelogIconText.setLayoutParams(iconTextParams);
-            iconFrame.addView(changelogIconText);
-            changelogHeader.addView(iconFrame);
-
-            // Başlık ve alt başlık
-            LinearLayout titleBlock = new LinearLayout(this);
-            titleBlock.setOrientation(LinearLayout.VERTICAL);
-
-            TextView txtChangelogLabel = new TextView(this);
-            txtChangelogLabel.setText("DEĞİŞİKLİKLER");
-            txtChangelogLabel.setTextColor(Color.parseColor("#FFD700"));
-            txtChangelogLabel.setTextSize(13);
-            txtChangelogLabel.setLetterSpacing(0.1f);
-            txtChangelogLabel
-                    .setTypeface(android.graphics.Typeface.create("sans-serif-black", android.graphics.Typeface.BOLD));
-            titleBlock.addView(txtChangelogLabel);
-
-            TextView txtChangelogSub = new TextView(this);
-            txtChangelogSub.setText("Bu sürümdeki yenilikler");
-            txtChangelogSub.setTextColor(Color.parseColor("#66FFFFFF"));
-            txtChangelogSub.setTextSize(11);
-            titleBlock.addView(txtChangelogSub);
-
-            changelogHeader.addView(titleBlock);
-            changelogContainer.addView(changelogHeader);
-
-            // Değişiklik öğelerini ayrıştır ve her biri için premium kart oluştur
-            String[] changelogLines = updateChangelog.split("\n");
-            int itemIndex = 0;
-
-            for (String line : changelogLines) {
-                String trimmedLine = line.trim();
-                if (trimmedLine.isEmpty())
-                    continue;
-
-                // Öğe kartı
-                LinearLayout itemCard = new LinearLayout(this);
-                itemCard.setOrientation(LinearLayout.HORIZONTAL);
-                itemCard.setGravity(android.view.Gravity.CENTER_VERTICAL);
-                LinearLayout.LayoutParams itemParams = new LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-                itemParams.setMargins(0, 0, 0, 10);
-                itemCard.setLayoutParams(itemParams);
-                itemCard.setPadding(16, 14, 16, 14);
-
-                // Kart arka planı (buzlu cam efekti)
-                android.graphics.drawable.GradientDrawable cardBg = new android.graphics.drawable.GradientDrawable();
-                cardBg.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
-                cardBg.setCornerRadius(14);
-                cardBg.setColor(Color.parseColor("#12FFFFFF"));
-                itemCard.setBackground(cardBg);
-                itemCard.setElevation(2);
-
-                // Sol renk çubuğu
-                View colorBar = new View(this);
-                LinearLayout.LayoutParams barParams = new LinearLayout.LayoutParams(4,
-                        LinearLayout.LayoutParams.MATCH_PARENT);
-                barParams.setMargins(0, 0, 14, 0);
-                colorBar.setLayoutParams(barParams);
-
-                // Her öğe için farklı renk
-                String[] barColors = { "#00E5FF", "#4CAF50", "#FF9800", "#E91E63", "#9C27B0", "#3F51B5" };
-                android.graphics.drawable.GradientDrawable barBg = new android.graphics.drawable.GradientDrawable();
-                barBg.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
-                barBg.setCornerRadius(2);
-                barBg.setColor(Color.parseColor(barColors[itemIndex % barColors.length]));
-                colorBar.setBackground(barBg);
-                itemCard.addView(colorBar);
-
-                // İçerik alanı
-                LinearLayout contentArea = new LinearLayout(this);
-                contentArea.setOrientation(LinearLayout.VERTICAL);
-                LinearLayout.LayoutParams contentParams = new LinearLayout.LayoutParams(
-                        0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
-                contentArea.setLayoutParams(contentParams);
-
-                // Emoji ve metin ayırma
-                String displayText = trimmedLine;
-                String emoji = "";
-
-                // Başındaki madde işareti veya tireyi kaldır
-                if (displayText.startsWith("•") || displayText.startsWith("-") || displayText.startsWith("*")) {
-                    displayText = displayText.substring(1).trim();
-                }
-
-                // Emoji varsa ayır
-                if (displayText.length() > 2) {
-                    String firstChars = displayText.substring(0, 2);
-                    if (Character.isHighSurrogate(firstChars.charAt(0)) ||
-                            firstChars.codePointAt(0) > 127) {
-                        // İlk karakterler emoji olabilir
-                        int emojiEnd = 0;
-                        for (int i = 0; i < Math.min(4, displayText.length()); i++) {
-                            if (Character.isWhitespace(displayText.charAt(i))) {
-                                emojiEnd = i;
-                                break;
-                            }
-                            emojiEnd = i + 1;
-                        }
-                        emoji = displayText.substring(0, emojiEnd).trim();
-                        displayText = displayText.substring(emojiEnd).trim();
-                    }
-                }
-
-                // Başlık ve açıklama ayır (: ile)
-                String itemTitle = displayText;
-                String itemDesc = "";
-                int colonIndex = displayText.indexOf(":");
-                if (colonIndex > 0 && colonIndex < displayText.length() - 1) {
-                    itemTitle = displayText.substring(0, colonIndex).trim();
-                    itemDesc = displayText.substring(colonIndex + 1).trim();
-                }
-
-                // Emoji gösterimi (varsa)
-                if (!emoji.isEmpty()) {
-                    TextView emojiView = new TextView(this);
-                    emojiView.setText(emoji);
-                    emojiView.setTextSize(16);
-                    emojiView.setPadding(0, 0, 0, 4);
-                    contentArea.addView(emojiView);
-                }
-
-                // Başlık metni
-                TextView titleText = new TextView(this);
-                titleText.setText(itemTitle);
-                titleText.setTextColor(Color.WHITE);
-                titleText.setTextSize(13);
-                titleText.setTypeface(
-                        android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.BOLD));
-                contentArea.addView(titleText);
-
-                // Açıklama (varsa)
-                if (!itemDesc.isEmpty()) {
-                    TextView descText = new TextView(this);
-                    descText.setText(itemDesc);
-                    descText.setTextColor(Color.parseColor("#99FFFFFF"));
-                    descText.setTextSize(12);
-                    descText.setPadding(0, 4, 0, 0);
-                    descText.setLineSpacing(4, 1.1f);
-                    contentArea.addView(descText);
-                }
-
-                itemCard.addView(contentArea);
-                changelogContainer.addView(itemCard);
-
-                // Kademeli animasyon
-                final int delay = itemIndex * 80;
-                itemCard.setAlpha(0f);
-                itemCard.setTranslationX(30);
-                itemCard.animate()
-                        .alpha(1f)
-                        .translationX(0)
-                        .setStartDelay(delay + 200)
-                        .setDuration(300)
-                        .setInterpolator(new android.view.animation.DecelerateInterpolator())
-                        .start();
-
-                itemIndex++;
-            }
-
-            mainLayout.addView(changelogContainer);
-        }
-
-        // ===== DOSYA BOYUTU (varsa) =====
-        if (updateFileSize > 0) {
-            LinearLayout sizeContainer = new LinearLayout(this);
-            sizeContainer.setOrientation(LinearLayout.HORIZONTAL);
-            sizeContainer.setGravity(android.view.Gravity.CENTER_VERTICAL);
-            sizeContainer.setPadding(16, 12, 16, 12);
-            LinearLayout.LayoutParams sizeParams = new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-            sizeParams.setMargins(0, 0, 0, 24);
-            sizeContainer.setLayoutParams(sizeParams);
-
-            android.graphics.drawable.GradientDrawable sizeBg = new android.graphics.drawable.GradientDrawable();
-            sizeBg.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
-            sizeBg.setCornerRadius(12);
-            sizeBg.setColor(Color.parseColor("#10FFFFFF"));
-            sizeContainer.setBackground(sizeBg);
-
-            TextView sizeIcon = new TextView(this);
-            sizeIcon.setText("📦");
-            sizeIcon.setTextSize(14);
-            sizeIcon.setPadding(0, 0, 10, 0);
-            sizeContainer.addView(sizeIcon);
-
-            TextView txtSize = new TextView(this);
-            String sizeText = String.format(Locale.getDefault(), "%.1f MB", updateFileSize / (1024.0 * 1024.0));
-            txtSize.setText(sizeText);
-            txtSize.setTextColor(Color.parseColor("#80FFFFFF"));
-            txtSize.setTextSize(13);
-            txtSize.setTypeface(android.graphics.Typeface.MONOSPACE);
-            sizeContainer.addView(txtSize);
-
-            mainLayout.addView(sizeContainer);
-        }
-
-        // ===== İLERLEME ÇUBUĞU ALANI (başlangıçta gizli) =====
-        LinearLayout progressLayout = new LinearLayout(this);
-        progressLayout.setOrientation(LinearLayout.VERTICAL);
-        progressLayout.setVisibility(View.GONE);
-        progressLayout.setPadding(8, 24, 8, 24);
-
-        // Premium ilerleme çubuğu kapsayıcısı
-        android.widget.FrameLayout progressContainer = new android.widget.FrameLayout(this);
-        LinearLayout.LayoutParams progressContainerParams = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, 16);
-        progressContainer.setLayoutParams(progressContainerParams);
-
-        // İlerleme arka planı
-        View progressBg = new View(this);
-        android.widget.FrameLayout.LayoutParams progressBgParams = new android.widget.FrameLayout.LayoutParams(
-                android.widget.FrameLayout.LayoutParams.MATCH_PARENT, 16);
-        progressBg.setLayoutParams(progressBgParams);
-        android.graphics.drawable.GradientDrawable progressBgDrawable = new android.graphics.drawable.GradientDrawable();
-        progressBgDrawable.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
-        progressBgDrawable.setCornerRadius(8);
-        progressBgDrawable.setColor(Color.parseColor("#1A1A2E"));
-        progressBg.setBackground(progressBgDrawable);
-        progressContainer.addView(progressBg);
-
-        // İlerleme çubuğu
-        updateProgressBar = new android.widget.ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
-        updateProgressBar.setMax(100);
-        updateProgressBar.setProgress(0);
-        android.widget.FrameLayout.LayoutParams progressBarParams = new android.widget.FrameLayout.LayoutParams(
-                android.widget.FrameLayout.LayoutParams.MATCH_PARENT, 16);
-        updateProgressBar.setLayoutParams(progressBarParams);
-
-        // Gradyan ilerleme çizimi
-        android.graphics.drawable.LayerDrawable progressDrawable = (android.graphics.drawable.LayerDrawable) updateProgressBar
-                .getProgressDrawable();
-        progressDrawable.getDrawable(1).setColorFilter(Color.parseColor("#00E5FF"),
-                android.graphics.PorterDuff.Mode.SRC_IN);
-
-        updateProgressBar.setClipToOutline(true);
-        progressContainer.addView(updateProgressBar);
-        progressLayout.addView(progressContainer);
-
-        // İlerleme metni
-        updateProgressText = new TextView(this);
-        updateProgressText.setText("İndirme başlatılıyor...");
-        updateProgressText.setTextColor(Color.parseColor("#00E5FF"));
-        updateProgressText.setTextSize(13);
-        updateProgressText.setGravity(android.view.Gravity.CENTER);
-        updateProgressText.setPadding(0, 16, 0, 0);
-        updateProgressText.setTypeface(android.graphics.Typeface.MONOSPACE);
-        progressLayout.addView(updateProgressText);
-
-        mainLayout.addView(progressLayout);
-
-        // ===== İKİNCİL BUTONLAR (önce tanımla, dinleyicide kullanılacak) =====
-        LinearLayout buttonLayout = new LinearLayout(this);
-        buttonLayout.setOrientation(LinearLayout.HORIZONTAL);
-        buttonLayout.setGravity(android.view.Gravity.CENTER);
-        LinearLayout.LayoutParams buttonLayoutParams = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        buttonLayoutParams.setMargins(0, 20, 0, 0);
-        buttonLayout.setLayoutParams(buttonLayoutParams);
-
-        // ===== ANA GÜNCELLEME BUTONU =====
-        TextView btnUpdate = new TextView(this);
-        btnUpdate.setText("⬇️  ŞİMDİ GÜNCELLE");
-        btnUpdate.setTextColor(Color.parseColor("#0A0A14"));
-        btnUpdate.setTextSize(16);
-        btnUpdate.setTypeface(android.graphics.Typeface.create("sans-serif-black", android.graphics.Typeface.BOLD));
-        btnUpdate.setGravity(android.view.Gravity.CENTER);
-        btnUpdate.setLetterSpacing(0.05f);
-        LinearLayout.LayoutParams updateBtnParams = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        updateBtnParams.setMargins(0, 16, 0, 0);
-        btnUpdate.setLayoutParams(updateBtnParams);
-        btnUpdate.setPadding(0, 40, 0, 40);
-        btnUpdate.setElevation(12);
-
-        // Premium gradyan buton
-        android.graphics.drawable.GradientDrawable btnBg = new android.graphics.drawable.GradientDrawable();
-        btnBg.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
-        btnBg.setCornerRadius(24);
-        btnBg.setColors(new int[] { Color.parseColor("#00E5FF"), Color.parseColor("#00D4AA") });
-        btnBg.setOrientation(android.graphics.drawable.GradientDrawable.Orientation.LEFT_RIGHT);
-        btnUpdate.setBackground(btnBg);
-
-        // Dokunma geri bildirimi
-        btnUpdate.setOnTouchListener((v, event) -> {
-            switch (event.getAction()) {
-                case android.view.MotionEvent.ACTION_DOWN:
-                    v.animate().scaleX(0.96f).scaleY(0.96f).setDuration(100).start();
-                    break;
-                case android.view.MotionEvent.ACTION_UP:
-                case android.view.MotionEvent.ACTION_CANCEL:
-                    v.animate().scaleX(1f).scaleY(1f).setDuration(100).start();
-                    break;
-            }
-            return false;
-        });
-
-        btnUpdate.setOnClickListener(v -> {
-            vibrateFeedback();
-            // Animasyonlu geçiş
-            buttonLayout.animate().alpha(0f).setDuration(200).withEndAction(() -> {
-                buttonLayout.setVisibility(View.GONE);
-            }).start();
-            btnUpdate.animate().alpha(0f).setDuration(200).withEndAction(() -> {
-                btnUpdate.setVisibility(View.GONE);
-                progressLayout.setVisibility(View.VISIBLE);
-                progressLayout.setAlpha(0f);
-                progressLayout.animate().alpha(1f).setDuration(300).start();
-                downloadAndInstallUpdateWithProgress(progressLayout);
-            }).start();
-        });
-
-        mainLayout.addView(btnUpdate);
-
-        // ===== İKİNCİL BUTONLARI DOLDUR =====
-
-        // "Sonra" butonu
-        TextView btnLater = new TextView(this);
-        btnLater.setText("Daha Sonra");
-        btnLater.setTextColor(Color.parseColor("#80FFFFFF"));
-        btnLater.setTextSize(14);
-        btnLater.setPadding(40, 20, 40, 20);
-        btnLater.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL));
-
-        // Dokunma geri bildirimi
-        btnLater.setOnTouchListener((v, event) -> {
-            switch (event.getAction()) {
-                case android.view.MotionEvent.ACTION_DOWN:
-                    ((TextView) v).setTextColor(Color.parseColor("#FFFFFF"));
-                    break;
-                case android.view.MotionEvent.ACTION_UP:
-                case android.view.MotionEvent.ACTION_CANCEL:
-                    ((TextView) v).setTextColor(Color.parseColor("#80FFFFFF"));
-                    break;
-            }
-            return false;
-        });
-
-        btnLater.setOnClickListener(v -> {
-            vibrateFeedback();
-            updateDialog.dismiss();
-        });
-        buttonLayout.addView(btnLater);
-
-        // Ayırıcı
-        TextView separator = new TextView(this);
-        separator.setText("│");
-        separator.setTextColor(Color.parseColor("#33FFFFFF"));
-        separator.setTextSize(14);
-        separator.setPadding(8, 0, 8, 0);
-        buttonLayout.addView(separator);
-
-        // "Bu Sürümü Atla" butonu
-        TextView btnSkip = new TextView(this);
-        btnSkip.setText("Bu Sürümü Atla");
-        btnSkip.setTextColor(Color.parseColor("#FF6B6B"));
-        btnSkip.setTextSize(14);
-        btnSkip.setPadding(40, 20, 40, 20);
-        btnSkip.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL));
-
-        // Dokunma geri bildirimi
-        btnSkip.setOnTouchListener((v, event) -> {
-            switch (event.getAction()) {
-                case android.view.MotionEvent.ACTION_DOWN:
-                    ((TextView) v).setTextColor(Color.parseColor("#FF9999"));
-                    break;
-                case android.view.MotionEvent.ACTION_UP:
-                case android.view.MotionEvent.ACTION_CANCEL:
-                    ((TextView) v).setTextColor(Color.parseColor("#FF6B6B"));
-                    break;
-            }
-            return false;
-        });
-
-        btnSkip.setOnClickListener(v -> {
-            vibrateFeedback();
-            updatePrefs.edit().putString("skipped_version", latestVersion).apply();
-            addLog("[UPDATE] Sürüm " + latestVersion + " atlandı.");
-            Toast.makeText(this, "Bu sürüm atlandı", Toast.LENGTH_SHORT).show();
-            updateDialog.dismiss();
-        });
-        buttonLayout.addView(btnSkip);
-
-        mainLayout.addView(buttonLayout);
-
-        // Kaydırma Görünümüne ekle
-        scrollView.addView(mainLayout);
-
-        // İletişim kutusunu ayarla
-        updateDialog.setContentView(scrollView);
-
-        // İletişim kutusu penceresi ayarları
-        if (updateDialog.getWindow() != null) {
-            updateDialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
-            updateDialog.getWindow().setLayout(
-                    (int) (getResources().getDisplayMetrics().widthPixels * 0.92),
-                    android.view.WindowManager.LayoutParams.WRAP_CONTENT);
-            // Giriş animasyonu
-            updateDialog.getWindow().getAttributes().windowAnimations = android.R.style.Animation_Dialog;
-        }
-
-        updateDialog.show();
-
-        // İletişim kutusu açılış animasyonu
-        mainLayout.setScaleX(0.9f);
-        mainLayout.setScaleY(0.9f);
-        mainLayout.setAlpha(0f);
-        mainLayout.animate()
-                .scaleX(1f)
-                .scaleY(1f)
-                .alpha(1f)
-                .setDuration(300)
-                .setInterpolator(new android.view.animation.OvershootInterpolator(1.1f))
-                .start();
-
-        addLog("[UPDATE] Premium güncelleme dialogu gösterildi: v" + latestVersion);
-    }
-
-    /*
-     * *****************************************************************************
-     * ****
-     * GÜNCELLEME SİSTEMİ (İNDİRİCİ)
-     *********************************************************************************/
-
-    /**
-     * Yeni APK dosyasını arka planda indirir ve ilerlemeyi UI üzerinde gösterir.
-     * 
-     * @param progressLayout İlerleme çubuğunun ekleneceği layout
-     */
-    private void downloadAndInstallUpdateWithProgress(LinearLayout progressLayout) {
-        addLog("[UPDATE] İndirme başlatılıyor...");
-
-        new Thread(() -> {
-            try {
-                URL url = new URL(GITHUB_APK_URL);
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setInstanceFollowRedirects(false); // Manuel yönlendirme takibi
-                conn.setConnectTimeout(30000);
-                conn.setReadTimeout(30000);
-
-                int status = conn.getResponseCode();
-                boolean redirect = false;
-                if (status != HttpURLConnection.HTTP_OK) {
-                    if (status == HttpURLConnection.HTTP_MOVED_TEMP
-                            || status == HttpURLConnection.HTTP_MOVED_PERM
-                            || status == HttpURLConnection.HTTP_SEE_OTHER) {
-                        redirect = true;
-                    }
-                }
-
-                if (redirect) {
-                    // Yönlendirme adresini al (Location header)
-                    String newUrl = conn.getHeaderField("Location");
-                    addLog("[UPDATE] Yönlendiriliyor: " + newUrl);
-                    conn = (HttpURLConnection) new URL(newUrl).openConnection();
-                    conn.setConnectTimeout(30000);
-                    conn.setReadTimeout(30000);
-                    status = conn.getResponseCode();
-                }
-
-                if (status != HttpURLConnection.HTTP_OK) {
-                    throw new Exception("Sunucu hatası: " + status);
-                }
-
-                int fileLength = conn.getContentLength();
-
-                File apkFile = new File(Environment.getExternalStoragePublicDirectory(
-                        Environment.DIRECTORY_DOWNLOADS), "niko_update.apk");
-                if (apkFile.exists())
-                    apkFile.delete();
-
-                InputStream input = conn.getInputStream();
-                FileOutputStream output = new FileOutputStream(apkFile);
-                byte[] buffer = new byte[8192];
-                int bytesRead;
-                long totalBytesRead = 0;
-                long lastUpdateTime = 0;
-
-                while ((bytesRead = input.read(buffer)) != -1) {
-                    output.write(buffer, 0, bytesRead);
-                    totalBytesRead += bytesRead;
-
-                    // Her 100ms'de bir ilerlemeyi güncelle (performans için)
-                    long currentTime = System.currentTimeMillis();
-                    if (currentTime - lastUpdateTime > 100 || totalBytesRead == fileLength) {
-                        lastUpdateTime = currentTime;
-                        final int progress = fileLength > 0 ? (int) ((totalBytesRead * 100) / fileLength) : 0;
-                        final long finalTotal = totalBytesRead;
-
-                        runOnUiThread(() -> {
-                            if (updateProgressBar != null) {
-                                updateProgressBar.setProgress(progress);
-                            }
-                            if (updateProgressText != null) {
-                                String progressStr = String.format(Locale.getDefault(),
-                                        "İndiriliyor... %%%d (%.1f MB / %.1f MB)",
-                                        progress,
-                                        finalTotal / (1024.0 * 1024.0),
-                                        fileLength / (1024.0 * 1024.0));
-                                updateProgressText.setText(progressStr);
-                            }
-                        });
-                    }
-                }
-
-                output.close();
-                input.close();
-
-                addLog("[UPDATE] İndirme tamamlandı, kurulum başlatılıyor...");
-
-                runOnUiThread(() -> {
-                    if (updateProgressText != null) {
-                        updateProgressText.setText("✅ Kurulum başlatılıyor...");
-                        updateProgressText.setTextColor(Color.parseColor("#4CAF50"));
-                    }
-                    // Kısa bir gecikme sonra kur
-                    new android.os.Handler().postDelayed(() -> {
-                        if (updateDialog != null && updateDialog.isShowing()) {
-                            updateDialog.dismiss();
-                        }
-                        installApk(apkFile);
-                    }, 1000);
-                });
-
-            } catch (Exception e) {
-                addLog("[UPDATE] İndirme hatası: " + e.getMessage());
-                runOnUiThread(() -> {
-                    if (updateProgressText != null) {
-                        updateProgressText.setText("❌ İndirme hatası");
-                        updateProgressText.setTextColor(Color.parseColor("#FF6B6B"));
-                    }
-                    Toast.makeText(this, "İndirme başarısız oldu", Toast.LENGTH_LONG).show();
-                });
-            }
-        }).start();
-    }
-
-    /**
-     * Eski basit iletişim kutusu (geriye dönük uyumluluk için korunuyor).
-     */
-    private void showUpdateDialog() {
-        showPremiumUpdateDialog();
-    }
-
-    /**
-     * Eski indirme metodu (geriye dönük uyumluluk için korunuyor).
-     */
-    private void downloadAndInstallUpdate() {
-        Toast.makeText(this, "İndiriliyor...", Toast.LENGTH_SHORT).show();
-        downloadAndInstallUpdateWithProgress(null);
-    }
-
-    private void installApk(File apkFile) {
+    private void installApkFile(File apkFile) {
         try {
             Intent intent = new Intent(Intent.ACTION_VIEW);
             Uri apkUri;
-
             if (Build.VERSION.SDK_INT >= 24) {
-                // Kendi yazdığımız özel ApkProvider'ı kullanarak güvenli content:// URI oluştur
                 apkUri = Uri.parse("content://com.example.niko.apkprovider" + apkFile.getAbsolutePath());
             } else {
-                // Android 6.0 ve altı için klasik file:// URI
                 apkUri = Uri.fromFile(apkFile);
             }
-
             intent.setDataAndType(apkUri, "application/vnd.android.package-archive");
             intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-
             startActivity(intent);
-            addLog("[UPDATE] Özel ApkProvider ile kurulum ekranı açıldı.");
+            addLog("[UPDATE] Kurulum ekranı açıldı");
         } catch (Exception e) {
             addLog("[UPDATE] Kurulum hatası: " + e.getMessage());
             Toast.makeText(this, "Kurulum hatası: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
     }
 
-    /**
-     * Manuel güncelleme kontrolü (Sesli komutlar veya ayarlardan tetiklenir).
-     */
     private void manualUpdateCheck() {
-        // Atlanan sürümü sıfırla ki manuel kontrollerde gösterilsin
-        updatePrefs.edit().remove("skipped_version").apply();
+        updatePrefs.edit().remove(PREF_SKIPPED_VERSION).apply();
         Toast.makeText(this, "Güncelleme kontrol ediliyor...", Toast.LENGTH_SHORT).show();
         checkForUpdates();
     }
@@ -7391,6 +6950,26 @@ public class MainActivity extends Activity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+
+        dismissUpdateDialog();
+
+        instance = null;
+
+        synchronized (this) {
+            if (currentAiTask != null && !currentAiTask.isDone()) {
+                currentAiTask.cancel(true);
+            }
+            currentAiTask = null;
+        }
+        executorService.shutdown();
+        try {
+            if (!executorService.awaitTermination(3, TimeUnit.SECONDS)) {
+                executorService.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            executorService.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
 
         // Tüm aktif animasyonları iptal et
         cancelAllAnimations();
