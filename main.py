@@ -1634,7 +1634,13 @@ async def rate_limit_middleware(request: Request, call_next):
     path = request.url.path
     
     # Statik dosyalar ve sağlık kontrolü için hız sınırlamasını atla
-    if path.startswith("/static") or path == "/health" or path == "/" or path.endswith(".html"):
+    if (
+        path.startswith("/static")
+        or path == "/niko-icon.png"
+        or path == "/health"
+        or path == "/"
+        or path.endswith(".html")
+    ):
         return await call_next(request)
     
     # Sınır türünü belirle
@@ -1771,6 +1777,12 @@ async def health_check():
 @app.get("/favicon.ico")
 async def favicon():
     """Tarayıcı varsayılan favicon isteği için uygulama ikonu."""
+    return FileResponse("static/icons/niko_icon_8.png", media_type="image/png")
+
+
+@app.get("/niko-icon.png")
+async def niko_app_icon():
+    """Marka ikonu — SW/alt yol sorunlarına karşı kök URL (StaticFiles'e ek olarak)."""
     return FileResponse("static/icons/niko_icon_8.png", media_type="image/png")
 
 

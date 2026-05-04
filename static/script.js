@@ -4,7 +4,7 @@
  */
 
 /** Uygulama marka ikonu (tüm sayfalar /static mount ile uyumlu) */
-const NIKO_ICON_URL = '/static/icons/niko_icon_8.png';
+const NIKO_ICON_URL = '/niko-icon.png';
 
 // ============================================================================
 // Global State

@@ -3,8 +3,8 @@
  * Provides offline caching and improved performance
  */
 
-const CACHE_NAME = 'niko-ai-cache-v2';
-const STATIC_CACHE_NAME = 'niko-ai-static-v2';
+const CACHE_NAME = 'niko-ai-cache-v3';
+const STATIC_CACHE_NAME = 'niko-ai-static-v3';
 
 // Static assets to cache immediately on install
 const STATIC_ASSETS = [
@@ -12,6 +12,7 @@ const STATIC_ASSETS = [
     '/index.html',
     '/login.html',
     '/signup.html',
+    '/niko-icon.png',
     '/style.css',
     '/script.js',
     // External CDN resources for Prism.js
@@ -114,6 +115,15 @@ self.addEventListener('fetch', (event) => {
     
     // Only handle GET requests
     if (request.method !== 'GET') {
+        return;
+    }
+
+    const pathname = new URL(url).pathname;
+    // Marka ikonu: önbellekten eski/bozuk yanıt dönmesin — her zaman ağdan
+    if (pathname === '/niko-icon.png' || pathname.startsWith('/static/icons/')) {
+        event.respondWith(
+            fetch(request).catch(() => caches.match(request))
+        );
         return;
     }
     
