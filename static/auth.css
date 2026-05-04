@@ -127,183 +127,18 @@ body::before {
   outline-offset: 2px;
 }
 
-/* Sayfa iskeleti: vitrin + form */
+/* Sayfa iskeleti: merkezi form */
 .auth-page {
-  display: grid;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   min-height: 100vh;
   min-height: 100dvh;
   min-height: 100svh;
-  grid-template-columns: 1fr;
   width: 100%;
 }
 
-@media (min-width: 960px) {
-  .auth-page {
-    grid-template-columns: minmax(260px, 1fr) minmax(min(100%, 420px), 520px);
-  }
-}
-
-@media (min-width: 1200px) {
-  .auth-page {
-    grid-template-columns: minmax(300px, 1fr) minmax(440px, 540px);
-  }
-}
-
-.auth-showcase {
-  display: none;
-  position: relative;
-  padding: clamp(2rem, 5vw, 4rem);
-  flex-direction: column;
-  justify-content: space-between;
-  overflow: hidden;
-  border-right: 1px solid rgba(0, 212, 255, 0.1);
-  background:
-    linear-gradient(165deg, rgba(8, 14, 32, 0.97) 0%, rgba(4, 8, 18, 0.99) 100%);
-}
-
-@media (min-width: 960px) {
-  .auth-showcase {
-    display: flex;
-    min-height: 100dvh;
-    min-height: 100svh;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-}
-
-.auth-showcase::after {
-  content: "";
-  position: absolute;
-  inset: -20%;
-  background: radial-gradient(circle at 30% 40%, rgba(0, 212, 255, 0.15) 0%, transparent 45%);
-  pointer-events: none;
-}
-
-.auth-showcase-inner {
-  position: relative;
-  z-index: 1;
-  max-width: 28rem;
-}
-
-/* Uygulama ikonu — squircle plaka, ince neon çerçeve, üst cam parlaması (asset ile uyum) */
-.auth-showcase-mark,
-.logo-mark,
-.email-icon-wrap {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  margin-left: auto;
-  margin-right: auto;
-  isolation: isolate;
-  flex-shrink: 0;
-  background: linear-gradient(
-    168deg,
-    rgba(22, 38, 72, 0.9) 0%,
-    rgba(8, 14, 32, 0.96) 42%,
-    rgba(3, 6, 14, 1) 100%
-  );
-  border: 1px solid rgba(0, 220, 255, 0.45);
-  box-shadow:
-    0 0 0 1px rgba(0, 0, 0, 0.6) inset,
-    0 1px 0 rgba(255, 255, 255, 0.14) inset,
-    0 0 0 1px rgba(0, 212, 255, 0.06),
-    0 0 36px rgba(0, 212, 255, 0.32),
-    0 14px 40px rgba(0, 0, 0, 0.55);
-}
-
-.auth-showcase-mark::before,
-.logo-mark::before,
-.email-icon-wrap::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.16) 0%,
-    rgba(255, 255, 255, 0.03) 26%,
-    transparent 52%
-  );
-  pointer-events: none;
-  z-index: 2;
-  opacity: 0.55;
-}
-
-.auth-showcase-mark {
-  width: 84px;
-  height: 84px;
-  border-radius: 28px;
-  padding: 8px;
-  margin-bottom: 1.75rem;
-}
-
-.auth-showcase-mark img {
-  position: relative;
-  z-index: 1;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  border-radius: 20px;
-  filter: drop-shadow(0 0 16px rgba(0, 212, 255, 0.5));
-}
-
-.auth-showcase-title {
-  font-family: var(--font-display);
-  font-size: clamp(1.75rem, 3vw, 2.35rem);
-  font-weight: 800;
-  letter-spacing: -0.04em;
-  line-height: 1.1;
-  background: var(--gradient-text);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  margin-bottom: 0.75rem;
-}
-
-.auth-showcase-lead {
-  font-size: 1rem;
-  color: rgba(148, 163, 184, 0.92);
-  font-weight: 500;
-  margin-bottom: 2rem;
-  line-height: 1.6;
-}
-
-.auth-showcase-list {
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 0.85rem;
-}
-
-.auth-showcase-list li {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.65rem;
-  font-size: 0.9rem;
-  color: rgba(226, 232, 240, 0.88);
-}
-
-.auth-showcase-list li::before {
-  content: "";
-  width: 6px;
-  height: 6px;
-  margin-top: 0.45rem;
-  border-radius: 50%;
-  flex-shrink: 0;
-  background: var(--gradient-brand);
-  box-shadow: 0 0 12px rgba(0, 212, 255, 0.6);
-}
-
-.auth-showcase-foot {
-  position: relative;
-  z-index: 1;
-  font-size: 0.75rem;
-  color: var(--text-subtle);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  font-weight: 600;
-}
+/* Showcase kaldırıldı, form merkezi yapıya geçildi */
 
 .auth-main {
   display: flex;
