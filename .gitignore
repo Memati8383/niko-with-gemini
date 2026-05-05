@@ -71,3 +71,10 @@ desktop.ini
 
 # Cloudflare tunnel
 *.json.lock
+
+# Applio Large Files
+Applio/env/
+Applio/ffmpeg.exe
+Applio/ffprobe.exe
+Applio/rvc/models/
+Applio/logs/my-project_200e_5200s/

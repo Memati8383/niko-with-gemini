@@ -31,6 +31,7 @@ from fastapi.responses import StreamingResponse
 import logging
 from prompts import build_full_prompt
 from email_verification import get_email_service
+from api.tts_service import tts_service
 
 def clean_model_response(message: str) -> str:
     """
@@ -2157,11 +2158,19 @@ async def chat(request: ChatRequest, current_user: str = Depends(get_current_use
         # KONSOL ÇIKTISI: Cevap
         print(f"\n[AI CEVAP (No-Stream)]: {response_text}\n{'='*50}\n")
         
+        # Ses oluştur
+        audio_b64 = ""
+        if request.enable_audio:
+            try:
+                audio_b64 = await tts_service.generate_rvc_audio(response_text)
+            except Exception as e:
+                logger.error(f"TTS Error: {e}")
+
         # Java beklentileriyle eşleşen JSON yanıtı döndür
         return {
             "reply": response_text,
             "thought": "",  # Gerekirse ileride düşünce (thought) ayıklama eklenebilir
-            "audio": "",    # Ses için TTS (Metinden Sese) entegrasyonu gereklidir
+            "audio": audio_b64,    # TTS ve RVC entegrasyonu
             "id": session_id
         }
 
