@@ -17,8 +17,8 @@ class TTSService:
         self.pth_path = os.path.join(self.applio_dir, "logs", "my-project", "my-project_200e_5200s.pth")
         self.index_path = os.path.join(self.applio_dir, "logs", "my-project", "my-project.index")
         
-        # Determine the backend python executable to run edge-tts
-        self.main_python = sys.executable
+        # No longer using main_python for edge-tts, we will use Applio's python which already has edge-tts installed
+        pass
         
     async def generate_rvc_audio(self, text: str, voice: str = "tr-TR-AhmetNeural") -> str:
         """
@@ -37,7 +37,7 @@ class TTSService:
             # 1. Run edge-tts
             logger.info("Generating edge-tts audio...")
             edge_cmd = [
-                self.main_python, "-m", "edge_tts",
+                self.applio_python, "-m", "edge_tts",
                 "--text", text,
                 "--voice", voice,
                 "--write-media", temp_tts_path
