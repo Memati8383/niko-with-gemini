@@ -1,7 +1,7 @@
 import subprocess
 import re
 import base64
-import requests # pip install requests
+import requests
 import os
 
 # --- .ENV YÜKLEME ---
