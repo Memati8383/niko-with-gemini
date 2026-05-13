@@ -6538,133 +6538,252 @@ public class MainActivity extends Activity {
         dialog.setCancelable(true);
         dialog.setCanceledOnTouchOutside(true);
         updateDialog = dialog;
-        dialog.setOnDismissListener(d -> pendingUpdateOffer = null);
+
+        final float density = getResources().getDisplayMetrics().density;
+        final int spacing = (int) (16 * density);
+        final int medium = (int) (12 * density);
+        final int small = (int) (8 * density);
 
         android.widget.ScrollView scroll = new android.widget.ScrollView(this);
         scroll.setFillViewport(true);
 
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        int pad = (int) (20 * getResources().getDisplayMetrics().density);
-        root.setPadding(pad, pad, pad, pad);
+        root.setPadding(spacing, spacing, spacing, spacing);
+        root.setElevation(10f * density);
 
         android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
         bg.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
-        bg.setCornerRadius(24);
-        bg.setColors(new int[] { Color.parseColor("#1E1E32"), Color.parseColor("#0D0D18") });
+        bg.setCornerRadius(28f * density);
+        bg.setColors(new int[] { Color.parseColor("#1A1034"), Color.parseColor("#0A0E1C") });
         bg.setOrientation(android.graphics.drawable.GradientDrawable.Orientation.TL_BR);
-        bg.setStroke(2, Color.parseColor("#3300E5FF"));
+        bg.setStroke((int) Math.max(1, density), Color.parseColor("#404A6CFF"));
         root.setBackground(bg);
+
+        LinearLayout headerRow = new LinearLayout(this);
+        headerRow.setOrientation(LinearLayout.HORIZONTAL);
+        headerRow.setGravity(android.view.Gravity.CENTER_VERTICAL);
+
+        android.widget.ImageView updateIcon = new android.widget.ImageView(this);
+        android.graphics.drawable.GradientDrawable iconBg = new android.graphics.drawable.GradientDrawable();
+        iconBg.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+        iconBg.setColor(Color.parseColor("#2B59B8FF"));
+        iconBg.setStroke((int) Math.max(1, density), Color.parseColor("#6FAEFFFF"));
+        updateIcon.setBackground(iconBg);
+        updateIcon.setImageResource(android.R.drawable.stat_sys_download_done);
+        updateIcon.setColorFilter(Color.parseColor("#DDF5FF"));
+        int iconSize = (int) (42 * density);
+        int iconInset = (int) (9 * density);
+        updateIcon.setPadding(iconInset, iconInset, iconInset, iconInset);
+        LinearLayout.LayoutParams iconLp = new LinearLayout.LayoutParams(iconSize, iconSize);
+        iconLp.rightMargin = small;
+        headerRow.addView(updateIcon, iconLp);
+
+        TextView badge = new TextView(this);
+        badge.setText("Yeni sürüm hazır");
+        badge.setTextColor(Color.parseColor("#8EE6FF"));
+        badge.setTextSize(12);
+        badge.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.BOLD));
+        badge.setPadding(medium, small / 2, medium, small / 2);
+        android.graphics.drawable.GradientDrawable badgeBg = new android.graphics.drawable.GradientDrawable();
+        badgeBg.setCornerRadius(999f);
+        badgeBg.setColor(Color.parseColor("#2230A6FF"));
+        badge.setBackground(badgeBg);
+        headerRow.addView(badge);
+        root.addView(headerRow);
+
+        final android.animation.AnimatorSet headerAnim = new android.animation.AnimatorSet();
+        android.animation.ObjectAnimator pulseX = android.animation.ObjectAnimator.ofFloat(updateIcon, View.SCALE_X, 1f,
+                1.08f, 1f);
+        android.animation.ObjectAnimator pulseY = android.animation.ObjectAnimator.ofFloat(updateIcon, View.SCALE_Y, 1f,
+                1.08f, 1f);
+        android.animation.ObjectAnimator glow = android.animation.ObjectAnimator.ofFloat(badge, View.ALPHA, 0.82f, 1f,
+                0.82f);
+        android.animation.ObjectAnimator iconTwist = android.animation.ObjectAnimator.ofFloat(updateIcon, View.ROTATION,
+                -4f, 4f, -4f);
+        for (android.animation.ObjectAnimator animator : new android.animation.ObjectAnimator[] { pulseX, pulseY, glow }) {
+            animator.setDuration(1700);
+            animator.setRepeatCount(android.animation.ValueAnimator.INFINITE);
+            animator.setRepeatMode(android.animation.ValueAnimator.RESTART);
+            animator.setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator());
+        }
+        iconTwist.setDuration(2200);
+        iconTwist.setRepeatCount(android.animation.ValueAnimator.INFINITE);
+        iconTwist.setRepeatMode(android.animation.ValueAnimator.REVERSE);
+        iconTwist.setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator());
+        headerAnim.playTogether(pulseX, pulseY, glow, iconTwist);
+        headerAnim.start();
 
         TextView title = new TextView(this);
         title.setText("Yeni güncelleme");
         title.setTextColor(Color.WHITE);
-        title.setTextSize(20);
+        title.setTextSize(24);
         title.setTypeface(android.graphics.Typeface.create("sans-serif-black", android.graphics.Typeface.BOLD));
+        title.setPadding(0, medium, 0, small / 2);
         root.addView(title);
 
         TextView ver = new TextView(this);
-        ver.setText(getCurrentVersionName() + "  →  " + u.versionName);
-        ver.setTextColor(Color.parseColor("#00E5FF"));
-        ver.setTextSize(14);
-        ver.setPadding(0, pad / 2, 0, pad);
+        ver.setText("v" + getCurrentVersionName() + "  ->  v" + u.versionName);
+        ver.setTextColor(Color.parseColor("#7CD8FF"));
+        ver.setTextSize(13);
+        ver.setPadding(0, 0, 0, spacing);
         root.addView(ver);
+
+        LinearLayout infoCard = new LinearLayout(this);
+        infoCard.setOrientation(LinearLayout.VERTICAL);
+        infoCard.setPadding(medium, medium, medium, medium);
+        android.graphics.drawable.GradientDrawable cardBg = new android.graphics.drawable.GradientDrawable();
+        cardBg.setCornerRadius(18f * density);
+        cardBg.setColor(Color.parseColor("#1AFFFFFF"));
+        cardBg.setStroke((int) Math.max(1, density), Color.parseColor("#263F5FFF"));
+        infoCard.setBackground(cardBg);
+        root.addView(infoCard);
 
         TextView head = new TextView(this);
         head.setText(u.headline);
-        head.setTextColor(Color.parseColor("#E8E8E8"));
-        head.setTextSize(16);
+        head.setTextColor(Color.parseColor("#F2F6FF"));
+        head.setTextSize(17);
         head.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.BOLD));
-        root.addView(head);
+        infoCard.addView(head);
 
         TextView sum = new TextView(this);
         sum.setText(u.summary);
-        sum.setTextColor(Color.parseColor("#CCCCCC"));
+        sum.setTextColor(Color.parseColor("#C5D3EA"));
         sum.setTextSize(14);
-        sum.setPadding(0, pad / 3, 0, pad / 2);
-        root.addView(sum);
+        sum.setPadding(0, small, 0, 0);
+        infoCard.addView(sum);
 
         if (!u.changelogText.isEmpty()) {
+            LinearLayout.LayoutParams changelogLp = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            changelogLp.topMargin = medium;
+
+            LinearLayout changelogCard = new LinearLayout(this);
+            changelogCard.setOrientation(LinearLayout.VERTICAL);
+            changelogCard.setPadding(medium, medium, medium, medium);
+            android.graphics.drawable.GradientDrawable changelogBg = new android.graphics.drawable.GradientDrawable();
+            changelogBg.setCornerRadius(16f * density);
+            changelogBg.setColor(Color.parseColor("#12000000"));
+            changelogBg.setStroke((int) Math.max(1, density), Color.parseColor("#2AFFFFFF"));
+            changelogCard.setBackground(changelogBg);
+
             TextView chLabel = new TextView(this);
             chLabel.setText("Değişiklikler");
-            chLabel.setTextColor(Color.parseColor("#FFD700"));
-            chLabel.setTextSize(13);
-            chLabel.setPadding(0, pad / 2, 0, pad / 4);
-            root.addView(chLabel);
+            chLabel.setTextColor(Color.parseColor("#FFD98A"));
+            chLabel.setTextSize(13.5f);
+            chLabel.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.BOLD));
+            changelogCard.addView(chLabel);
 
             TextView ch = new TextView(this);
             ch.setText(u.changelogText);
-            ch.setTextColor(Color.parseColor("#B0B0B0"));
-            ch.setTextSize(12);
-            ch.setLineSpacing(4, 1.15f);
-            root.addView(ch);
+            ch.setTextColor(Color.parseColor("#AFC3DE"));
+            ch.setTextSize(12.5f);
+            ch.setLineSpacing(4 * density, 1.2f);
+            ch.setPadding(0, small, 0, 0);
+            changelogCard.addView(ch);
+            root.addView(changelogCard, changelogLp);
         }
 
         if (u.apkSizeBytes > 0) {
             TextView size = new TextView(this);
             size.setText(String.format(Locale.getDefault(), "Paket: %.1f MB",
                     u.apkSizeBytes / (1024.0 * 1024.0)));
-            size.setTextColor(Color.parseColor("#88FFFFFF"));
+            size.setTextColor(Color.parseColor("#88DDF8FF"));
             size.setTextSize(12);
-            size.setPadding(0, pad / 2, 0, 0);
+            size.setPadding(0, medium, 0, 0);
             root.addView(size);
         }
 
         LinearLayout progressArea = new LinearLayout(this);
         progressArea.setOrientation(LinearLayout.VERTICAL);
         progressArea.setVisibility(View.GONE);
-        progressArea.setPadding(0, pad, 0, 0);
+        progressArea.setPadding(0, spacing, 0, 0);
+        android.graphics.drawable.GradientDrawable progressBg = new android.graphics.drawable.GradientDrawable();
+        progressBg.setCornerRadius(16f * density);
+        progressBg.setColor(Color.parseColor("#1400D5FF"));
+        progressBg.setStroke((int) Math.max(1, density), Color.parseColor("#2D7CE7FF"));
+        progressArea.setBackground(progressBg);
 
         updateProgressBar = new android.widget.ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
         updateProgressBar.setMax(100);
         updateProgressBar.setProgress(0);
         updateProgressBar.setIndeterminate(false);
         LinearLayout.LayoutParams pbLp = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, (int) (8 * getResources().getDisplayMetrics().density));
+                LinearLayout.LayoutParams.MATCH_PARENT, (int) (8 * density));
+        pbLp.setMargins(medium, medium, medium, 0);
         updateProgressBar.setLayoutParams(pbLp);
         progressArea.addView(updateProgressBar);
 
         updateProgressText = new TextView(this);
         updateProgressText.setText("");
-        updateProgressText.setTextColor(Color.parseColor("#00E5FF"));
+        updateProgressText.setTextColor(Color.parseColor("#9CE8FF"));
         updateProgressText.setTextSize(12);
         updateProgressText.setGravity(android.view.Gravity.CENTER);
-        updateProgressText.setPadding(0, pad / 2, 0, 0);
+        updateProgressText.setPadding(medium, small, medium, medium);
         progressArea.addView(updateProgressText);
 
         root.addView(progressArea);
 
-        TextView btnUpdate = new TextView(this);
+        final TextView btnUpdate = new TextView(this);
         btnUpdate.setText("İndir ve kur");
-        btnUpdate.setTextColor(Color.parseColor("#0A0A14"));
+        btnUpdate.setTextColor(Color.parseColor("#071225"));
         btnUpdate.setTextSize(15);
         btnUpdate.setGravity(android.view.Gravity.CENTER);
-        btnUpdate.setPadding(0, pad, 0, pad / 2);
+        btnUpdate.setPadding(0, medium, 0, medium);
         android.graphics.drawable.GradientDrawable btnBg = new android.graphics.drawable.GradientDrawable();
-        btnBg.setCornerRadius(20);
-        btnBg.setColors(new int[] { Color.parseColor("#00E5FF"), Color.parseColor("#00B4D8") });
+        btnBg.setCornerRadius(18f * density);
+        btnBg.setColors(new int[] { Color.parseColor("#8EE6FF"), Color.parseColor("#42BFFF") });
         btnUpdate.setBackground(btnBg);
         btnUpdate.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.BOLD));
+        LinearLayout.LayoutParams updateLp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        updateLp.topMargin = spacing;
+        final android.animation.ObjectAnimator buttonBreathX = android.animation.ObjectAnimator.ofFloat(btnUpdate,
+                View.SCALE_X, 1f, 1.02f, 1f);
+        final android.animation.ObjectAnimator buttonBreathY = android.animation.ObjectAnimator.ofFloat(btnUpdate,
+                View.SCALE_Y, 1f, 1.02f, 1f);
+        for (android.animation.ObjectAnimator animator : new android.animation.ObjectAnimator[] { buttonBreathX,
+                buttonBreathY }) {
+            animator.setDuration(1900);
+            animator.setStartDelay(350);
+            animator.setRepeatCount(android.animation.ValueAnimator.INFINITE);
+            animator.setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator());
+            animator.start();
+        }
 
         LinearLayout actions = new LinearLayout(this);
         actions.setOrientation(LinearLayout.HORIZONTAL);
-        actions.setGravity(android.view.Gravity.CENTER);
-        actions.setPadding(0, pad / 2, 0, 0);
+        actions.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        actions.setPadding(0, medium, 0, 0);
 
         TextView btnLater = new TextView(this);
         btnLater.setText("Sonra");
-        btnLater.setTextColor(Color.parseColor("#888888"));
-        btnLater.setPadding(pad, pad / 2, pad, pad / 2);
+        btnLater.setTextColor(Color.parseColor("#A9B8D0"));
+        btnLater.setTextSize(13);
+        btnLater.setPadding(medium, small, medium, small);
+        android.graphics.drawable.GradientDrawable laterBg = new android.graphics.drawable.GradientDrawable();
+        laterBg.setCornerRadius(14f * density);
+        laterBg.setColor(Color.parseColor("#1AFFFFFF"));
+        btnLater.setBackground(laterBg);
         btnLater.setOnClickListener(v -> {
             vibrateFeedback();
             dialog.dismiss();
         });
-        actions.addView(btnLater);
+        LinearLayout.LayoutParams laterLp = new LinearLayout.LayoutParams(0,
+                LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+        laterLp.rightMargin = small;
+        actions.addView(btnLater, laterLp);
 
         TextView btnSkip = new TextView(this);
         btnSkip.setText("Bu sürümü atla");
-        btnSkip.setTextColor(Color.parseColor("#FF6B6B"));
-        btnSkip.setPadding(pad, pad / 2, pad, pad / 2);
+        btnSkip.setGravity(android.view.Gravity.CENTER);
+        btnSkip.setTextColor(Color.parseColor("#FF9A9A"));
+        btnSkip.setTextSize(13);
+        btnSkip.setPadding(medium, small, medium, small);
+        android.graphics.drawable.GradientDrawable skipBg = new android.graphics.drawable.GradientDrawable();
+        skipBg.setCornerRadius(14f * density);
+        skipBg.setColor(Color.parseColor("#22FF6B6B"));
+        btnSkip.setBackground(skipBg);
         btnSkip.setOnClickListener(v -> {
             vibrateFeedback();
             updatePrefs.edit().putString(PREF_SKIPPED_VERSION, u.versionName).apply();
@@ -6672,18 +6791,33 @@ public class MainActivity extends Activity {
             Toast.makeText(this, "Bu sürüm atlandı", Toast.LENGTH_SHORT).show();
             dialog.dismiss();
         });
-        actions.addView(btnSkip);
+        LinearLayout.LayoutParams skipLp = new LinearLayout.LayoutParams(0,
+                LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+        skipLp.leftMargin = small;
+        actions.addView(btnSkip, skipLp);
 
         btnUpdate.setOnClickListener(v -> {
             vibrateFeedback();
+            buttonBreathX.cancel();
+            buttonBreathY.cancel();
+            btnUpdate.animate().scaleX(0.96f).scaleY(0.96f).setDuration(90).withEndAction(
+                    () -> btnUpdate.animate().scaleX(1f).scaleY(1f).setDuration(110).start()).start();
             btnUpdate.setVisibility(View.GONE);
             actions.setVisibility(View.GONE);
             progressArea.setVisibility(View.VISIBLE);
+            progressArea.setAlpha(0f);
+            progressArea.setTranslationY(18f * density);
+            progressArea.animate()
+                    .alpha(1f)
+                    .translationY(0f)
+                    .setDuration(260)
+                    .setInterpolator(new android.view.animation.DecelerateInterpolator())
+                    .start();
             updateProgressText.setText("Bağlanıyor…");
             startApkDownload(u);
         });
 
-        root.addView(btnUpdate);
+        root.addView(btnUpdate, updateLp);
         root.addView(actions);
 
         scroll.addView(root);
@@ -6694,7 +6828,25 @@ public class MainActivity extends Activity {
             win.setLayout((int) (getResources().getDisplayMetrics().widthPixels * 0.9),
                     android.view.WindowManager.LayoutParams.WRAP_CONTENT);
         }
+        dialog.setOnDismissListener(d -> {
+            headerAnim.cancel();
+            buttonBreathX.cancel();
+            buttonBreathY.cancel();
+            pendingUpdateOffer = null;
+        });
+        root.setAlpha(0f);
+        root.setScaleX(0.96f);
+        root.setScaleY(0.96f);
+        root.setTranslationY(28f * density);
         dialog.show();
+        root.animate()
+                .alpha(1f)
+                .scaleX(1f)
+                .scaleY(1f)
+                .translationY(0f)
+                .setDuration(320)
+                .setInterpolator(new android.view.animation.DecelerateInterpolator())
+                .start();
         addLog("[UPDATE] Güncelleme iletişim kutusu: v" + u.versionName);
     }
 
