@@ -971,16 +971,7 @@ public class MainActivity extends Activity {
             return true;
         }
 
-        // Son Aramalar (Gelen/Giden)
-        if (cmd.contains("son gelen")) {
-            callLast(CallLog.Calls.INCOMING_TYPE);
-            return true;
-        }
 
-        if (cmd.contains("son aranan")) {
-            callLast(CallLog.Calls.OUTGOING_TYPE);
-            return true;
-        }
 
         // İsimle Arama Başlatma
         if (cmd.contains("ara")) {
@@ -1099,28 +1090,7 @@ public class MainActivity extends Activity {
             return true;
         }
 
-        // Kablosuz Bağlantılar (Wi-Fi ve Bluetooth)
-        if (cmd.contains("wifi") || cmd.contains("wi-fi") || cmd.contains("internet")) {
-            if (cmd.contains("aç")) {
-                controlWifi(true);
-                return true;
-            }
-            if (cmd.contains("kapat")) {
-                controlWifi(false);
-                return true;
-            }
-        }
 
-        if (cmd.contains("bluetooth")) {
-            if (cmd.contains("aç")) {
-                controlBluetooth(true);
-                return true;
-            }
-            if (cmd.contains("kapat")) {
-                controlBluetooth(false);
-                return true;
-            }
-        }
 
         // Sistem Güncelleme Kontrolü
         if (cmd.contains("güncelleme") || cmd.contains("sürüm")) {
@@ -1169,24 +1139,7 @@ public class MainActivity extends Activity {
      * TELEFON İŞLEMLERİ (ARAMALAR)
      *********************************************************************************/
 
-    /**
-     * Belirtilen arama tipi baz alınarak (Gelen/Giden) son aramayı tekrar
-     * gerçekleştirir.
-     * 
-     * @param type CallLog.Calls.TYPE sabitlerinden biri
-     */
-    private void callLast(int type) {
-        if (checkSelfPermission(Manifest.permission.READ_CALL_LOG) != PackageManager.PERMISSION_GRANTED)
-            return;
-
-        try (Cursor c = getContentResolver().query(CallLog.Calls.CONTENT_URI, null, CallLog.Calls.TYPE + "=?",
-                new String[] { String.valueOf(type) }, CallLog.Calls.DATE + " DESC")) {
-
-            if (c != null && c.moveToFirst()) {
-                startCall(c.getString(c.getColumnIndex(CallLog.Calls.NUMBER)));
-            }
-        }
-    }
+    // --- Son arama özelliği CallLog izni gereksinimi sebebiyle kaldırılmıştır ---
 
     /**
      * Rehberde isim arayarak arama başlatır.
@@ -4153,63 +4106,7 @@ public class MainActivity extends Activity {
     // ================= SİSTEM KONTROLLERİ (WIFI / BLUETOOTH / PARLAKLIK)
     // =================
 
-    /**
-     * Wi-Fi bağlantısını açar veya kapatır.
-     */
-    private void controlWifi(boolean enable) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            // Android 10 ve üzeri (SDK >= 29) için Panel açma
-            // Android 10'da programatik Wi-Fi açma/kapama kısıtlandı.
-            Intent panelIntent = new Intent(Settings.Panel.ACTION_INTERNET_CONNECTIVITY);
-            startActivityForResult(panelIntent, 0);
-            speak("Android 10 ve üzeri cihazlarda Wi-Fi ayarlar paneli açılıyor...");
-        } else {
-            // Eski sürümler için doğrudan WifiManager ile kontrol
-            WifiManager wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
-            if (wifiManager != null) {
-                wifiManager.setWifiEnabled(enable);
-                speak(enable ? "Wi-Fi açıldı" : "Wi-Fi kapatıldı");
-            } else {
-                speak("Wi-Fi servisine erişilemedi.");
-            }
-        }
-    }
-
-    /**
-     * Bluetooth bağlantısını açar veya kapatır.
-     */
-    private void controlBluetooth(boolean enable) {
-        BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-        if (bluetoothAdapter == null) {
-            speak("Bu cihazda Bluetooth desteklenmiyor.");
-            return;
-        }
-
-        // Android 12 (SDK 31) ve üzeri için ekstra izin kontrolü
-        if (Build.VERSION.SDK_INT >= 31) {
-            if (checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-                requestPermissions(new String[] { Manifest.permission.BLUETOOTH_CONNECT }, PERMISSION_CODE);
-                speak("Bluetooth izni gerekli.");
-                return;
-            }
-        }
-
-        if (enable) {
-            if (!bluetoothAdapter.isEnabled()) {
-                bluetoothAdapter.enable(); // Not: Bazı yeni Android sürümlerinde sadece panel açılabiliyor olabilir
-                speak("Bluetooth açılıyor");
-            } else {
-                speak("Bluetooth zaten açık");
-            }
-        } else {
-            if (bluetoothAdapter.isEnabled()) {
-                bluetoothAdapter.disable();
-                speak("Bluetooth kapatılıyor");
-            } else {
-                speak("Bluetooth zaten kapalı");
-            }
-        }
-    }
+    // --- Wi-Fi ve Bluetooth kontrolleri güvenlik sebebiyle kaldırılmıştır ---
 
     /**
      * İnternet bağlantısının olup olmadığını kontrol eder.
