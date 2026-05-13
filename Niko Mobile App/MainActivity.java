@@ -1385,7 +1385,15 @@ public class MainActivity extends Activity {
 
                     if (code == 200) {
                         // Başarılı yanıtta JSON verilerini ayrıştır
-                        JSONObject jsonResponse = new JSONObject(response.toString());
+                        JSONObject jsonResponse = null;
+                        try {
+                            jsonResponse = new JSONObject(response.toString());
+                        } catch (org.json.JSONException je) {
+                            addLog("[AI] JSON PARSE HATASI: " + je.getMessage());
+                            speak("Sunucudan geçersiz bir yanıt aldım. Lütfen tekrar dene.", false);
+                            return;
+                        }
+
                         String replyText = jsonResponse.optString("reply", "");
                         String audioB64 = jsonResponse.optString("audio", "");
                         String newSessionId = jsonResponse.optString("id", null);
@@ -1437,6 +1445,9 @@ public class MainActivity extends Activity {
                 } catch (java.net.UnknownHostException e) {
                     addLog("[AI] BAĞLANTI YOK: " + e.getMessage());
                     speak("İnternet bağlantını kontrol et biraderim, sunucuya ulaşamıyorum.", false);
+                } catch (org.json.JSONException e) {
+                    addLog("[AI] JSON HATASI: " + e.getMessage());
+                    speak("İşlem sırasında bir veri hatası oluştu.", false);
                 } catch (Exception e) {
                     if (Thread.currentThread().isInterrupted()) {
                         addLog("[AI] Görev iptal edildiği için hata yutuldu.");
@@ -6253,6 +6264,7 @@ public class MainActivity extends Activity {
 
                 }
             } catch (Exception e) {
+                addLog("[CONFIG] API URL güncellenemedi: " + e.getMessage());
             }
         }).start();
     }
