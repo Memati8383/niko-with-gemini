@@ -1100,7 +1100,7 @@ class ChatService:
         # Virgülle ayrılmış birden fazla anahtarı destekle
         self.api_keys = [k.strip() for k in api_key_env.split(",") if k.strip()]
         self.current_key_index = 0
-        self.default_model = "gemini-1.5-flash"
+        self.default_model = os.getenv("DEFAULT_MODEL", "gemini-1.5-flash")
         self.client = None
         self._setup_client()
         self.timeout = 120.0
@@ -1118,8 +1118,8 @@ class ChatService:
             logger.error("Gemini API anahtarı bulunamadı!")
     
     async def get_models(self) -> List[str]:
-        """Sadece Gemini 1.5 Flash modelini döndür (Kota sorunlarını önlemek için)."""
-        return ["gemini-1.5-flash"]
+        """Sadece Gemini 2.0 Flash Exp modelini döndür (Kota sorunlarını önlemek için)."""
+        return ["gemini-2.0-flash-exp"]
     
     async def check_ollama_available(self) -> bool:
         """Gemini API anahtarının mevcut olup olmadığını kontrol et."""
@@ -1136,8 +1136,8 @@ class ChatService:
             yield "Gemini API anahtarı ayarlanmamış."
             return
 
-        # Kullanıcının isteği üzerine sadece gemini-1.5-flash kullanıyoruz
-        selected_model_name = "gemini-1.5-flash"
+        # İstekte model belirtilmişse onu kullan, yoksa varsayılanı kullan
+        selected_model_name = model or self.default_model
         
         logger.info(f"[AI] Gemini isteği (Model: {selected_model_name})")
 
