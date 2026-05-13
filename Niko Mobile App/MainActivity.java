@@ -614,9 +614,7 @@ public class MainActivity extends Activity {
         updateSearchIcons();
 
         btnWebSearch.setOnClickListener(v -> {
-            isWebSearchEnabled = !isWebSearchEnabled;
-            searchPrefs.edit().putBoolean("web_search", isWebSearchEnabled).apply();
-            updateSearchIcons();
+            setWebSearchEnabled(!isWebSearchEnabled);
             // speak(isWebSearchEnabled ? "Web araması aktif" : "Web araması kapatıldı",
             // false);
         });
@@ -625,29 +623,7 @@ public class MainActivity extends Activity {
         btnStop = findViewById(R.id.btnStop);
         btnStop.setOnClickListener(v -> {
             hapticFeedback(HapticType.MEDIUM);
-
-            // 1. Konuşmayı durdur
-            if (tts != null && tts.isSpeaking()) {
-                tts.stop();
-                ttsQueue.clear();
-            }
-            // 2. Dinlemeyi durdur
-            if (isListening && speechRecognizer != null) {
-                speechRecognizer.cancel();
-                isListening = false;
-            }
-            // 3. AI İsteğini İptal Et (Vazgeçme)
-            if (currentAiTask != null && !currentAiTask.isDone()) {
-                currentAiTask.cancel(true); // true = interrupt if running
-                addLog("[AI] İstek kullanıcı tarafından iptal edildi.");
-                currentAiTask = null;
-            }
-            // 4. UI Temizle
-            runOnUiThread(() -> {
-                aiResponseContainer.setVisibility(View.GONE);
-                txtAIResponse.setText("");
-                Toast.makeText(this, "İşlem durduruldu", Toast.LENGTH_SHORT).show();
-            });
+            stopActiveOperations(false);
         });
 
         // Uzun basınca arşivi ve oturumu sıfırla (Tam Sıfırlama)
@@ -1000,6 +976,39 @@ public class MainActivity extends Activity {
             speak("Benim adım Niko. Senin kişisel yapay zeka asistanınım.");
             return true;
         }
+
+        // Sesli komutla web arama modu kontrolü
+        if ((cmd.contains("web aram") || cmd.contains("internette ara") || cmd.contains("internet araması"))
+                && (cmd.contains("aç") || cmd.contains("aktif"))) {
+            setWebSearchEnabled(true);
+            speak("Web araması aktif edildi.");
+            return true;
+        }
+        if ((cmd.contains("web aram") || cmd.contains("internet araması"))
+                && (cmd.contains("kapat") || cmd.contains("pasif"))) {
+            setWebSearchEnabled(false);
+            speak("Web araması kapatıldı.");
+            return true;
+        }
+
+        // Asistan dinleme ve işlem kontrolü
+        if (cmd.contains("dinlemeyi başlat") || cmd.contains("mikrofonu aç") || cmd.contains("beni dinle")) {
+            startListening();
+            speak("Dinlemeye başladım.");
+            return true;
+        }
+        if (cmd.contains("dinlemeyi durdur") || cmd.contains("mikrofonu kapat")) {
+            if (isListening && speechRecognizer != null) {
+                speechRecognizer.cancel();
+                isListening = false;
+            }
+            speak("Dinleme durduruldu.");
+            return true;
+        }
+        if (cmd.contains("işlemi durdur") || cmd.contains("hepsini durdur") || cmd.contains("iptal et")) {
+            stopActiveOperations(true);
+            return true;
+        }
         // ==========================================
         // 2. İLETİŞİM (WHATSAPP VE ARAMALAR)
         // ==========================================
@@ -1013,7 +1022,7 @@ public class MainActivity extends Activity {
         }
 
         // İsimle Arama Başlatma
-        if (cmd.contains("ara")) {
+        if (cmd.matches("^ara\\s+.+") || cmd.matches("^([a-zçğıöşü0-9\\s]+)\\s+ara$")) {
             String target = cmd.replace("ara", "").trim();
             addLog("[CMD] Arama başlatılıyor: " + target);
             callByName(target);
@@ -1168,6 +1177,36 @@ public class MainActivity extends Activity {
         }
 
         return false; // Hiçbir yerel komut eşleşmediyse, soruyu Yapay Zeka'ya (AI) devret
+    }
+
+    private void stopActiveOperations(boolean withVoiceFeedback) {
+        if (tts != null && tts.isSpeaking()) {
+            tts.stop();
+            ttsQueue.clear();
+        }
+
+        if (isListening && speechRecognizer != null) {
+            speechRecognizer.cancel();
+            isListening = false;
+        }
+
+        if (currentAiTask != null && !currentAiTask.isDone()) {
+            currentAiTask.cancel(true);
+            addLog("[AI] İstek kullanıcı tarafından iptal edildi.");
+            currentAiTask = null;
+        }
+
+        runOnUiThread(() -> {
+            aiResponseContainer.setVisibility(View.GONE);
+            txtAIResponse.setText("");
+            if (!withVoiceFeedback) {
+                Toast.makeText(this, "İşlem durduruldu", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        if (withVoiceFeedback) {
+            speak("Tamam, işlemleri durdurdum.");
+        }
     }
 
     /*
@@ -6170,6 +6209,14 @@ public class MainActivity extends Activity {
     /**
      * Web arama butonunun görsel durumunu günceller.
      */
+    private void setWebSearchEnabled(boolean enabled) {
+        isWebSearchEnabled = enabled;
+        if (searchPrefs != null) {
+            searchPrefs.edit().putBoolean("web_search", isWebSearchEnabled).apply();
+        }
+        updateSearchIcons();
+    }
+
     private void updateSearchIcons() {
         runOnUiThread(() -> {
             if (isWebSearchEnabled) {
