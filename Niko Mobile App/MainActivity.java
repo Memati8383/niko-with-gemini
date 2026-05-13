@@ -701,6 +701,8 @@ public class MainActivity extends Activity {
      */
     private void startBreathingAnimation() {
         View orbSection = findViewById(R.id.orbSection);
+        View orbHalo = findViewById(R.id.orbHalo);
+
         AnimationSet animSet = new AnimationSet(true);
         animSet.setInterpolator(new AccelerateDecelerateInterpolator());
 
@@ -718,6 +720,16 @@ public class MainActivity extends Activity {
         animSet.addAnimation(alpha);
         animSet.addAnimation(scale);
         orbSection.startAnimation(animSet);
+
+        // Halo için yavaş ve premium bir dönme efekti ekle
+        if (orbHalo != null) {
+            android.animation.ObjectAnimator rotation = android.animation.ObjectAnimator.ofFloat(orbHalo, "rotation",
+                    0f, 360f);
+            rotation.setDuration(20000);
+            rotation.setRepeatCount(android.animation.ObjectAnimator.INFINITE);
+            rotation.setInterpolator(new android.view.animation.LinearInterpolator());
+            rotation.start();
+        }
     }
 
     /**
@@ -878,6 +890,15 @@ public class MainActivity extends Activity {
                 // Hata durumunda dinlemeyi bırak
                 isListening = false;
                 addLog("[STT] Hata Kodu: " + e);
+
+                // Kullanıcıya sesli geri bildirim ver (UX İyileştirmesi)
+                if (e == SpeechRecognizer.ERROR_NO_MATCH) {
+                    speak("Seni tam anlayamadım biraderim, tekrar söyler misin?", false);
+                } else if (e == SpeechRecognizer.ERROR_SPEECH_TIMEOUT) {
+                    speak("Sesini alamadım, mikrofon kapandı.", false);
+                } else if (e == SpeechRecognizer.ERROR_AUDIO || e == SpeechRecognizer.ERROR_CLIENT) {
+                    speak("Mikrofonda bir sıkıntı çıktı sanki.", false);
+                }
             }
 
             public void onReadyForSpeech(Bundle b) {
@@ -886,8 +907,21 @@ public class MainActivity extends Activity {
             public void onBeginningOfSpeech() {
                 // Konuşma başladığında kullanıcıya geri bildirim ver
                 runOnUiThread(() -> {
-                    aiResponseContainer.setVisibility(View.VISIBLE);
+                    if (aiResponseContainer.getVisibility() != View.VISIBLE) {
+                        aiResponseContainer.setVisibility(View.VISIBLE);
+                        aiResponseContainer.setAlpha(0f);
+                        aiResponseContainer.setTranslationY(30f);
+                        aiResponseContainer.animate().alpha(1f).translationY(0f).setDuration(400)
+                                .setInterpolator(new android.view.animation.DecelerateInterpolator()).start();
+                    }
                     txtAIResponse.setText("Dinliyorum...");
+
+                    // Dinleme başladığında orb rengini hafif mavi/cyan yap
+                    if (voiceOrb != null) {
+                        voiceOrb.setBackgroundTintList(
+                                android.content.res.ColorStateList
+                                        .valueOf(android.graphics.Color.parseColor("#00E5FF")));
+                    }
                 });
             }
 
@@ -898,14 +932,15 @@ public class MainActivity extends Activity {
                 float rawScale = 1.0f + (Math.max(0, rmsdB) / 20.0f);
                 float scale = Math.min(rawScale, 1.4f);
 
-                voiceOrb.animate().scaleX(scale).scaleY(scale).setDuration(50).start();
+                voiceOrb.animate().scaleX(scale).scaleY(scale).setDuration(50)
+                        .setInterpolator(new android.view.animation.OvershootInterpolator()).start();
 
                 // Halo efektini de ölçeklendir (limitli büyüme)
                 View orbHalo = findViewById(R.id.orbHalo);
                 if (orbHalo != null) {
                     float haloScale = Math.min(1.0f + (Math.max(0, rmsdB) / 12.0f), 1.6f);
                     orbHalo.animate().scaleX(haloScale).scaleY(haloScale).alpha(0.2f + (rmsdB / 25.0f)).setDuration(120)
-                            .start();
+                            .setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator()).start();
                 }
             }
 
@@ -913,6 +948,13 @@ public class MainActivity extends Activity {
             }
 
             public void onEndOfSpeech() {
+                runOnUiThread(() -> {
+                    hapticFeedback(HapticType.LIGHT); // Dinleme bittiğini hissettir
+                    if (voiceOrb != null) {
+                        voiceOrb.setBackgroundTintList(null); // Rengi normale döndür
+                        voiceOrb.animate().scaleX(1f).scaleY(1f).setDuration(300).start();
+                    }
+                });
             }
 
             public void onPartialResults(Bundle b) {
@@ -958,7 +1000,6 @@ public class MainActivity extends Activity {
             speak("Benim adım Niko. Senin kişisel yapay zeka asistanınım.");
             return true;
         }
-
         // ==========================================
         // 2. İLETİŞİM (WHATSAPP VE ARAMALAR)
         // ==========================================
@@ -970,8 +1011,6 @@ public class MainActivity extends Activity {
             handleWhatsAppCommand(cmd);
             return true;
         }
-
-
 
         // İsimle Arama Başlatma
         if (cmd.contains("ara")) {
@@ -1090,8 +1129,6 @@ public class MainActivity extends Activity {
             return true;
         }
 
-
-
         // Sistem Güncelleme Kontrolü
         if (cmd.contains("güncelleme") || cmd.contains("sürüm")) {
             if (cmd.contains("kontrol") || cmd.contains("var mı") || cmd.contains("bak")) {
@@ -1150,8 +1187,19 @@ public class MainActivity extends Activity {
                 null)) {
 
             if (c != null && c.moveToFirst()) {
-                startCall(c.getString(c.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER)));
+                @SuppressWarnings("Range")
+                String contactName = c.getString(c.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME));
+                @SuppressWarnings("Range")
+                String phoneNumber = c.getString(c.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER));
+
+                speak(contactName + " aranıyor...");
+                startCall(phoneNumber);
+            } else {
+                speak(name + " kişisi rehberde bulunamadı.");
             }
+        } catch (Exception e) {
+            speak("Rehbere erişirken bir sorun oluştu.");
+            addLog("[CALL] Rehber hatası: " + e.getMessage());
         }
     }
 
@@ -1159,8 +1207,10 @@ public class MainActivity extends Activity {
      * Verilen numarayı arar.
      */
     private void startCall(String phone) {
-        if (checkSelfPermission(Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED)
+        if (checkSelfPermission(Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED) {
+            speak("Arama yapmak için gerekli izinlere sahip değilim.");
             return;
+        }
 
         startActivity(new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + phone)));
     }
@@ -1319,6 +1369,7 @@ public class MainActivity extends Activity {
 
                     // Sunucudan gelen yanıt kodunu kontrol et
                     int code = conn.getResponseCode();
+                    addLog("[AI] Sunucu yanıt kodu: " + code);
                     InputStream stream = (code >= 200 && code < 300) ? conn.getInputStream() : conn.getErrorStream();
 
                     // Yanıtı oku
@@ -3691,16 +3742,16 @@ public class MainActivity extends Activity {
             if (aiOrbAnimator != null)
                 aiOrbAnimator.cancel();
 
-            // AI konuşurken renk pembe/kırmızımsı (görseldeki gibi) efekti
+            // AI konuşurken renk pembe/kırmızımsı ve mor arası premium efekt
             if (voiceOrb != null) {
                 voiceOrb.setBackgroundTintList(
-                        android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#FF1E56")));
+                        android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#FF2A6D")));
             }
             if (orbHalo == null)
                 orbHalo = findViewById(R.id.orbHalo);
             if (orbHalo != null) {
                 orbHalo.setBackgroundTintList(
-                        android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#FF1E56")));
+                        android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#FF2A6D")));
             }
 
             if (aiOrbRunnable == null) {
@@ -3715,27 +3766,33 @@ public class MainActivity extends Activity {
                         long now = System.currentTimeMillis();
                         if (now - lastSyllableTime > 150 + Math.random() * 200) {
                             // Yeni bir hece/kelime vurgusu
-                            fakeRms = 10f + (float) (Math.random() * 10.0);
+                            fakeRms = 12f + (float) (Math.random() * 12.0);
                             lastSyllableTime = now;
+
+                            // Ekstra olarak mikro bir haptik dokunuş eklenebilir (istenirse)
+                            // hapticFeedback(HapticType.LIGHT);
                         } else {
                             // Sönümlenme evresi veya sessizlik
-                            fakeRms = 2f + (float) (Math.random() * 5.0);
+                            fakeRms = 3f + (float) (Math.random() * 6.0);
                         }
 
                         float rawScale = 1.0f + (fakeRms / 20.0f);
                         float scale = Math.min(rawScale, 1.4f);
 
                         if (voiceOrb != null) {
-                            voiceOrb.animate().scaleX(scale).scaleY(scale).setDuration(80).start();
+                            voiceOrb.animate().scaleX(scale).scaleY(scale).setDuration(80)
+                                    .setInterpolator(new android.view.animation.OvershootInterpolator()).start();
                         }
 
                         if (orbHalo != null) {
                             float haloScale = Math.min(1.0f + (fakeRms / 12.0f), 1.6f);
-                            orbHalo.animate().scaleX(haloScale).scaleY(haloScale).alpha(0.2f + (fakeRms / 25.0f))
-                                    .setDuration(120).start();
+                            orbHalo.animate().scaleX(haloScale).scaleY(haloScale).alpha(0.3f + (fakeRms / 20.0f))
+                                    .setDuration(120)
+                                    .setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator())
+                                    .start();
                         }
 
-                        aiOrbHandler.postDelayed(this, 80);
+                        aiOrbHandler.postDelayed(this, 90);
                     }
                 };
             }
@@ -3755,11 +3812,20 @@ public class MainActivity extends Activity {
 
             if (voiceOrb != null) {
                 voiceOrb.setBackgroundTintList(null); // Orijinal renge dön
-                voiceOrb.animate().scaleX(1f).scaleY(1f).setDuration(200).start();
+                voiceOrb.animate().scaleX(1f).scaleY(1f).setDuration(400)
+                        .setInterpolator(new android.view.animation.DecelerateInterpolator()).start();
             }
             if (orbHalo != null) {
                 orbHalo.setBackgroundTintList(null);
-                orbHalo.animate().scaleX(1f).scaleY(1f).alpha(0f).setDuration(200).start();
+                orbHalo.animate().scaleX(1f).scaleY(1f).alpha(1f).setDuration(400)
+                        .setInterpolator(new android.view.animation.DecelerateInterpolator()).start(); // Alpha'yı 1.0f
+                                                                                                       // veya orijinal
+                                                                                                       // değerine
+                                                                                                       // ayarlıyoruz,
+                                                                                                       // burada kalıcı
+                                                                                                       // olması için
+                                                                                                       // tam dönüş
+                                                                                                       // yapıyoruz
             }
         });
     }
