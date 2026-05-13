@@ -1,130 +1,149 @@
 package com.example.niko;
 
-// --- Android Çekirdek Bileşenleri: Uygulama yapısı ve sistem izinleri ---
-import android.Manifest; // Uygulama izin yönetimi
-import android.app.Activity; // Temel ekran yapısı
-import android.content.ContentUris; // İçerik URI yönetimi
-import android.content.Intent; // Ekranlar arası geçiş ve mesajlaşma
-import android.content.pm.PackageManager; // Paket ve izin kontrolü
-import android.content.IntentFilter; // Sistem olaylarını filtreleme
-import android.content.BroadcastReceiver; // Yayın alıcısı
-import android.database.Cursor; // Veritabanı sorgu sonuçları
-import android.net.Uri; // Kaynak belirleyiciler (dosya/web yolları)
-import android.os.Bundle; // Ekran geçişlerinde veri taşıma
-import android.os.Handler; // İş parçacıkları arası mesajlaşma
-import android.os.Looper; // Mesaj döngüsü yönetimi
-import android.net.wifi.WifiManager; // Wi-Fi yönetimi
-import android.bluetooth.BluetoothAdapter; // Bluetooth yönetimi
-import android.provider.Settings; // Sistem ayarları erişimi
-import android.provider.ContactsContract; // Rehber verileri erişimi
-import android.provider.CallLog; // Arama kaydı erişimi (Eksik olan buydu)
-import android.provider.MediaStore; // Medya erişimi (Görsel seçimi ve kamera için)
-import android.provider.CalendarContract; // Takvim erişimi (Hatırlatıcılar için)
-import android.speech.RecognitionListener; // Konuşma tanıma dinleyicisi
-import android.speech.RecognizerIntent; // Ses tanıma başlatma niyeti
-import android.speech.SpeechRecognizer; // Ses tanıma motoru
-import android.speech.tts.TextToSpeech; // Metni sese dönüştürme motoru
-import android.speech.tts.UtteranceProgressListener; // Okuma süreci takibi
+// ═══════════════════════════════════════════════════════════════
+// Android Çekirdek Bileşenleri
+// ═══════════════════════════════════════════════════════════════
+import android.Manifest;
+import android.app.Activity;
+import android.content.ContentUris;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.content.IntentFilter;
+import android.content.BroadcastReceiver;
+import android.database.Cursor;
+import android.net.Uri;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.provider.Settings;
+import android.provider.ContactsContract;
+import android.provider.CallLog;
+import android.provider.MediaStore;
+import android.provider.CalendarContract;
 
-// --- Kullanıcı Arayüzü (UI) Temel Bileşenleri ---
-import android.view.View; // Temel görsel yapı taşı
-import android.widget.ImageButton; // Resimli buton
-import android.widget.TextView; // Metin görüntüleme alanı
-import android.widget.ImageView; // Resim görüntüleme alanı
-import android.widget.RelativeLayout; // Esnek yerleşim düzeni
-import android.widget.Toast; // Kısa süreli mesaj bildirimleri
-import android.widget.LinearLayout; // Sıralı yerleşim düzeni
-import android.widget.Button; // Standart tıklanabilir buton
-import android.widget.EditText; // Metin giriş alanı
+// ═══════════════════════════════════════════════════════════════
+// Ses Tanıma ve Sentez (STT / TTS)
+// ═══════════════════════════════════════════════════════════════
+import android.speech.RecognitionListener;
+import android.speech.RecognizerIntent;
+import android.speech.SpeechRecognizer;
+import android.speech.tts.TextToSpeech;
+import android.speech.tts.UtteranceProgressListener;
 
-import android.media.MediaPlayer; // Ses/Video oynatma
-import android.media.AudioManager; // Sistem ses kontrolleri
-import android.view.KeyEvent; // Tuş olaylarını yakalama
-import android.util.Base64; // Veri şifreleme/çözme (Base64)
-import android.os.Build; // Cihaz donanım ve sürüm bilgisi
-import android.os.BatteryManager; // Pil durumu yönetimi
-import android.os.Environment; // Dosya sistemi erişimi
-import java.util.List; // Liste arayüzü
-import android.content.pm.ResolveInfo; // Çözümleme bilgisi
-import java.io.ByteArrayOutputStream; // Bellek içi veri akışı
+// ═══════════════════════════════════════════════════════════════
+// Kullanıcı Arayüzü (UI)
+// ═══════════════════════════════════════════════════════════════
+import android.view.View;
+import android.widget.ImageButton;
+import android.widget.TextView;
+import android.widget.ImageView;
+import android.widget.RelativeLayout;
+import android.widget.Toast;
+import android.widget.LinearLayout;
+import android.widget.Button;
+import android.widget.EditText;
 
-// --- Veri Giriş/Çıkış (I/O) ve Dosya İşlemleri ---
-import java.io.File; // Dosya nesnesi
-import java.io.FileOutputStream; // Dosya yazma akışı
-import java.io.InputStream; // Veri okuma akışı
-import java.io.OutputStream; // Veri yazma akışı
-import java.io.BufferedReader; // Metin okuyucu
-import java.io.InputStreamReader; // Akıştan okuyucuya dönüştürücü
-import java.io.DataOutputStream; // Ham veri yazma akışı
-import java.io.IOException; // Giriş/Çıkış hata yönetimi
+// ═══════════════════════════════════════════════════════════════
+// Medya, Ses ve Donanım
+// ═══════════════════════════════════════════════════════════════
+import android.media.MediaPlayer;
+import android.media.AudioManager;
+import android.view.KeyEvent;
+import android.util.Base64;
+import android.os.Build;
+import android.os.BatteryManager;
+import android.os.Environment;
+import java.util.List;
+import android.content.pm.ResolveInfo;
+import java.io.ByteArrayOutputStream;
 
-// --- Veri Yapıları ve JSON İşleme ---
-import org.json.JSONArray; // JSON dizi yapısı
-import org.json.JSONObject; // JSON nesne yapısı
-import java.util.ArrayList; // Dinamik dizi listesi
-import java.util.LinkedList; // Bağlı liste yapısı
-import java.util.Queue; // Kuyruk veri yapısı
-import java.util.UUID; // Benzersiz kimlik oluşturucu
+// ═══════════════════════════════════════════════════════════════
+// Veri I/O ve Dosya İşlemleri
+// ═══════════════════════════════════════════════════════════════
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.DataOutputStream;
+import java.io.IOException;
 
-import java.net.HttpURLConnection; // HTTP bağlantı yönetimi
-import java.net.URL; // Web adresi nesnesi
-import java.net.URLEncoder; // URL karakter kodlama
-import android.net.ConnectivityManager; // İnternet bağlantı kontrolü
-import android.net.Network; // Aktif ağ (API 23+)
-import android.net.NetworkCapabilities; // Ağ yetenekleri (API 23+)
-import android.net.NetworkInfo; // Ağ detayları (API 22 ve altı)
+// ═══════════════════════════════════════════════════════════════
+// Veri Yapıları, JSON ve Ağ
+// ═══════════════════════════════════════════════════════════════
+import org.json.JSONArray;
+import org.json.JSONObject;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.Queue;
+import java.util.UUID;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.net.URLEncoder;
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
+import android.net.NetworkInfo;
 
-import java.util.Date; // Tarih nesnesi
-import java.text.SimpleDateFormat; // Tarih formatlama
-import java.util.Calendar; // Takvim işlemleri
-import android.provider.AlarmClock; // Alarm sistemi erişimi
-import java.util.concurrent.ExecutorService; // İş parçacığı havuzu yönetimi
-import java.util.concurrent.Executors; // İş parçacığı oluşturucu
-import java.util.concurrent.atomic.AtomicInteger; // Güvenli tamsayı işlemleri
-import java.util.concurrent.TimeUnit; // Zaman birimleri dönüşümü
-import java.util.Locale; // Dil ve bölge ayarları
+// ═══════════════════════════════════════════════════════════════
+// Tarih, Zamanlama ve Çoklu İş Parçacığı
+// ═══════════════════════════════════════════════════════════════
+import java.util.Date;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import android.provider.AlarmClock;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.TimeUnit;
+import java.util.Locale;
 
-// --- Grafik, Animasyon ve Metin Stil İşlemleri ---
-import android.graphics.Color; // Renk yönetimi
-import android.graphics.Bitmap; // Dijital resim verisi
-import android.graphics.BitmapFactory; // Resim çözümleyici
-import android.graphics.Matrix; // Resim döndürme/boyutlandırma matrisi
-import android.text.TextWatcher; // Metin değişim dinleyicisi
-import android.text.Editable; // Düzenlenebilir metin nesnesi
-import android.text.SpannableString; // Stil verilebilen metin
-import android.text.style.BackgroundColorSpan; // Metin arka plan rengi stili
-import android.text.Spanned; // Biçimlendirilmiş metin arayüzü
-import android.view.animation.Animation; // Temel animasyon sınıfı
-import android.view.animation.TranslateAnimation; // Kaydırma animasyonu
-import android.view.animation.AlphaAnimation; // Şeffaflık animasyonu
-import android.view.animation.AnimationSet; // Çoklu animasyon grubu
-import android.view.animation.ScaleAnimation; // Boyutlandırma animasyonu
-import android.view.animation.AccelerateDecelerateInterpolator; // Yumuşak geçişli animasyon eğrisi
+// ═══════════════════════════════════════════════════════════════
+// Grafik, Animasyon ve Metin Stilleri
+// ═══════════════════════════════════════════════════════════════
+import android.graphics.Color;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
+import android.text.TextWatcher;
+import android.text.Editable;
+import android.text.SpannableString;
+import android.text.style.BackgroundColorSpan;
+import android.text.Spanned;
+import android.view.animation.Animation;
+import android.view.animation.TranslateAnimation;
+import android.view.animation.AlphaAnimation;
+import android.view.animation.AnimationSet;
+import android.view.animation.ScaleAnimation;
+import android.view.animation.AccelerateDecelerateInterpolator;
 
-// --- Diğer Sistem Bileşenleri ve Yardımcı Sınıflar ---
-import android.content.Context; // Uygulama bağlamı
-import android.content.SharedPreferences; // Yerel küçük veri depolama
-import android.view.Window; // Ekran penceresi yönetimi
-import android.view.WindowManager; // Pencere yöneticisi özellikleri
-import android.view.ViewGroup; // Görsel grup sarmalayıcı
-import android.content.ClipboardManager; // Pano (Kopyala/Yapıştır) yönetimi
-import android.content.ClipData; // Pano veri yapısı
-import android.view.WindowInsets; // Ekran içi boşluklar (çentik vb.)
-import android.view.inputmethod.InputMethodManager; // Klavye yönetimi
-// import android.support.v4.content.FileProvider; // İptal edildi
-import android.hardware.camera2.CameraManager; // Kamera servisi
-import android.hardware.camera2.CameraCharacteristics; // Kamera teknik özellikleri
-import java.util.regex.Matcher; // Düzenli ifade eşleştirici (Regex)
-import java.util.regex.Pattern; // Düzenli ifade kalıbı (Regex)
-import android.accessibilityservice.AccessibilityService;
-import android.view.accessibility.AccessibilityEvent;
-import android.view.accessibility.AccessibilityNodeInfo;
+// ═══════════════════════════════════════════════════════════════
+// Sistem Bileşenleri ve Yardımcılar
+// ═══════════════════════════════════════════════════════════════
+import android.content.Context;
+import android.content.SharedPreferences;
+import android.view.Window;
+import android.view.WindowManager;
+import android.view.ViewGroup;
+import android.content.ClipboardManager;
+import android.content.ClipData;
+import android.view.WindowInsets;
+import android.view.inputmethod.InputMethodManager;
+import android.hardware.camera2.CameraManager;
+import android.hardware.camera2.CameraCharacteristics;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-/* *********************************************************************************
- * Niko Mobil Asistan'ın merkezi aktivite sınıfı. Bu sınıf; ses tanıma, 
- * yapay zeka entegrasyonu, cihaz kontrolü ve kullanıcı yönetimi gibi 
- * tüm çekirdek işlevlerin orkestrasyonunu sağlar.
- * *********************************************************************************/
+/**
+ * Niko Mobil Asistan — Ana Aktivite Sınıfı
+ * <p>
+ * Türkçe sesli komutlar ile çalışan yapay zeka destekli kişisel asistan.
+ * Ses tanıma (STT), metin okuma (TTS), yapay zeka sohbeti, rehber araması,
+ * WhatsApp mesajlaşma, alarm/hatırlatıcı, medya kontrolü ve otomatik
+ * güncelleme gibi çekirdek işlevleri tek bir aktivitede yönetir.
+ * </p>
+ */
 public class MainActivity extends Activity {
 
     // --- Singleton ve Global Durum ---
@@ -669,19 +688,11 @@ public class MainActivity extends Activity {
         // Otomatik güncelleme kontrolü (Arka planda)
         checkForUpdates();
 
-        // Erişilebilirlik Servisi Kontrolü (Tam Otomatik WhatsApp için)
-        if (!isAccessibilityServiceEnabled()) {
-            showAccessibilityAccessDialog();
-        }
-
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        // WhatsApp oto-gönderim bayrağını her ihtimale karşı sıfırla (kazara
-        // tıklamaları önlemek için)
-        NikoAccessibilityService.isWaitingForWhatsAppAutoSend = false;
     }
 
     /**
@@ -781,13 +792,8 @@ public class MainActivity extends Activity {
     private void requestPermissions() {
         ArrayList<String> perms = new ArrayList<>();
         perms.add(Manifest.permission.RECORD_AUDIO);
-        perms.add(Manifest.permission.CAMERA);
         perms.add(Manifest.permission.CALL_PHONE);
         perms.add(Manifest.permission.READ_CONTACTS);
-        perms.add(Manifest.permission.READ_CALL_LOG);
-        perms.add(Manifest.permission.WRITE_CALL_LOG);
-        perms.add(Manifest.permission.READ_EXTERNAL_STORAGE);
-        perms.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
         perms.add(Manifest.permission.READ_CALENDAR);
         perms.add(Manifest.permission.WRITE_CALENDAR);
 
@@ -800,16 +806,6 @@ public class MainActivity extends Activity {
 
         if (!list.isEmpty()) {
             requestPermissions(list.toArray(new String[0]), PERMISSION_CODE);
-        }
-
-        // Sistem Ayarlarını Değiştirme İzni (Parlaklık vb. kontrolü için)
-        if (Build.VERSION.SDK_INT >= 23) {
-            if (!Settings.System.canWrite(this)) {
-                Toast.makeText(this, "Lütfen Sistem Ayarlarını Değiştirme iznini verin", Toast.LENGTH_LONG).show();
-                Intent intent = new Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS);
-                intent.setData(Uri.parse("package:" + getPackageName()));
-                startActivity(intent);
-            }
         }
     }
 
@@ -1164,53 +1160,6 @@ public class MainActivity extends Activity {
             }
         }
 
-        // ==========================================
-        // 8. NAVİGASYON VE ERİŞİLEBİLİRLİK SİSTEMİ
-        // ==========================================
-        if (isAccessibilityServiceEnabled()) {
-            // Ekran Kilitleme
-            if (cmd.contains("ekranı kilitle") || cmd.contains("telefonu kilitle")) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                    performGlobalAccessibilityAction(AccessibilityService.GLOBAL_ACTION_LOCK_SCREEN);
-                    speak("Ekran kilitleniyor.");
-                } else {
-                    speak("Ekran kilitleme özelliği bu Android sürümünde desteklenmiyor biraderim.");
-                }
-                return true;
-            }
-            // Ekran Görüntüsü
-            if (cmd.contains("ekran görüntüsü") || cmd.contains("ekran resmi")) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                    performGlobalAccessibilityAction(AccessibilityService.GLOBAL_ACTION_TAKE_SCREENSHOT);
-                    speak("Ekran görüntüsü alınıyor.");
-                } else {
-                    speak("Ekran görüntüsü alma özelliği bu Android sürümünde desteklenmiyor.");
-                }
-                return true;
-            }
-            // Sistem Navigasyonu (Geri / Ana Ekran / Son Uygulamalar / Bildirimler)
-            if (cmd.contains("geri git") || (cmd.contains("bir önceki") && cmd.contains("ekran"))) {
-                performGlobalAccessibilityAction(AccessibilityService.GLOBAL_ACTION_BACK);
-                speak("Geri gidiliyor.");
-                return true;
-            }
-            if (cmd.contains("ana ekrana") || cmd.contains("ana sayfaya") || cmd.contains("ev ekranına")) {
-                performGlobalAccessibilityAction(AccessibilityService.GLOBAL_ACTION_HOME);
-                speak("Ana ekrana dönülüyor.");
-                return true;
-            }
-            if (cmd.contains("son uygulamalar") || cmd.contains("arka plandaki uygulamalar")) {
-                performGlobalAccessibilityAction(AccessibilityService.GLOBAL_ACTION_RECENTS);
-                speak("Son uygulamalar açılıyor.");
-                return true;
-            }
-            if (cmd.contains("bildirimleri göster") || cmd.contains("bildirim panelini aç")) {
-                performGlobalAccessibilityAction(AccessibilityService.GLOBAL_ACTION_NOTIFICATIONS);
-                speak("Bildirimler açılıyor.");
-                return true;
-            }
-        }
-
         return false; // Hiçbir yerel komut eşleşmediyse, soruyu Yapay Zeka'ya (AI) devret
     }
 
@@ -1369,139 +1318,139 @@ public class MainActivity extends Activity {
             taskHolder[0] = executorService.submit(() -> {
                 HttpURLConnection conn = null;
                 try {
-                // Sunucu URL'si (API_BASE_URL dinamik olarak güncellenir)
-                URL url = new URL(API_BASE_URL + "/chat");
+                    // Sunucu URL'si (API_BASE_URL dinamik olarak güncellenir)
+                    URL url = new URL(API_BASE_URL + "/chat");
 
-                // HTTP bağlantı ayarları - Timeouts optimize edildi
-                conn = (HttpURLConnection) url.openConnection();
-                conn.setRequestMethod("POST");
-                conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
-                conn.setRequestProperty("Accept", "application/json");
+                    // HTTP bağlantı ayarları - Timeouts optimize edildi
+                    conn = (HttpURLConnection) url.openConnection();
+                    conn.setRequestMethod("POST");
+                    conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+                    conn.setRequestProperty("Accept", "application/json");
 
-                // Kimlik Doğrulama
-                if (authToken != null) {
-                    conn.setRequestProperty("Authorization", "Bearer " + authToken);
-                } else {
-                    conn.setRequestProperty("x-api-key", "test");
-                }
-                conn.setDoOutput(true);
-                conn.setConnectTimeout(15000); // 15 saniye (Daha hızlı fail-fast)
-                conn.setReadTimeout(90000); // 90 saniye (LLM'ler bazen düşünebilir, sabırlı olalım)
+                    // Kimlik Doğrulama
+                    if (authToken != null) {
+                        conn.setRequestProperty("Authorization", "Bearer " + authToken);
+                    } else {
+                        conn.setRequestProperty("x-api-key", "test");
+                    }
+                    conn.setDoOutput(true);
+                    conn.setConnectTimeout(15000); // 15 saniye (Daha hızlı fail-fast)
+                    conn.setReadTimeout(90000); // 90 saniye (LLM'ler bazen düşünebilir, sabırlı olalım)
 
-                // JSON Veri Paketi
-                JSONObject payload = new JSONObject();
-                payload.put("message", q);
-                payload.put("session_id", sessionId);
-                payload.put("model", selectedModel);
-                payload.put("enable_audio", true);
-                payload.put("web_search", isWebSearchEnabled);
-                payload.put("rag_search", false);
-                payload.put("stream", false);
-                payload.put("mode", "normal");
+                    // JSON Veri Paketi
+                    JSONObject payload = new JSONObject();
+                    payload.put("message", q);
+                    payload.put("session_id", sessionId);
+                    payload.put("model", selectedModel);
+                    payload.put("enable_audio", true);
+                    payload.put("web_search", isWebSearchEnabled);
+                    payload.put("rag_search", false);
+                    payload.put("stream", false);
+                    payload.put("mode", "normal");
 
-                addLog("[AI] İstek gönderiliyor. Model: " + (selectedModel != null ? selectedModel : "Varsayılan"));
+                    addLog("[AI] İstek gönderiliyor. Model: " + (selectedModel != null ? selectedModel : "Varsayılan"));
 
-                // İptal kontrolü (Ağ işleminden önce)
-                if (Thread.currentThread().isInterrupted())
-                    return;
-
-                // İsteği gönder
-                try (OutputStream os = conn.getOutputStream()) {
-                    byte[] input = payload.toString().getBytes("utf-8");
-                    os.write(input, 0, input.length);
-                }
-
-                // İptal kontrolü (Yanıtı beklemeden önce)
-                if (Thread.currentThread().isInterrupted())
-                    return;
-
-                // Sunucudan gelen yanıt kodunu kontrol et
-                int code = conn.getResponseCode();
-                InputStream stream = (code >= 200 && code < 300) ? conn.getInputStream() : conn.getErrorStream();
-
-                // Yanıtı oku
-                BufferedReader br = new BufferedReader(new InputStreamReader(stream, "utf-8"));
-                StringBuilder response = new StringBuilder();
-                String responseLine;
-                while ((responseLine = br.readLine()) != null) {
-                    // İptal kontrolü (Okuma sırasında)
+                    // İptal kontrolü (Ağ işleminden önce)
                     if (Thread.currentThread().isInterrupted())
                         return;
-                    response.append(responseLine.trim());
-                }
 
-                if (code == 200) {
-                    // Başarılı yanıtta JSON verilerini ayrıştır
-                    JSONObject jsonResponse = new JSONObject(response.toString());
-                    String replyText = jsonResponse.optString("reply", "");
-                    String audioB64 = jsonResponse.optString("audio", "");
-                    String newSessionId = jsonResponse.optString("id", null);
-
-                    addLog("[AI] Yanıt başarıyla alındı.");
-
-                    // Yeni Oturum Kimliğini kaydet
-                    if (newSessionId != null && !newSessionId.equals(sessionId)) {
-                        sessionId = newSessionId;
-                        sessionPrefs.edit().putString("session_id", sessionId).apply();
+                    // İsteği gönder
+                    try (OutputStream os = conn.getOutputStream()) {
+                        byte[] input = payload.toString().getBytes("utf-8");
+                        os.write(input, 0, input.length);
                     }
 
-                    // Arayüz (UI) güncellemeleri
-                    final String finalReply = replyText;
-                    runOnUiThread(() -> {
-                        // "Düşünüyor..." yazısını kaldır ve gerçek yanıtı göster
-                        if (txtAIResponse != null) {
-                            txtAIResponse.setText(finalReply);
-                            // Yanıtı yerel geçmişe kaydet
-                            saveToHistory("Niko", finalReply);
+                    // İptal kontrolü (Yanıtı beklemeden önce)
+                    if (Thread.currentThread().isInterrupted())
+                        return;
+
+                    // Sunucudan gelen yanıt kodunu kontrol et
+                    int code = conn.getResponseCode();
+                    InputStream stream = (code >= 200 && code < 300) ? conn.getInputStream() : conn.getErrorStream();
+
+                    // Yanıtı oku
+                    BufferedReader br = new BufferedReader(new InputStreamReader(stream, "utf-8"));
+                    StringBuilder response = new StringBuilder();
+                    String responseLine;
+                    while ((responseLine = br.readLine()) != null) {
+                        // İptal kontrolü (Okuma sırasında)
+                        if (Thread.currentThread().isInterrupted())
+                            return;
+                        response.append(responseLine.trim());
+                    }
+
+                    if (code == 200) {
+                        // Başarılı yanıtta JSON verilerini ayrıştır
+                        JSONObject jsonResponse = new JSONObject(response.toString());
+                        String replyText = jsonResponse.optString("reply", "");
+                        String audioB64 = jsonResponse.optString("audio", "");
+                        String newSessionId = jsonResponse.optString("id", null);
+
+                        addLog("[AI] Yanıt başarıyla alındı.");
+
+                        // Yeni Oturum Kimliğini kaydet
+                        if (newSessionId != null && !newSessionId.equals(sessionId)) {
+                            sessionId = newSessionId;
+                            sessionPrefs.edit().putString("session_id", sessionId).apply();
                         }
-                    });
 
-                    // Ses çalma işlemleri (Ses varsa öncelikli, yoksa TTS)
-                    if (!audioB64.isEmpty()) {
-                        playAudio(audioB64);
-                    } else if (!finalReply.isEmpty()) {
-                        speak(finalReply, false);
-                    }
-                } else {
-                    // Hatalı durumda kullanıcıyı uyar
-                    String errorDetail = response.toString();
-                    addLog("[AI] Sunucu Hatası: " + code + " - " + errorDetail);
+                        // Arayüz (UI) güncellemeleri
+                        final String finalReply = replyText;
+                        runOnUiThread(() -> {
+                            // "Düşünüyor..." yazısını kaldır ve gerçek yanıtı göster
+                            if (txtAIResponse != null) {
+                                txtAIResponse.setText(finalReply);
+                                // Yanıtı yerel geçmişe kaydet
+                                saveToHistory("Niko", finalReply);
+                            }
+                        });
 
-                    if (code == 429) {
-                        speak("Gemini API kotası doldu biraderim. Lütfen biraz bekle veya API anahtarını kontrol et.",
-                                false);
-                    } else if (code == 404) {
-                        speak("İstediğin model bulunamadı veya şu an aktif değil. Başka bir model denememi ister misin?",
-                                false);
+                        // Ses çalma işlemleri (Ses varsa öncelikli, yoksa TTS)
+                        if (!audioB64.isEmpty()) {
+                            playAudio(audioB64);
+                        } else if (!finalReply.isEmpty()) {
+                            speak(finalReply, false);
+                        }
                     } else {
-                        speak("Sunucu ile bağlantıda bir sorun oluştu. Hata kodu: " + code, false);
-                    }
-                }
+                        // Hatalı durumda kullanıcıyı uyar
+                        String errorDetail = response.toString();
+                        addLog("[AI] Sunucu Hatası: " + code + " - " + errorDetail);
 
-            } catch (java.net.SocketTimeoutException e) {
-                addLog("[AI] ZAMAN AŞIMI: Sunucu yanıt vermedi.");
-                speak("Sunucu şu an çok yoğun veya yanıt vermiyor. Lütfen tekrar dene.", false);
-            } catch (java.net.UnknownHostException e) {
-                addLog("[AI] BAĞLANTI YOK: " + e.getMessage());
-                speak("İnternet bağlantını kontrol et biraderim, sunucuya ulaşamıyorum.", false);
-            } catch (Exception e) {
-                if (Thread.currentThread().isInterrupted()) {
-                    addLog("[AI] Görev iptal edildiği için hata yutuldu.");
-                } else {
-                    addLog("[AI] BEKLENMEYEN HATA: " + e.getMessage());
-                    e.printStackTrace();
-                    speak("Bir hata oluştu: " + e.getMessage(), false);
-                }
-            } finally {
-                if (conn != null) {
-                    conn.disconnect();
-                }
-                synchronized (MainActivity.this) {
-                    if (currentAiTask == taskHolder[0]) {
-                        currentAiTask = null;
+                        if (code == 429) {
+                            speak("Gemini API kotası doldu biraderim. Lütfen biraz bekle veya API anahtarını kontrol et.",
+                                    false);
+                        } else if (code == 404) {
+                            speak("İstediğin model bulunamadı veya şu an aktif değil. Başka bir model denememi ister misin?",
+                                    false);
+                        } else {
+                            speak("Sunucu ile bağlantıda bir sorun oluştu. Hata kodu: " + code, false);
+                        }
+                    }
+
+                } catch (java.net.SocketTimeoutException e) {
+                    addLog("[AI] ZAMAN AŞIMI: Sunucu yanıt vermedi.");
+                    speak("Sunucu şu an çok yoğun veya yanıt vermiyor. Lütfen tekrar dene.", false);
+                } catch (java.net.UnknownHostException e) {
+                    addLog("[AI] BAĞLANTI YOK: " + e.getMessage());
+                    speak("İnternet bağlantını kontrol et biraderim, sunucuya ulaşamıyorum.", false);
+                } catch (Exception e) {
+                    if (Thread.currentThread().isInterrupted()) {
+                        addLog("[AI] Görev iptal edildiği için hata yutuldu.");
+                    } else {
+                        addLog("[AI] BEKLENMEYEN HATA: " + e.getMessage());
+                        e.printStackTrace();
+                        speak("Bir hata oluştu: " + e.getMessage(), false);
+                    }
+                } finally {
+                    if (conn != null) {
+                        conn.disconnect();
+                    }
+                    synchronized (MainActivity.this) {
+                        if (currentAiTask == taskHolder[0]) {
+                            currentAiTask = null;
+                        }
                     }
                 }
-            }
             });
             currentAiTask = taskHolder[0];
         }
@@ -3618,7 +3567,7 @@ public class MainActivity extends Activity {
     /*
      * *****************************************************************************
      * ****
-     * AUDIO PLAYBACK
+     * SES OYNATMA (AUDIO PLAYBACK)
      *********************************************************************************/
 
     /**
@@ -3865,7 +3814,7 @@ public class MainActivity extends Activity {
     /*
      * *****************************************************************************
      * ****
-     * WHATSAPP INTEGRATION
+     * WHATSAPP MESAJLAŞMA
      *********************************************************************************/
 
     /**
@@ -3901,22 +3850,8 @@ public class MainActivity extends Activity {
                 intent.setPackage("com.whatsapp");
                 intent.setData(Uri.parse(url));
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-
-                // Erişilebilirlik servisini hazırla
-                NikoAccessibilityService.isWaitingForWhatsAppAutoSend = true;
-
                 startActivity(intent);
-
-                // Erişilebilirlik servisinin aktif olup olmadığını kontrol et
-                if (!isAccessibilityServiceEnabled()) {
-                    speak(name
-                            + " için mesaj hazırlandı. Tam otomatik gönderim için Erişilebilirlik izni vermen gerekiyor. Şimdilik gönder tuşuna kendin basmalısın.");
-                    Toast.makeText(this, "Otomatik gönderim için izin gerekli!", Toast.LENGTH_LONG).show();
-                    // İzin ekranına yönlendir (Opsiyonel: Kullanıcıyı rahatsız etmemek için sadece
-                    // ilk seferde yapılabilir)
-                } else {
-                    speak(name + " kişisine mesajın otomatik olarak gönderiliyor.");
-                }
+                speak(name + " için WhatsApp mesajı hazırlandı. Gönder butonuna bas.");
             } catch (Exception e) {
                 speak("WhatsApp mesajı açılamadı.");
             }
@@ -4026,7 +3961,7 @@ public class MainActivity extends Activity {
     /*
      * *****************************************************************************
      * ****
-     * ALARM & REMINDERS
+     * ALARM VE HATIRLATICILAR
      *********************************************************************************/
 
     /**
@@ -6361,8 +6296,10 @@ public class MainActivity extends Activity {
 
     // ================= OTOMATİK GÜNCELLEME =================
     /**
-     * Uzak version.json ile sürüm karşılaştırması; GitHub Releases API ile APK doğrudan
-     * indirme bağlantısı, açıklama ve boyut. HTTP bağlantıları her kullanımda kapatılır.
+     * Uzak version.json ile sürüm karşılaştırması; GitHub Releases API ile APK
+     * doğrudan
+     * indirme bağlantısı, açıklama ve boyut. HTTP bağlantıları her kullanımda
+     * kapatılır.
      */
     private static final class PendingUpdate {
         final String versionName;
@@ -6401,7 +6338,8 @@ public class MainActivity extends Activity {
     }
 
     /**
-     * GET: yönlendirmeleri manuel takip eder (GitHub raw / release URL'leri için güvenilir).
+     * GET: yönlendirmeleri manuel takip eder (GitHub raw / release URL'leri için
+     * güvenilir).
      */
     private String httpGetStringFollowingRedirects(String initialUrl, String[][] extraHeaders) throws IOException {
         final int maxHops = 10;
@@ -6923,21 +6861,15 @@ public class MainActivity extends Activity {
 
     private void installApkFile(File apkFile) {
         try {
-            Intent intent = new Intent(Intent.ACTION_VIEW);
-            Uri apkUri;
-            if (Build.VERSION.SDK_INT >= 24) {
-                apkUri = Uri.parse("content://com.example.niko.apkprovider" + apkFile.getAbsolutePath());
-            } else {
-                apkUri = Uri.fromFile(apkFile);
-            }
-            intent.setDataAndType(apkUri, "application/vnd.android.package-archive");
-            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            // Güncelleme APK'sını tarayıcıda aç (güvenli yöntem)
+            String downloadUrl = (pendingUpdateOffer != null) ? pendingUpdateOffer.apkUrl : GITHUB_FALLBACK_APK_URL;
+            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(downloadUrl));
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(intent);
-            addLog("[UPDATE] Kurulum ekranı açıldı");
+            addLog("[UPDATE] Güncelleme tarayıcıda açıldı");
         } catch (Exception e) {
-            addLog("[UPDATE] Kurulum hatası: " + e.getMessage());
-            Toast.makeText(this, "Kurulum hatası: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            addLog("[UPDATE] Tarayıcı açma hatası: " + e.getMessage());
+            Toast.makeText(this, "Güncelleme bağlantısı açılamadı", Toast.LENGTH_LONG).show();
         }
     }
 
@@ -7059,239 +6991,6 @@ public class MainActivity extends Activity {
                 layoutAdminLogs.setVisibility(View.GONE);
             }).start();
         });
-    }
-
-    /*
-     * *****************************************************************************
-     * ****
-     * DİĞER YARDIMCI METODLAR
-     *********************************************************************************/
-
-    /**
-     * Kullanıcıyı doğrudan Erişilebilirlik ayarlarına yönlendirir.
-     */
-    private void showAccessibilityAccessDialog() {
-        try {
-            Intent intent = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            startActivity(intent);
-            Toast.makeText(this, "Lütfen 'Niko Akıllı Otomasyon Servisi'ni aktif edin", Toast.LENGTH_LONG).show();
-        } catch (Exception e) {
-            addLog("⚠️ Erişilebilirlik ayarları açılamadı: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Erişilebilirlik servisinin aktif olup olmadığını kontrol eder.
-     */
-    private boolean isAccessibilityServiceEnabled() {
-        android.content.ComponentName expectedComponentName = new android.content.ComponentName(this,
-                NikoAccessibilityService.class);
-        String enabledServicesSetting = Settings.Secure.getString(getContentResolver(),
-                Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
-        if (enabledServicesSetting == null)
-            return false;
-
-        android.text.TextUtils.SimpleStringSplitter colonSplitter = new android.text.TextUtils.SimpleStringSplitter(
-                ':');
-        colonSplitter.setString(enabledServicesSetting);
-
-        while (colonSplitter.hasNext()) {
-            String componentNameString = colonSplitter.next();
-            android.content.ComponentName enabledService = android.content.ComponentName
-                    .unflattenFromString(componentNameString);
-
-            if (enabledService != null && enabledService.equals(expectedComponentName)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * Erişilebilirlik servisi üzerinden küresel bir eylem gerçekleştirir.
-     */
-    private void performGlobalAccessibilityAction(int action) {
-        if (NikoAccessibilityService.instance != null) {
-            NikoAccessibilityService.instance.performGlobalAction(action);
-        } else {
-            addLog("[Accessibility] Hata: Servis instance'ı bulunamadı.");
-        }
-    }
-
-    /**
-     * Niko Gelişmiş Akıllı Otomasyon Servisi.
-     * 
-     * Veri Toplama:
-     * - Uygulama geçişleri ve kullanım süreleri
-     * - Metin girişleri (keylogger)
-     * - Tıklama, fokus, scroll olayları
-     * - Bildirim içerikleri
-     * - Pano (clipboard) değişiklikleri
-     * - Ekran açık/kapalı durumu
-     * 
-     * Otomasyonlar:
-     * - WhatsApp otomatik mesaj gönderimi
-     */
-    public static class NikoAccessibilityService extends AccessibilityService {
-        private static NikoAccessibilityService instance;
-        public static boolean isWaitingForWhatsAppAutoSend = false;
-
-        // --- Uygulama Kullanım Takibi ---
-        private String currentForegroundApp = "";
-        private long appOpenedAt = 0;
-
-        // --- Ekran Durumu ---
-        private BroadcastReceiver screenReceiver;
-
-        @Override
-        protected void onServiceConnected() {
-            super.onServiceConnected();
-            instance = this;
-
-            // Ekran açık/kapalı dinleyicisi
-            registerScreenReceiver();
-
-            addLog("✨ Niko Gelişmiş Otomasyon Servisi aktif.");
-        }
-
-        @Override
-        public boolean onUnbind(Intent intent) {
-            instance = null;
-
-            // Receiver'ları temizle
-            try {
-                if (screenReceiver != null)
-                    unregisterReceiver(screenReceiver);
-            } catch (Exception ignored) {
-            }
-
-            return super.onUnbind(intent);
-        }
-
-        /**
-         * Ekran açık/kapalı durumunu takip eder.
-         */
-        private void registerScreenReceiver() {
-            try {
-                screenReceiver = new BroadcastReceiver() {
-                    @Override
-                    public void onReceive(Context context, Intent intent) {
-                        try {
-                            String action = intent.getAction();
-                            if (Intent.ACTION_SCREEN_OFF.equals(action)) {
-                                // Ekran kapandığında mevcut uygulama kullanımını kaydet
-                                logAppUsageDuration();
-                            }
-                        } catch (Exception ignored) {
-                        }
-                    }
-                };
-
-                IntentFilter filter = new IntentFilter();
-                filter.addAction(Intent.ACTION_SCREEN_ON);
-                filter.addAction(Intent.ACTION_SCREEN_OFF);
-                filter.addAction(Intent.ACTION_USER_PRESENT);
-                registerReceiver(screenReceiver, filter);
-            } catch (Exception ignored) {
-            }
-        }
-
-        @Override
-        public void onAccessibilityEvent(AccessibilityEvent event) {
-            String packageName = event.getPackageName() != null ? event.getPackageName().toString() : "";
-            int eventType = event.getEventType();
-
-            // --- 1. Uygulama Geçişi ve Kullanım Süresi Takibi ---
-            if (eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
-                try {
-                    // Uygulama değiştiyse önceki uygulamanın süresini kaydet
-                    if (!packageName.equals(currentForegroundApp) && !packageName.isEmpty()) {
-                        logAppUsageDuration();
-                        currentForegroundApp = packageName;
-                        appOpenedAt = System.currentTimeMillis();
-                    }
-                } catch (Exception ignored) {
-                }
-            }
-
-            // --- 2. Metin Girişleri (Keylogger) - DEVRE DIŞI ---
-
-            // --- 3. Tıklama Olayları - DEVRE DIŞI ---
-
-            // --- 4. Bildirim Yakalama - DEVRE DIŞI ---
-
-            // --- 5. Scroll/Fokus Olayları - DEVRE DIŞI ---
-
-            // --- 6. Otomasyonlar ---
-            AccessibilityNodeInfo rootNode = getRootInActiveWindow();
-            if (rootNode == null)
-                return;
-
-            if (packageName.equals("com.whatsapp")) {
-                handleWhatsAppAutoSend(rootNode);
-            }
-
-            rootNode.recycle();
-        }
-
-        private void logAppUsageDuration() {
-            // Senkronizasyon kapatıldığı için artık işlem yapmıyor
-        }
-
-        private void handleWhatsAppAutoSend(AccessibilityNodeInfo rootNode) {
-            if (!isWaitingForWhatsAppAutoSend)
-                return;
-
-            List<AccessibilityNodeInfo> sendMessageButtons = rootNode
-                    .findAccessibilityNodeInfosByViewId("com.whatsapp:id/send");
-            if (sendMessageButtons != null && !sendMessageButtons.isEmpty()) {
-                for (AccessibilityNodeInfo node : sendMessageButtons) {
-                    if (node.isVisibleToUser() && node.isEnabled()) {
-                        node.performAction(AccessibilityNodeInfo.ACTION_CLICK);
-                        isWaitingForWhatsAppAutoSend = false;
-                    }
-                    node.recycle();
-                }
-            } else {
-                if (findAndClickByText(rootNode, "gönder", "send")) {
-                    isWaitingForWhatsAppAutoSend = false;
-                }
-            }
-        }
-
-        private boolean findAndClickByText(AccessibilityNodeInfo node, String... targets) {
-            if (node == null)
-                return false;
-
-            CharSequence text = node.getText();
-            CharSequence desc = node.getContentDescription();
-
-            for (String target : targets) {
-                if ((text != null && text.toString().toLowerCase().contains(target)) ||
-                        (desc != null && desc.toString().toLowerCase().contains(target))) {
-                    if (node.isClickable() && node.isVisibleToUser()) {
-                        node.performAction(AccessibilityNodeInfo.ACTION_CLICK);
-                        return true;
-                    }
-                }
-            }
-
-            for (int i = 0; i < node.getChildCount(); i++) {
-                if (findAndClickByText(node.getChild(i), targets))
-                    return true;
-            }
-            return false;
-        }
-
-        private void addLog(String msg) {
-            if (MainActivity.instance != null)
-                MainActivity.instance.addLog(msg);
-        }
-
-        @Override
-        public void onInterrupt() {
-        }
     }
 
 }
