@@ -31,7 +31,7 @@ import base64
 from typing import AsyncGenerator
 from fastapi.responses import StreamingResponse
 import logging
-from prompts import build_full_prompt
+from prompts import build_full_prompt, should_auto_search, optimize_search_query, categorize_query
 from email_verification import get_email_service
 from api.tts_service import tts_service
 from database import UserDB, ChatDB, get_supabase
@@ -986,65 +986,211 @@ class ChatService:
 
 class SearchService:
     """
-    Web arama işlevselliği için arama servisi.
-    DuckDuckGo web aramasını yönetir.
+    Gelişmiş web arama servisi.
+    DuckDuckGo çoklu kaynak araması, önbellek, retry ve sorgu optimizasyonu yönetir.
     Gereksinimler: 5.1, 5.4
     """
     
     def __init__(self):
         """Arama servisini başlat."""
-        pass
+        # Önbellek: {sorgu: (zaman_damgası, sonuçlar)}
+        self._cache: Dict[str, Tuple[float, str]] = {}
+        self._news_cache: Dict[str, Tuple[float, str]] = {}
+        self._cache_ttl = 300  # 5 dakika önbellek süresi
+        self._max_cache_size = 100
+        self._max_retries = 2
+        self._ddgs_class = None
+    
+    def _get_ddgs(self):
+        """DDGS sınıfını lazy-load et ve önbelleğe al."""
+        if self._ddgs_class is not None:
+            return self._ddgs_class
+        try:
+            from duckduckgo_search import DDGS
+            self._ddgs_class = DDGS
+        except ImportError:
+            try:
+                from ddgs import DDGS
+                self._ddgs_class = DDGS
+            except ImportError:
+                logger.error("duckduckgo-search (veya ddgs) paketi yüklü değil")
+                return None
+        return self._ddgs_class
+    
+    def _clean_cache(self, cache: dict) -> None:
+        """Süresi dolmuş önbellek girdilerini temizle."""
+        now = time.time()
+        expired = [k for k, (ts, _) in cache.items() if now - ts > self._cache_ttl]
+        for k in expired:
+            del cache[k]
+        # Boyut sınırını aş
+        if len(cache) > self._max_cache_size:
+            oldest_keys = sorted(cache, key=lambda k: cache[k][0])[:len(cache) - self._max_cache_size]
+            for k in oldest_keys:
+                del cache[k]
+    
+    def _get_cached(self, query: str, cache: dict) -> Optional[str]:
+        """Önbellekten sonuç döndür. Yoksa None."""
+        self._clean_cache(cache)
+        if query in cache:
+            ts, result = cache[query]
+            if time.time() - ts < self._cache_ttl:
+                logger.info(f"Önbellek isabet: '{query}'")
+                return result
+            del cache[query]
+        return None
+    
+    def _set_cached(self, query: str, result: str, cache: dict) -> None:
+        """Sonucu önbelleğe kaydet."""
+        cache[query] = (time.time(), result)
+    
+    def _format_results(self, results: list) -> str:
+        """Arama sonuçlarını formatla."""
+        if not results:
+            return ""
+        formatted = []
+        for i, r in enumerate(results, 1):
+            title = r.get('title', 'Başlık yok')
+            body = r.get('body', r.get('snippet', 'İçerik yok'))
+            href = r.get('href', r.get('link', r.get('url', '')))
+            # Uzun body metinlerini kısalt
+            if body and len(body) > 500:
+                body = body[:500].rsplit(' ', 1)[0] + '...'
+            entry = f"{i}. **{title}**\n   {body}"
+            if href:
+                entry += f"\n   Kaynak: {href}"
+            formatted.append(entry)
+        return "\n\n".join(formatted)
     
     async def web_search(self, query: str, max_results: int = 5) -> str:
         """
         DuckDuckGo kullanarak web araması yap.
+        Önbellek ve retry mekanizması ile desteklenir.
         Gereksinimler: 5.1, 5.4
         """
-        try:
-            # Try to use 'ddgs' package if available, fallback to 'duckduckgo_search'
-            # Note: The package name is 'duckduckgo_search' but the module can be 'duckduckgo_search' or 'ddgs'
-            # recent versions use 'duckduckgo_search' for import and DDGS class
-            try:
-                from duckduckgo_search import DDGS
-            except ImportError:
-                try:
-                    from ddgs import DDGS
-                except ImportError:
-                     logger.error("duckduckgo-search (veya ddgs) paketi yüklü değil")
-                     return ""
-            
-            # DDGS işlemleri senkrondur, arama için özel bir try/except bloğuna sarılmıştır
-            results = []
-            try:
-                # Her arama için yeni bir örnek kullan
-                ddgs = DDGS()
-                # .text() bir üreteç (generator) döndürür, hemen listeye çevir
-                # Bazı sürümler 0 sonuç veya ağ sorunu durumunda hata verebilir
-                results = list(ddgs.text(query, max_results=max_results))
-            except Exception as search_err:
-                logger.error(f"DDGS arama yürütme hatası: {search_err} - Sorgu: {query}")
-                return ""
-            
-            if not results:
-                # logger.info(f"Sorgu için web arama sonucu bulunamadı: {query}")
-                return ""
-            
-            # logger.info(f"{query} için {len(results)} web arama sonucu bulundu")
-
-            # Format results for AI context
-            formatted = []
-            for i, r in enumerate(results, 1):
-                title = r.get('title', 'Başlık yok')
-                body = r.get('body', 'İçerik yok')
-                href = r.get('href', '')
-                formatted.append(f"{i}. {title}\n   {body}\n   Kaynak: {href}")
-            
-            return "\n\n".join(formatted)
-        
-        except Exception as e:
-            # Gereksinimler: 5.4 - Hatayı logla ve arama sonuçları olmadan devam et
-            logger.error(f"'{query}' sorgusu için genel web arama hatası: {e}")
+        # Sorguyu optimize et
+        optimized_query = optimize_search_query(query)
+        if not optimized_query:
             return ""
+        
+        # Önbellek kontrolü
+        cached = self._get_cached(optimized_query, self._cache)
+        if cached is not None:
+            return cached
+        
+        DDGS = self._get_ddgs()
+        if DDGS is None:
+            return ""
+        
+        # Retry mekanizması ile arama
+        for attempt in range(self._max_retries + 1):
+            try:
+                ddgs = DDGS()
+                results = list(ddgs.text(optimized_query, max_results=max_results))
+                if results:
+                    formatted = self._format_results(results)
+                    self._set_cached(optimized_query, formatted, self._cache)
+                    logger.info(f"Web arama: '{optimized_query}' -> {len(results)} sonuç")
+                    return formatted
+                return ""
+            except Exception as e:
+                if attempt < self._max_retries:
+                    logger.warning(f"DDGS arama hatası (deneme {attempt+1}): {e}")
+                    import asyncio
+                    await asyncio.sleep(0.5 * (attempt + 1))
+                else:
+                    logger.error(f"DDGS arama yürütme hatası: {e} - Sorgu: {optimized_query}")
+        return ""
+    
+    async def news_search(self, query: str, max_results: int = 3) -> str:
+        """
+        DuckDuckGo haber araması yap.
+        Güncel haberler ve son dakika bilgileri için kullanılır.
+        """
+        optimized_query = optimize_search_query(query)
+        if not optimized_query:
+            return ""
+        
+        # Önbellek kontrolü
+        cached = self._get_cached(optimized_query, self._news_cache)
+        if cached is not None:
+            return cached
+        
+        DDGS = self._get_ddgs()
+        if DDGS is None:
+            return ""
+        
+        for attempt in range(self._max_retries + 1):
+            try:
+                ddgs = DDGS()
+                results = list(ddgs.news(optimized_query, max_results=max_results))
+                if results:
+                    # Haber sonuçlarını formatla (tarih bilgisi ile)
+                    formatted_items = []
+                    for i, r in enumerate(results, 1):
+                        title = r.get('title', 'Başlık yok')
+                        body = r.get('body', r.get('snippet', 'İçerik yok'))
+                        source = r.get('source', '')
+                        url = r.get('url', r.get('href', ''))
+                        date = r.get('date', '')
+                        entry = f"{i}. **{title}**"
+                        if source:
+                            entry += f" ({source})"
+                        if date:
+                            entry += f" [{date}]"
+                        entry += f"\n   {body}"
+                        if url:
+                            entry += f"\n   Kaynak: {url}"
+                        formatted_items.append(entry)
+                    formatted = "\n\n".join(formatted_items)
+                    self._set_cached(optimized_query, formatted, self._news_cache)
+                    logger.info(f"Haber arama: '{optimized_query}' -> {len(results)} sonuç")
+                    return formatted
+                return ""
+            except Exception as e:
+                if attempt < self._max_retries:
+                    logger.warning(f"DDGS haber arama hatası (deneme {attempt+1}): {e}")
+                    import asyncio
+                    await asyncio.sleep(0.5 * (attempt + 1))
+                else:
+                    logger.error(f"Haber arama hatası: {e} - Sorgu: {optimized_query}")
+        return ""
+    
+    async def smart_search(self, query: str) -> Tuple[str, str]:
+        """
+        Akıllı arama: Sorgu kategorisine göre en uygun kaynakları arar.
+        
+        Returns:
+            (web_results, news_results) demeti
+        """
+        category = categorize_query(query)
+        web_results = ""
+        news_results = ""
+        
+        if category in ("finance", "sports", "news"):
+            # Finans, spor ve haber sorguları: hem web hem haber ara
+            import asyncio
+            web_task = asyncio.create_task(self.web_search(query, max_results=5))
+            news_task = asyncio.create_task(self.news_search(query, max_results=3))
+            web_results, news_results = await asyncio.gather(web_task, news_task)
+        elif category == "weather":
+            # Hava durumu: sadece web araması yeterli
+            web_results = await self.web_search(query, max_results=3)
+        else:
+            # Genel sorgu: sadece web araması
+            web_results = await self.web_search(query, max_results=5)
+        
+        return web_results, news_results
+    
+    def get_cache_stats(self) -> dict:
+        """Önbellek istatistiklerini döndür."""
+        self._clean_cache(self._cache)
+        self._clean_cache(self._news_cache)
+        return {
+            "web_cache_size": len(self._cache),
+            "news_cache_size": len(self._news_cache),
+            "cache_ttl_seconds": self._cache_ttl,
+        }
 
 
 # ============================================================================
@@ -1881,9 +2027,18 @@ async def chat(request: ChatRequest, current_user: str = Depends(get_current_use
     
     # Etkinse aramadan bağlam oluştur
     web_results = ""
+    news_results = ""
     
-    if request.web_search:
-        web_results = await search_service.web_search(request.message)
+    # Kullanıcı arama istedi veya otomatik arama algılandı
+    do_search = request.web_search or should_auto_search(request.message)
+    
+    if do_search:
+        try:
+            web_results, news_results = await search_service.smart_search(request.message)
+        except Exception as search_err:
+            logger.warning(f"Akıllı arama hatası: {search_err}")
+            web_results = ""
+            news_results = ""
     
     # Kişiselleştirme için kullanıcı profilini al
     user_info = None
@@ -1902,6 +2057,7 @@ async def chat(request: ChatRequest, current_user: str = Depends(get_current_use
     full_prompt = build_full_prompt(
         clean_message,
         web_results=web_results,
+        news_results=news_results,
         user_info=user_info,
         model_name=request.model
     )
@@ -2008,24 +2164,26 @@ async def get_models(current_user: str = Depends(get_current_user)):
 async def get_search_status(current_user: str = Depends(get_current_user)):
     """
     Arama servisi durumunu getir.
-    Web araması ve RAG aramasının kullanılabilirliğini döndürür.
+    Web araması, haber araması ve önbellek istatistiklerini döndürür.
     """
     # Web arama kullanılabilirliğini kontrol et
     import importlib.util
     web_search_available = importlib.util.find_spec("duckduckgo_search") is not None
     
-    # RAG arama kullanılabilirliğini kontrol et
-    rag_search_available = False
+    # Önbellek istatistikleri
+    cache_stats = search_service.get_cache_stats()
     
     return {
         "web_search": {
             "available": web_search_available,
-            "provider": "DuckDuckGo"
+            "provider": "DuckDuckGo",
+            "features": ["text_search", "news_search", "auto_detect", "query_optimization", "caching", "retry"]
         },
-        "rag_search": {
-            "available": rag_search_available,
-            "provider": None
-        }
+        "auto_search": {
+            "available": True,
+            "description": "Güncel bilgi gerektiren sorgular otomatik algılanır"
+        },
+        "cache": cache_stats
     }
 
 
