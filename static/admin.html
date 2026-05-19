@@ -839,11 +839,13 @@
       const apiKeysTableBody = document.getElementById("apiKeysTableBody");
       const apiKeysLoadingState = document.getElementById("apiKeysLoadingState");
 
-      async function fetchApiKeys() {
+      async function fetchApiKeys(silent = false) {
         const token = getToken();
         if (!token) return;
 
-        apiKeysLoadingState.classList.remove("hidden");
+        if (!silent) {
+          apiKeysLoadingState.classList.remove("hidden");
+        }
 
         try {
           const response = await fetch("/api/admin/api-keys", {
@@ -867,9 +869,13 @@
           }
         } catch (error) {
           console.error("API keys fetch error:", error);
-          showToast(error.message, "error");
+          if (!silent) {
+            showToast(error.message, "error");
+          }
         } finally {
-          apiKeysLoadingState.classList.add("hidden");
+          if (!silent) {
+            apiKeysLoadingState.classList.add("hidden");
+          }
         }
 
         // Sistem olay günlüklerini de çek
@@ -1291,9 +1297,9 @@
         fetchUsers();
         fetchApiKeys();
         
-        // Anlık (her saniye) güncellemeler ile gerçek zamanlı veri akışı sağla
+        // Anlık güncellemeler ile gerçek zamanlı veri akışı sağla (flicker önlemek için silent=true)
         setInterval(fetchUsers, 5000);
-        setInterval(fetchApiKeys, 1000);
+        setInterval(() => fetchApiKeys(true), 2000);
 
         // Yenile butonunu bağla
         document.getElementById("refreshApiKeysBtn").addEventListener("click", fetchApiKeys);
