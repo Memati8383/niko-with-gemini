@@ -220,6 +220,30 @@
             <p class="loading-state-msg">Yükleniyor…</p>
           </div>
         </div>
+
+        <!-- Sistem Olayları & Rotasyon Günlüğü -->
+        <style>
+          @keyframes logBlink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+          }
+        </style>
+        <div style="margin-top: 1.5rem; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 1.25rem; backdrop-filter: blur(10px); box-shadow: inset 0 0 20px rgba(0,0,0,0.6);">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 0.5rem;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="display: inline-block; width: 8px; height: 8px; background: #38bdf8; border-radius: 50%; box-shadow: 0 0 8px #38bdf8; animation: logBlink 1.5s infinite;"></span>
+              <h3 style="font-size: 0.82rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: rgba(255,255,255,0.9); display: flex; align-items: center; gap: 6px; margin: 0; font-family: var(--adm-sans);">
+                Sistem Olayları & Rotasyon Günlüğü
+              </h3>
+            </div>
+            <button class="btn btn-secondary btn-sm" id="clearLogsBtn" style="min-height: 22px !important; padding: 1px 8px !important; font-size: 0.65rem !important; border-radius: 4px !important;" onclick="clearLogConsole()">
+              Temizle
+            </button>
+          </div>
+          <div id="apiLogsConsole" style="height: 140px; overflow-y: auto; font-family: var(--adm-mono); font-size: 0.74rem; line-height: 1.5; color: rgba(255,255,255,0.7); display: flex; flex-direction: column; gap: 4px; padding-right: 4px; scroll-behavior: smooth;">
+            <!-- Günlük satırları buraya yüklenecek -->
+          </div>
+        </div>
       </section>
     </div>
 
@@ -846,6 +870,70 @@
           showToast(error.message, "error");
         } finally {
           apiKeysLoadingState.classList.add("hidden");
+        }
+
+        // Sistem olay günlüklerini de çek
+        fetchApiLogs();
+      }
+
+      async function fetchApiLogs() {
+        const token = getToken();
+        if (!token) return;
+
+        try {
+          const response = await fetch("/api/admin/api-keys/logs", {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+          const data = await response.json();
+          if (response.ok && data.logs) {
+            renderApiLogs(data.logs);
+          }
+        } catch (error) {
+          console.error("Error fetching logs:", error);
+        }
+      }
+
+      function renderApiLogs(logs) {
+        const consoleEl = document.getElementById("apiLogsConsole");
+        if (!consoleEl) return;
+
+        if (logs.length === 0) {
+          consoleEl.innerHTML = `<div style="color: var(--adm-muted); font-style: italic; text-align: center; margin-top: 40px;">Sistemde henüz kayıtlı olay bulunmuyor.</div>`;
+          return;
+        }
+
+        consoleEl.innerHTML = logs.map(log => {
+          const date = new Date(log.timestamp);
+          const timeStr = date.toLocaleTimeString("tr-TR", { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+          let color = 'rgba(255,255,255,0.7)';
+          let prefix = '[BILGI]';
+          
+          if (log.level === 'success') {
+            color = '#34d399';
+            prefix = '✔ [OK]  ';
+          } else if (log.level === 'warning') {
+            color = '#fbbf24';
+            prefix = '⚠ [WARN]';
+          } else if (log.level === 'error') {
+            color = 'var(--adm-danger)';
+            prefix = '✖ [ERR] ';
+          }
+          
+          return `<div style="color: ${color}; display: flex; gap: 8px;">
+            <span style="color: var(--adm-muted);">${timeStr}</span>
+            <span style="font-weight: 700; white-space: pre;">${prefix}</span>
+            <span>${escapeHtml(log.message)}</span>
+          </div>`;
+        }).join('');
+      }
+
+      function clearLogConsole() {
+        const consoleEl = document.getElementById("apiLogsConsole");
+        if (consoleEl) {
+          consoleEl.innerHTML = `<div style="color: var(--adm-muted); font-style: italic; text-align: center; margin-top: 40px;">Konsol temizlendi.</div>`;
         }
       }
 

@@ -927,8 +927,25 @@ class ChatService:
             })
             
         self.rotation_strategy = "sequential"  # "sequential" veya "health_priority"
+        self.key_rotation_logs = []
+        self._add_log("info", f"Sistem başlatıldı. {len(self.api_keys)} adet API anahtarı yüklendi.")
         self._setup_client()
         self.timeout = 120.0
+
+    def _add_log(self, level: str, message: str):
+        """
+        Sistem günlüğüne yeni bir olay ekler.
+        level: "info", "warning", "error", "success"
+        """
+        from datetime import datetime, timezone
+        self.key_rotation_logs.insert(0, {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "level": level,
+            "message": message
+        })
+        # Son 50 olay ile sınırla
+        if len(self.key_rotation_logs) > 50:
+            self.key_rotation_logs.pop()
     
     def _setup_client(self):
         """Mevcut dizindeki API anahtarı ile istemciyi kur."""
@@ -976,9 +993,13 @@ class ChatService:
                 
             if candidates:
                 candidates.sort(key=lambda x: x[1], reverse=True)
-                return candidates[0][0]
+                next_index = candidates[0][0]
+                self._add_log("info", f"Sağlık öncelikli rotasyon çalıştırıldı. En sağlıklı anahtar seçildi (Yeni İndeks: {next_index + 1}).")
+                return next_index
                 
-        return (current_failed_index + 1) % len(self.api_keys)
+        next_index = (current_failed_index + 1) % len(self.api_keys)
+        self._add_log("info", f"Sıralı rotasyon çalıştırıldı. Sıradaki anahtar seçildi (Yeni İndeks: {next_index + 1}).")
+        return next_index
     
     async def chat_stream(
         self,
@@ -1069,6 +1090,7 @@ class ChatService:
                     if retry_count < max_retries:
                         self.current_key_index = self._select_next_key(self.current_key_index)
                         reason = "Kota doldu" if is_quota_error else "Hatalı anahtar"
+                        self._add_log("warning", f"Anahtar {self.current_key_index + 1} {reason} hatası verdi. Rotasyon tetiklendi.")
                         logger.warning(f"⚠️ Gemini {reason}! Diğer anahtara geçiliyor... (Yeni İndeks: {self.current_key_index})")
                         self._setup_client()
                         continue # Yeni anahtar ile tekrar dene
@@ -2299,6 +2321,14 @@ async def get_api_keys_status(current_user: str = Depends(get_current_admin)):
     }
 
 
+@app.get("/api/admin/api-keys/logs")
+async def get_api_keys_logs(current_user: str = Depends(get_current_admin)):
+    """
+    Gemini API anahtarı rotasyon ve olay günlüklerini getirir.
+    """
+    return {"logs": getattr(chat_service, "key_rotation_logs", [])}
+
+
 class RotationStrategyRequest(BaseModel):
     strategy: str
 
@@ -2313,6 +2343,7 @@ async def update_rotation_strategy(payload: RotationStrategyRequest, current_use
         raise HTTPException(status_code=400, detail="Geçersiz rotasyon stratejisi")
     
     chat_service.rotation_strategy = strategy
+    chat_service._add_log("info", f"Rotasyon stratejisi '{strategy}' olarak güncellendi.")
     logger.info(f"Rotasyon stratejisi güncellendi: {strategy}")
     return {"message": "Rotasyon stratejisi başarıyla güncellendi.", "strategy": strategy}
 
@@ -2330,6 +2361,7 @@ async def reset_api_key_status(index: int, current_user: str = Depends(get_curre
     key_meta["quota_exceeded_at"] = None
     key_meta["last_error"] = None
     
+    chat_service._add_log("success", f"Anahtar {index + 1} durumu yönetici tarafından sıfırlandı.")
     logger.info(f"Yönetici tarafından API anahtarı sıfırlandı: İndeks {index}")
     return {"message": f"Anahtar {index} başarıyla sıfırlandı ve aktif hale getirildi.", "key": key_meta}
 
@@ -2345,6 +2377,7 @@ async def activate_api_key(index: int, current_user: str = Depends(get_current_a
     chat_service.current_key_index = index
     chat_service._setup_client()
     
+    chat_service._add_log("info", f"Aktif API anahtarı İndeks {index + 1} olarak değiştirildi.")
     logger.info(f"Yönetici tarafından aktif API anahtarı değiştirildi: Yeni İndeks {index}")
     return {
         "message": f"Aktif anahtar değiştirildi. Yeni İndeks: {index}",
@@ -2376,6 +2409,7 @@ async def test_api_key(index: int, current_user: str = Depends(get_current_admin
         key_meta["quota_exceeded_at"] = None
         key_meta["last_error"] = None
         
+        chat_service._add_log("success", f"Anahtar {index + 1} manuel test edildi: Başarılı")
         return {"status": "success", "message": "Anahtar başarıyla doğrulandı. Sağlıklı çalışıyor."}
     except Exception as e:
         error_msg = str(e)
@@ -2396,6 +2430,7 @@ async def test_api_key(index: int, current_user: str = Depends(get_current_admin
         key_meta["last_error"] = error_msg
         key_meta["failure_count"] += 1
         
+        chat_service._add_log("error", f"Anahtar {index + 1} manuel test edildi: Başarısız ({key_meta['status']})")
         return {
             "status": "failed",
             "message": "Doğrulama başarısız oldu.",
@@ -2440,6 +2475,7 @@ async def add_api_key(payload: AddKeyRequest, current_user: str = Depends(get_cu
     }
     chat_service.keys_metadata.append(new_meta)
     
+    chat_service._add_log("success", f"Yeni API anahtarı eklendi: {masked}")
     logger.info(f"Yönetici tarafından yeni API anahtarı eklendi: {masked}")
     return {"message": "API anahtarı başarıyla sisteme eklendi.", "key": new_meta}
 
@@ -2469,6 +2505,7 @@ async def delete_api_key(index: int, current_user: str = Depends(get_current_adm
     elif chat_service.current_key_index > index:
         chat_service.current_key_index -= 1
         
+    chat_service._add_log("warning", f"Anahtar {index + 1} sistemden silindi: {removed_meta['masked_key']}")
     logger.info(f"Yönetici tarafından API anahtarı silindi: {removed_meta['masked_key']}")
     return {"message": "API anahtarı sistemden başarıyla kaldırıldı."}
 
@@ -2490,6 +2527,7 @@ async def update_api_key_limit(index: int, payload: UpdateLimitRequest, current_
         raise HTTPException(status_code=400, detail="İstek limiti 0'dan büyük olmalıdır")
         
     chat_service.keys_metadata[index]["request_limit"] = limit
+    chat_service._add_log("info", f"Anahtar {index + 1} günlük limiti {limit} olarak güncellendi.")
     logger.info(f"Yönetici tarafından API anahtarı {index} limiti güncellendi: {limit}")
     return {"message": "API anahtarı limiti başarıyla güncellendi.", "limit": limit}
 
