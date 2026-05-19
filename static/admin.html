@@ -206,6 +206,16 @@
               </h3>
               <p style="font-size: 0.74rem; color: var(--adm-muted); margin: 4px 0 0 0; font-family: var(--adm-font);">Son 7 günlük API istek hacmi ve başarı performansı analitiği</p>
             </div>
+            <div style="display: flex; gap: 12px; font-size: 0.72rem; font-family: var(--adm-mono); background: rgba(0,0,0,0.3); padding: 6px 12px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05);">
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="width: 8px; height: 8px; border-radius: 50%; background: #00d4ff; box-shadow: 0 0 6px #00d4ff;"></span>
+                <span style="color: rgba(255,255,255,0.85); font-weight: 500;">İstek Sayısı</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="width: 8px; height: 8px; border-radius: 50%; background: #10b981; box-shadow: 0 0 6px #10b981;"></span>
+                <span style="color: rgba(255,255,255,0.85); font-weight: 500;">Başarı Oranı</span>
+              </div>
+            </div>
           </div>
           
           <div style="position: relative; min-height: 280px; width: 100%;">
@@ -1021,6 +1031,15 @@
             width: [0, 3],
             curve: 'smooth'
           },
+          dropShadow: {
+            enabled: true,
+            enabledOnSeries: [1],
+            top: 4,
+            left: 0,
+            blur: 4,
+            color: '#10b981',
+            opacity: 0.4
+          },
           colors: ['#00d4ff', '#10b981'],
           plotOptions: {
             bar: {
@@ -1071,6 +1090,9 @@
               labels: {
                 style: {
                   colors: '#00d4ff'
+                },
+                formatter: function(val) {
+                  return Math.round(val);
                 }
               },
               min: 0,
