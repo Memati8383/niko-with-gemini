@@ -309,9 +309,10 @@
 }
 
 .admin-scope .stat-icon img {
-  width: 26px;
-  height: 26px;
-  object-fit: contain;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
 }
 
 .admin-scope .stat-info {
