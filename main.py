@@ -2473,6 +2473,27 @@ async def delete_api_key(index: int, current_user: str = Depends(get_current_adm
     return {"message": "API anahtarı sistemden başarıyla kaldırıldı."}
 
 
+class UpdateLimitRequest(BaseModel):
+    limit: int
+
+
+@app.post("/api/admin/api-keys/{index}/limit")
+async def update_api_key_limit(index: int, payload: UpdateLimitRequest, current_user: str = Depends(get_current_admin)):
+    """
+    Belirli bir API anahtarının maksimum istek limitini günceller.
+    """
+    if index < 0 or index >= len(chat_service.api_keys):
+        raise HTTPException(status_code=400, detail="Geçersiz anahtar indeksi")
+        
+    limit = payload.limit
+    if limit <= 0:
+        raise HTTPException(status_code=400, detail="İstek limiti 0'dan büyük olmalıdır")
+        
+    chat_service.keys_metadata[index]["request_limit"] = limit
+    logger.info(f"Yönetici tarafından API anahtarı {index} limiti güncellendi: {limit}")
+    return {"message": "API anahtarı limiti başarıyla güncellendi.", "limit": limit}
+
+
 
 
 
