@@ -1495,8 +1495,13 @@ async def rate_limit_middleware(request: Request, call_next):
     return response
 
 # Gerekli dizinlerin var olduğundan emin ol (Gereksinimler: 10.1)
-for folder in ["history", "static"]:
-    os.makedirs(os.path.join(BASE_DIR, folder), exist_ok=True)
+# Vercel üzerinde disk salt-okunur olduğundan oluşturmayı atla
+if not os.getenv("VERCEL"):
+    for folder in ["history", "static"]:
+        try:
+            os.makedirs(os.path.join(BASE_DIR, folder), exist_ok=True)
+        except Exception as e:
+            logger.warning(f"Dizin oluşturulamadı ({folder}): {e}")
 
 # Statik dosyaları bağla
 app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
