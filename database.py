@@ -50,11 +50,34 @@ class HTTPXSupabaseQuery:
         self._select = "*"
         self._filters = []
         self._order = None
+        self._method = "GET"
+        self._data = None
 
     def select(self, columns="*", count=None):
+        self._method = "GET"
         self._select = columns
         if count == "exact":
             self.headers["Prefer"] = "count=exact"
+        return self
+
+    def insert(self, data):
+        self._method = "POST"
+        self._data = data
+        return self
+
+    def upsert(self, data):
+        self._method = "POST"
+        self.headers["Prefer"] = "resolution=merge-duplicates,return=representation"
+        self._data = data
+        return self
+
+    def update(self, data):
+        self._method = "PATCH"
+        self._data = data
+        return self
+
+    def delete(self):
+        self._method = "DELETE"
         return self
 
     def eq(self, column, value):
@@ -79,14 +102,25 @@ class HTTPXSupabaseQuery:
 
     def execute(self):
         url = f"{self.client.url}/rest/v1/{self.table_name}"
-        params = {"select": self._select}
+        params = {}
         for f in self._filters:
             k, v = f.split("=", 1)
             params[k] = v
-        if self._order:
-            params["order"] = self._order
 
-        response = httpx.get(url, headers=self.headers, params=params, timeout=10.0)
+        if self._method == "GET":
+            params["select"] = self._select
+            if self._order:
+                params["order"] = self._order
+            response = httpx.get(url, headers=self.headers, params=params, timeout=10.0)
+        elif self._method == "POST":
+            response = httpx.post(url, headers=self.headers, json=self._data, timeout=10.0)
+        elif self._method == "PATCH":
+            response = httpx.patch(url, headers=self.headers, json=self._data, params=params, timeout=10.0)
+        elif self._method == "DELETE":
+            response = httpx.delete(url, headers=self.headers, params=params, timeout=10.0)
+        else:
+            raise ValueError(f"Desteklenmeyen metod: {self._method}")
+
         response.raise_for_status()
         
         count = None
@@ -95,40 +129,12 @@ class HTTPXSupabaseQuery:
             if len(parts) > 1 and parts[1].isdigit():
                 count = int(parts[1])
                 
-        return HTTPXSupabaseResponse(response.json(), count=count)
+        try:
+            res_data = response.json()
+        except Exception:
+            res_data = []
 
-    def insert(self, data):
-        url = f"{self.client.url}/rest/v1/{self.table_name}"
-        response = httpx.post(url, headers=self.headers, json=data, timeout=10.0)
-        response.raise_for_status()
-        return HTTPXSupabaseResponse(response.json())
-
-    def upsert(self, data):
-        self.headers["Prefer"] = "resolution=merge-duplicates,return=representation"
-        url = f"{self.client.url}/rest/v1/{self.table_name}"
-        response = httpx.post(url, headers=self.headers, json=data, timeout=10.0)
-        response.raise_for_status()
-        return HTTPXSupabaseResponse(response.json())
-
-    def update(self, data):
-        url = f"{self.client.url}/rest/v1/{self.table_name}"
-        params = {}
-        for f in self._filters:
-            k, v = f.split("=", 1)
-            params[k] = v
-        response = httpx.patch(url, headers=self.headers, json=data, params=params, timeout=10.0)
-        response.raise_for_status()
-        return HTTPXSupabaseResponse(response.json())
-
-    def delete(self):
-        url = f"{self.client.url}/rest/v1/{self.table_name}"
-        params = {}
-        for f in self._filters:
-            k, v = f.split("=", 1)
-            params[k] = v
-        response = httpx.delete(url, headers=self.headers, params=params, timeout=10.0)
-        response.raise_for_status()
-        return HTTPXSupabaseResponse(response.json())
+        return HTTPXSupabaseResponse(res_data, count=count)
 
 class HTTPXSupabaseClient:
     def __init__(self, url: str, key: str):
