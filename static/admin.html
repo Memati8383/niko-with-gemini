@@ -852,11 +852,30 @@
                   ${errorDetail}
                 </td>
                 <td data-label="TOPLAM İSTEK" style="text-align: center; font-family: var(--adm-mono); font-weight: 600;">${key.request_count}</td>
-                <td data-label="BAŞARILI" style="text-align: center; font-family: var(--adm-mono); font-weight: 600; color: #34d399;">${key.success_count}</td>
+                <td data-label="BAŞARILI" style="text-align: center; font-family: var(--adm-mono); font-weight: 600; color: #34d399;">
+                  ${key.success_count}
+                  ${(() => {
+                    const total = key.request_count || 0;
+                    const success = key.success_count || 0;
+                    const rate = total > 0 ? Math.round((success / total) * 100) : 100;
+                    const rateColor = rate > 90 ? '#34d399' : (rate > 50 ? '#fbbf24' : 'var(--adm-danger)');
+                    return total > 0 
+                      ? `<div style="margin-top: 4px; display: flex; flex-direction: column; align-items: center; gap: 2px;">
+                           <div style="width: 50px; height: 3px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden;">
+                             <div style="width: ${rate}%; height: 100%; background: ${rateColor}; box-shadow: 0 0 4px ${rateColor};"></div>
+                           </div>
+                           <span style="font-size: 0.65rem; color: ${rateColor};">%${rate} Başarı</span>
+                         </div>`
+                      : '<div style="font-size: 0.65rem; color: var(--adm-muted); margin-top: 4px;">İstek Yok</div>';
+                  })()}
+                </td>
                 <td data-label="HATALI" style="text-align: center; font-family: var(--adm-mono); font-weight: 600; color: var(--adm-danger);">${key.failure_count}</td>
                 <td data-label="SON KULLANIM" style="font-family: var(--adm-mono); font-size: 0.76rem; color: rgba(255,255,255,0.45);">${lastUsedFormatted}</td>
                 <td>
                   <div class="action-buttons">
+                    <button class="btn btn-secondary btn-sm" id="testBtn-${key.index}" onclick="testApiKey(${key.index})" style="background: rgba(255, 255, 255, 0.05) !important; border: 1px solid rgba(255, 255, 255, 0.1) !important; color: #fff !important;" title="API anahtarını anlık sorgular">
+                      Test Et
+                    </button>
                     <button class="btn btn-secondary btn-sm" onclick="activateApiKey(${key.index})" ${isActiveKey ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}>
                       Aktif Et
                     </button>
@@ -869,6 +888,42 @@
             `;
           })
           .join("");
+      }
+
+      async function testApiKey(index) {
+        const token = getToken();
+        if (!token) return;
+
+        const btn = document.getElementById(`testBtn-${index}`);
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = `<span class="loading-spinner" style="width: 10px; height: 10px; margin: 0; display: inline-block; vertical-align: middle;"></span>`;
+
+        try {
+          const response = await fetch(`/api/admin/api-keys/${index}/test`, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+          const resData = await response.json();
+          if (!response.ok) {
+            throw new Error(resData.detail || "Doğrulama isteği başarısız oldu.");
+          }
+
+          if (resData.status === "success") {
+            showToast(`Anahtar ${index + 1} başarıyla doğrulandı ve sağlıklı çalışıyor!`, "success");
+          } else {
+            showToast(`Anahtar ${index + 1} doğrulanamadı: ${resData.error || resData.message}`, "error");
+          }
+          fetchApiKeys();
+        } catch (error) {
+          showToast(error.message, "error");
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = originalText;
+        }
       }
 
       async function resetApiKey(index) {

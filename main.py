@@ -2301,6 +2301,59 @@ async def activate_api_key(index: int, current_user: str = Depends(get_current_a
     }
 
 
+@app.post("/api/admin/api-keys/{index}/test")
+async def test_api_key(index: int, current_user: str = Depends(get_current_admin)):
+    """
+    Belirli bir API anahtarını doğrudan test eder (Gemini'ye hızlı bir test isteği gönderir).
+    """
+    if index < 0 or index >= len(chat_service.api_keys):
+        raise HTTPException(status_code=400, detail="Geçersiz anahtar indeksi")
+    
+    test_key = chat_service.api_keys[index]
+    temp_client = genai.Client(api_key=test_key)
+    key_meta = chat_service.keys_metadata[index]
+    
+    try:
+        # Hızlı bir test isteği gönder
+        response = await temp_client.aio.models.generate_content(
+            model="gemini-2.5-flash",
+            contents="test"
+        )
+        
+        # Başarılı olursa durumunu active olarak güncelle
+        key_meta["status"] = "active"
+        key_meta["quota_exceeded_at"] = None
+        key_meta["last_error"] = None
+        
+        return {"status": "success", "message": "Anahtar başarıyla doğrulandı. Sağlıklı çalışıyor."}
+    except Exception as e:
+        error_msg = str(e)
+        
+        # Hata türünü analiz et
+        err_lower = error_msg.lower()
+        is_quota = "429" in err_lower or "quota" in err_lower or "limit" in err_lower
+        is_invalid = "400" in err_lower or "invalid" in err_lower or "not valid" in err_lower
+        
+        if is_quota:
+            key_meta["status"] = "quota_exceeded"
+            key_meta["quota_exceeded_at"] = datetime.now(timezone.utc).isoformat()
+        elif is_invalid:
+            key_meta["status"] = "invalid"
+        else:
+            key_meta["status"] = "error"
+            
+        key_meta["last_error"] = error_msg
+        key_meta["failure_count"] += 1
+        
+        return {
+            "status": "failed",
+            "message": "Doğrulama başarısız oldu.",
+            "error": error_msg,
+            "detected_status": key_meta["status"]
+        }
+
+
+
 
 
 
