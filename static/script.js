@@ -323,10 +323,10 @@ function updateConnectionStatus(connected) {
     
     if (connected) {
         statusDot.classList.remove('offline');
-        statusText.textContent = 'Bağlı';
+        statusText.textContent = 'Çevrimiçi';
     } else {
         statusDot.classList.add('offline');
-        statusText.textContent = 'Bağlantı yok';
+        statusText.textContent = 'Çevrimdışı';
     }
 }
 
