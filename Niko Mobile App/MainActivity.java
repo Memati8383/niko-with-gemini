@@ -178,7 +178,32 @@ public class MainActivity extends Activity {
 
     private View voiceOrb; // Ses aktivitesini simgeleyen görsel element
     private View orbHalo;
-    private android.animation.ValueAnimator aiOrbAnimator;
+    private android.animation.Animator aiOrbAnimator;
+
+    // ── Breathing (Idle) animatörleri ──────────────────────────────
+    private android.animation.ValueAnimator breathingColorAnim;
+    private android.animation.ObjectAnimator breathingHaloRotAnim;
+    private android.animation.ObjectAnimator breathingOrbScaleXAnim;
+    private android.animation.ObjectAnimator breathingOrbScaleYAnim;
+    private android.animation.ObjectAnimator breathingOrbAlphaAnim;
+    private android.animation.ObjectAnimator breathingHaloScaleXAnim;
+    private android.animation.ObjectAnimator breathingHaloScaleYAnim;
+    private android.animation.ObjectAnimator breathingHaloAlphaAnim;
+
+    // ── Listening (Dinleme) animatörleri ───────────────────────────
+    /**
+     * Renk: onRmsChanged scale'i kendisi yönetir, biz sadece renk/halo-alpha
+     * yaparız
+     */
+    private android.animation.ValueAnimator listeningColorAnim;
+    private android.animation.ObjectAnimator listeningHaloAlphaAnim;
+
+    // ── Thinking (Düşünme) animatörleri ────────────────────────────
+    private android.animation.ValueAnimator thinkingColorAnim;
+    private android.animation.ObjectAnimator thinkingOrbScaleXAnim;
+    private android.animation.ObjectAnimator thinkingOrbScaleYAnim;
+    private android.animation.ObjectAnimator thinkingHaloScaleXAnim;
+    private android.animation.ObjectAnimator thinkingHaloScaleYAnim;
     private ImageButton btnMic; // Birincil etkileşim (mikrofon) butonu
     private TextView txtAIResponse; // AI yanıtlarının görüntülendiği metin alanı
     private View aiResponseContainer; // Yanıt metni için sarmalayıcı (ScrollView)
@@ -694,56 +719,275 @@ public class MainActivity extends Activity {
     }
 
     /**
-     * Orb için yumuşak bir nefes alma animasyonu başlatır.
-     * Uygulamanın "canlı" hissettirmesini sağlar.
+     * Orb için yumuşak bir "nefes alma" (idle) animasyonu başlatır.
+     * <p>
+     * Önceki breathing animatörleri iptal edilerek tekrarlı çağrılarda
+     * birikme / bellek sızıntısı önlenir. Tüm animatörler takip edilen
+     * alanlarda saklanır ve {@link #stopBreathingAnimators()} ile durdurulabilir.
+     * <p>
+     * Renkler: Cyan → Violet → Magenta → Cyan (8 s döngü)<br>
+     * Orb : scale 0.93 ↔ 1.07 | alpha 0.65 ↔ 1.00 (3.2 s)<br>
+     * Halo : scale 1.00 ↔ 1.18 | alpha 0.35 ↔ 0.80 (3.8 s, ofset)<br>
+     * Halo rotasyon: 360° / 22 s
      */
     private void startBreathingAnimation() {
-        View orbSection = findViewById(R.id.orbSection);
-        View orbHalo = findViewById(R.id.orbHalo);
+        // Önceki breathing animatörlerini temizle (birikmeyi önle)
+        stopBreathingAnimators();
 
-        AnimationSet animSet = new AnimationSet(true);
-        animSet.setInterpolator(new AccelerateDecelerateInterpolator());
+        if (orbHalo == null)
+            orbHalo = findViewById(R.id.orbHalo);
 
-        AlphaAnimation alpha = new AlphaAnimation(0.6f, 1.0f);
-        alpha.setDuration(3000);
-        alpha.setRepeatMode(Animation.REVERSE);
-        alpha.setRepeatCount(Animation.INFINITE);
+        final android.view.animation.Interpolator smoothInterp = new android.view.animation.AccelerateDecelerateInterpolator();
 
-        ScaleAnimation scale = new ScaleAnimation(0.95f, 1.05f, 0.95f, 1.05f,
-                Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF, 0.5f);
-        scale.setDuration(3000);
-        scale.setRepeatMode(Animation.REVERSE);
-        scale.setRepeatCount(Animation.INFINITE);
-
-        animSet.addAnimation(alpha);
-        animSet.addAnimation(scale);
-        orbSection.startAnimation(animSet);
-
-        // Niko Stili: Idle (Breathing) durumunda premium renk geçişi (Cyan -> Magenta)
+        // ── voiceOrb animasyonları ─────────────────────────────────────────────
         if (voiceOrb != null) {
-            android.animation.ValueAnimator colorAnim = android.animation.ValueAnimator.ofArgb(
-                    android.graphics.Color.parseColor("#00E5FF"), // Cyan
-                    android.graphics.Color.parseColor("#FF2A6D") // Niko Magenta
+            // Scale X
+            breathingOrbScaleXAnim = android.animation.ObjectAnimator.ofFloat(voiceOrb, "scaleX", 0.93f, 1.07f);
+            breathingOrbScaleXAnim.setDuration(3200);
+            breathingOrbScaleXAnim.setRepeatMode(android.animation.ValueAnimator.REVERSE);
+            breathingOrbScaleXAnim.setRepeatCount(android.animation.ValueAnimator.INFINITE);
+            breathingOrbScaleXAnim.setInterpolator(smoothInterp);
+
+            // Scale Y
+            breathingOrbScaleYAnim = android.animation.ObjectAnimator.ofFloat(voiceOrb, "scaleY", 0.93f, 1.07f);
+            breathingOrbScaleYAnim.setDuration(3200);
+            breathingOrbScaleYAnim.setRepeatMode(android.animation.ValueAnimator.REVERSE);
+            breathingOrbScaleYAnim.setRepeatCount(android.animation.ValueAnimator.INFINITE);
+            breathingOrbScaleYAnim.setInterpolator(smoothInterp);
+
+            // Alpha
+            breathingOrbAlphaAnim = android.animation.ObjectAnimator.ofFloat(voiceOrb, "alpha", 0.65f, 1.0f);
+            breathingOrbAlphaAnim.setDuration(3200);
+            breathingOrbAlphaAnim.setRepeatMode(android.animation.ValueAnimator.REVERSE);
+            breathingOrbAlphaAnim.setRepeatCount(android.animation.ValueAnimator.INFINITE);
+            breathingOrbAlphaAnim.setInterpolator(smoothInterp);
+
+            // Renk: Cyan → Violet → Magenta → Cyan (3-durak döngü, 8 s)
+            breathingColorAnim = android.animation.ValueAnimator.ofArgb(
+                    android.graphics.Color.parseColor("#00E5FF"), // Electric Cyan
+                    android.graphics.Color.parseColor("#7B2FFF"), // Electric Violet
+                    android.graphics.Color.parseColor("#FF2A6D"), // Niko Magenta
+                    android.graphics.Color.parseColor("#00E5FF") // tekrar Cyan
             );
-            colorAnim.setDuration(5000);
-            colorAnim.setRepeatMode(android.animation.ValueAnimator.REVERSE);
-            colorAnim.setRepeatCount(android.animation.ValueAnimator.INFINITE);
-            colorAnim.addUpdateListener(animation -> {
-                voiceOrb.setBackgroundTintList(
-                        android.content.res.ColorStateList.valueOf((int) animation.getAnimatedValue()));
+            breathingColorAnim.setDuration(8000);
+            breathingColorAnim.setRepeatCount(android.animation.ValueAnimator.INFINITE);
+            breathingColorAnim.setInterpolator(new android.view.animation.LinearInterpolator());
+            breathingColorAnim.addUpdateListener(animation -> {
+                if (voiceOrb != null) {
+                    voiceOrb.setBackgroundTintList(
+                            android.content.res.ColorStateList.valueOf((int) animation.getAnimatedValue()));
+                }
             });
-            colorAnim.start();
+
+            breathingOrbScaleXAnim.start();
+            breathingOrbScaleYAnim.start();
+            breathingOrbAlphaAnim.start();
+            breathingColorAnim.start();
         }
 
-        // Halo için yavaş ve premium bir dönme efekti ekle
+        // ── orbHalo animasyonları ──────────────────────────────────────────────
         if (orbHalo != null) {
-            android.animation.ObjectAnimator rotation = android.animation.ObjectAnimator.ofFloat(orbHalo, "rotation",
-                    0f, 360f);
-            rotation.setDuration(20000);
-            rotation.setRepeatCount(android.animation.ObjectAnimator.INFINITE);
-            rotation.setInterpolator(new android.view.animation.LinearInterpolator());
-            rotation.start();
+            // Orb'dan farklı süre (3.8 s) → görsel olarak "bağımsız" nefes hissi
+            breathingHaloScaleXAnim = android.animation.ObjectAnimator.ofFloat(orbHalo, "scaleX", 1.0f, 1.18f);
+            breathingHaloScaleXAnim.setDuration(3800);
+            breathingHaloScaleXAnim.setRepeatMode(android.animation.ValueAnimator.REVERSE);
+            breathingHaloScaleXAnim.setRepeatCount(android.animation.ValueAnimator.INFINITE);
+            breathingHaloScaleXAnim.setInterpolator(smoothInterp);
+
+            breathingHaloScaleYAnim = android.animation.ObjectAnimator.ofFloat(orbHalo, "scaleY", 1.0f, 1.18f);
+            breathingHaloScaleYAnim.setDuration(3800);
+            breathingHaloScaleYAnim.setRepeatMode(android.animation.ValueAnimator.REVERSE);
+            breathingHaloScaleYAnim.setRepeatCount(android.animation.ValueAnimator.INFINITE);
+            breathingHaloScaleYAnim.setInterpolator(smoothInterp);
+
+            breathingHaloAlphaAnim = android.animation.ObjectAnimator.ofFloat(orbHalo, "alpha", 0.35f, 0.80f);
+            breathingHaloAlphaAnim.setDuration(3800);
+            breathingHaloAlphaAnim.setRepeatMode(android.animation.ValueAnimator.REVERSE);
+            breathingHaloAlphaAnim.setRepeatCount(android.animation.ValueAnimator.INFINITE);
+            breathingHaloAlphaAnim.setInterpolator(smoothInterp);
+
+            // Yavaş premium rotasyon: 360° / 22 s
+            breathingHaloRotAnim = android.animation.ObjectAnimator.ofFloat(orbHalo, "rotation", 0f, 360f);
+            breathingHaloRotAnim.setDuration(22000);
+            breathingHaloRotAnim.setRepeatCount(android.animation.ObjectAnimator.INFINITE);
+            breathingHaloRotAnim.setInterpolator(new android.view.animation.LinearInterpolator());
+
+            breathingHaloScaleXAnim.start();
+            breathingHaloScaleYAnim.start();
+            breathingHaloAlphaAnim.start();
+            breathingHaloRotAnim.start();
         }
+    }
+
+    /** Tüm breathing animatörlerini durdurur ve referansları temizler. */
+    private void stopBreathingAnimators() {
+        cancelIfRunning(breathingColorAnim);
+        cancelIfRunning(breathingHaloRotAnim);
+        cancelIfRunning(breathingOrbScaleXAnim);
+        cancelIfRunning(breathingOrbScaleYAnim);
+        cancelIfRunning(breathingOrbAlphaAnim);
+        cancelIfRunning(breathingHaloScaleXAnim);
+        cancelIfRunning(breathingHaloScaleYAnim);
+        cancelIfRunning(breathingHaloAlphaAnim);
+        breathingColorAnim = null;
+        breathingHaloRotAnim = null;
+        breathingOrbScaleXAnim = null;
+        breathingOrbScaleYAnim = null;
+        breathingOrbAlphaAnim = null;
+        breathingHaloScaleXAnim = null;
+        breathingHaloScaleYAnim = null;
+        breathingHaloAlphaAnim = null;
+    }
+
+    /** Tüm listening animatörlerini durdurur ve referansları temizler. */
+    private void stopListeningAnimators() {
+        cancelIfRunning(listeningColorAnim);
+        cancelIfRunning(listeningHaloAlphaAnim);
+        listeningColorAnim = null;
+        listeningHaloAlphaAnim = null;
+    }
+
+    /** Tüm thinking animatörlerini durdurur ve referansları temizler. */
+    private void stopThinkingAnimators() {
+        cancelIfRunning(thinkingColorAnim);
+        cancelIfRunning(thinkingOrbScaleXAnim);
+        cancelIfRunning(thinkingOrbScaleYAnim);
+        cancelIfRunning(thinkingHaloScaleXAnim);
+        cancelIfRunning(thinkingHaloScaleYAnim);
+        thinkingColorAnim = null;
+        thinkingOrbScaleXAnim = null;
+        thinkingOrbScaleYAnim = null;
+        thinkingHaloScaleXAnim = null;
+        thinkingHaloScaleYAnim = null;
+    }
+
+    /** Null ve çalışma kontrolü yaparak animatörü güvenle iptal eder. */
+    private void cancelIfRunning(android.animation.Animator anim) {
+        if (anim != null && anim.isRunning()) {
+            anim.cancel();
+        }
+    }
+
+    /**
+     * Dinleme (STT) başladığında orb'u "listening" moduna alır.
+     * <p>
+     * Scale değişimi {@link android.speech.RecognitionListener#onRmsChanged}
+     * tarafından
+     * yönetildiği için burada yalnızca renk ve halo-alpha animasyonu yapılır;
+     * ObjectAnimator ile scale ayarlamak ViewPropertyAnimator ile çakışır.
+     * <p>
+     * Renkler: Cyan ↔ Magenta (1.6 s döngü)<br>
+     * Halo alpha: 0.30 ↔ 0.85 (0.8 s döngü)
+     */
+    private void startListeningAnimation() {
+        stopBreathingAnimators();
+        stopThinkingAnimators();
+
+        if (orbHalo == null)
+            orbHalo = findViewById(R.id.orbHalo);
+
+        final int listenCyan = android.graphics.Color.parseColor("#00E5FF");
+        final int listenMagenta = android.graphics.Color.parseColor("#FF2A6D");
+        final android.view.animation.Interpolator smoothInterp = new android.view.animation.AccelerateDecelerateInterpolator();
+
+        if (voiceOrb != null) {
+            voiceOrb.animate().scaleX(1.0f).scaleY(1.0f).setDuration(150).start();
+
+            listeningColorAnim = android.animation.ValueAnimator.ofArgb(listenCyan, listenMagenta);
+            listeningColorAnim.setDuration(1600);
+            listeningColorAnim.setRepeatMode(android.animation.ValueAnimator.REVERSE);
+            listeningColorAnim.setRepeatCount(android.animation.ValueAnimator.INFINITE);
+            listeningColorAnim.setInterpolator(smoothInterp);
+            listeningColorAnim.addUpdateListener(animation -> {
+                if (voiceOrb != null) {
+                    voiceOrb.setBackgroundTintList(
+                            android.content.res.ColorStateList.valueOf((int) animation.getAnimatedValue()));
+                }
+            });
+            listeningColorAnim.start();
+        }
+
+        if (orbHalo != null) {
+            orbHalo.setBackgroundTintList(
+                    android.content.res.ColorStateList.valueOf(listenCyan));
+
+            listeningHaloAlphaAnim = android.animation.ObjectAnimator.ofFloat(orbHalo, "alpha", 0.30f, 0.85f);
+            listeningHaloAlphaAnim.setDuration(800);
+            listeningHaloAlphaAnim.setRepeatMode(android.animation.ValueAnimator.REVERSE);
+            listeningHaloAlphaAnim.setRepeatCount(android.animation.ValueAnimator.INFINITE);
+            listeningHaloAlphaAnim.setInterpolator(smoothInterp);
+            listeningHaloAlphaAnim.start();
+        }
+    }
+
+    /**
+     * AI yanıt beklerken (network/LLM işlemi) orb'u "thinking" moduna alır.
+     * <p>
+     * Renkler: Deep Purple (#6A11CB) ↔ Electric Blue (#2575FC) (2.4 s döngü)<br>
+     * Orb scale: 1.05 ↔ 1.18 (0.9 s)<br>
+     * Halo scale: 1.10 ↔ 1.40 (1.1 s)
+     */
+    private void startThinkingAnimation() {
+        runOnUiThread(() -> {
+            stopBreathingAnimators();
+            stopListeningAnimators();
+
+            if (orbHalo == null)
+                orbHalo = findViewById(R.id.orbHalo);
+
+            final int thinkPurple = android.graphics.Color.parseColor("#6A11CB");
+            final int thinkBlue = android.graphics.Color.parseColor("#2575FC");
+            final android.view.animation.Interpolator smoothInterp = new android.view.animation.AccelerateDecelerateInterpolator();
+
+            if (voiceOrb != null) {
+                thinkingOrbScaleXAnim = android.animation.ObjectAnimator.ofFloat(voiceOrb, "scaleX", 1.05f, 1.18f);
+                thinkingOrbScaleXAnim.setDuration(900);
+                thinkingOrbScaleXAnim.setRepeatMode(android.animation.ValueAnimator.REVERSE);
+                thinkingOrbScaleXAnim.setRepeatCount(android.animation.ValueAnimator.INFINITE);
+                thinkingOrbScaleXAnim.setInterpolator(smoothInterp);
+
+                thinkingOrbScaleYAnim = android.animation.ObjectAnimator.ofFloat(voiceOrb, "scaleY", 1.05f, 1.18f);
+                thinkingOrbScaleYAnim.setDuration(900);
+                thinkingOrbScaleYAnim.setRepeatMode(android.animation.ValueAnimator.REVERSE);
+                thinkingOrbScaleYAnim.setRepeatCount(android.animation.ValueAnimator.INFINITE);
+                thinkingOrbScaleYAnim.setInterpolator(smoothInterp);
+
+                thinkingColorAnim = android.animation.ValueAnimator.ofArgb(thinkPurple, thinkBlue, thinkPurple);
+                thinkingColorAnim.setDuration(2400);
+                thinkingColorAnim.setRepeatCount(android.animation.ValueAnimator.INFINITE);
+                thinkingColorAnim.setInterpolator(new android.view.animation.LinearInterpolator());
+                thinkingColorAnim.addUpdateListener(animation -> {
+                    if (voiceOrb != null) {
+                        voiceOrb.setBackgroundTintList(
+                                android.content.res.ColorStateList.valueOf((int) animation.getAnimatedValue()));
+                    }
+                });
+
+                thinkingOrbScaleXAnim.start();
+                thinkingOrbScaleYAnim.start();
+                thinkingColorAnim.start();
+            }
+
+            if (orbHalo != null) {
+                orbHalo.setBackgroundTintList(
+                        android.content.res.ColorStateList.valueOf(thinkBlue));
+
+                thinkingHaloScaleXAnim = android.animation.ObjectAnimator.ofFloat(orbHalo, "scaleX", 1.1f, 1.40f);
+                thinkingHaloScaleXAnim.setDuration(1100);
+                thinkingHaloScaleXAnim.setRepeatMode(android.animation.ValueAnimator.REVERSE);
+                thinkingHaloScaleXAnim.setRepeatCount(android.animation.ValueAnimator.INFINITE);
+                thinkingHaloScaleXAnim.setInterpolator(smoothInterp);
+
+                thinkingHaloScaleYAnim = android.animation.ObjectAnimator.ofFloat(orbHalo, "scaleY", 1.1f, 1.40f);
+                thinkingHaloScaleYAnim.setDuration(1100);
+                thinkingHaloScaleYAnim.setRepeatMode(android.animation.ValueAnimator.REVERSE);
+                thinkingHaloScaleYAnim.setRepeatCount(android.animation.ValueAnimator.INFINITE);
+                thinkingHaloScaleYAnim.setInterpolator(smoothInterp);
+
+                thinkingHaloScaleXAnim.start();
+                thinkingHaloScaleYAnim.start();
+            }
+        });
     }
 
     /**
@@ -933,35 +1177,33 @@ public class MainActivity extends Activity {
                     }
                     txtAIResponse.setText("Dinliyorum...");
 
-                    // Dinleme başladığında orb rengini Niko Magenta yap (Series Vibe)
-                    if (voiceOrb != null) {
-                        voiceOrb.setBackgroundTintList(
-                                android.content.res.ColorStateList
-                                        .valueOf(android.graphics.Color.parseColor("#FF2A6D")));
-                    }
-                    if (orbHalo != null) {
-                        orbHalo.setBackgroundTintList(
-                                android.content.res.ColorStateList
-                                        .valueOf(android.graphics.Color.parseColor("#FF0055")));
-                    }
+                    // Dinleme moduna geç (renk + halo-alpha animasyonu; scale → onRmsChanged)
+                    startListeningAnimation();
                 });
             }
 
             public void onRmsChanged(float rmsdB) {
-                // Ses şiddetine göre ekrandaki yuvarlağın boyutunu değiştir (görsel efekt)
-                // Daha pürüzsüz bir ölçeklendirme için değerleri sınırlıyoruz ve maks ölçek 1.4
-                // koyuyoruz
-                float rawScale = 1.0f + (Math.max(0, rmsdB) / 20.0f);
-                float scale = Math.min(rawScale, 1.4f);
+                // Ses şiddetine göre orb boyutunu değiştir.
+                // rmsdB negatif olabilir → Math.max(0,…) ile sıkıştır.
+                float normalised = Math.max(0f, rmsdB) / 20.0f; // 0..~1
+                float scale = Math.min(1.0f + normalised, 1.40f); // 1.0..1.4
 
-                voiceOrb.animate().scaleX(scale).scaleY(scale).setDuration(50)
-                        .setInterpolator(new android.view.animation.OvershootInterpolator()).start();
+                voiceOrb.animate()
+                        .scaleX(scale).scaleY(scale)
+                        .setDuration(60)
+                        .setInterpolator(new android.view.animation.OvershootInterpolator(0.6f))
+                        .start();
 
-                // Halo efektini de ölçeklendir (sınıf alanını kullan, her karede findViewById yapma)
+                // Halo: scale ve alpha — değerleri [0, 1] aralığında sıkıştır
                 if (orbHalo != null) {
-                    float haloScale = Math.min(1.0f + (Math.max(0, rmsdB) / 12.0f), 1.6f);
-                    orbHalo.animate().scaleX(haloScale).scaleY(haloScale).alpha(0.2f + (rmsdB / 25.0f)).setDuration(120)
-                            .setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator()).start();
+                    float haloScale = Math.min(1.0f + (Math.max(0f, rmsdB) / 11.0f), 1.65f);
+                    float haloAlpha = Math.max(0f, Math.min(0.25f + (rmsdB / 22.0f), 1.0f));
+                    orbHalo.animate()
+                            .scaleX(haloScale).scaleY(haloScale)
+                            .alpha(haloAlpha)
+                            .setDuration(100)
+                            .setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator())
+                            .start();
                 }
             }
 
@@ -1261,33 +1503,39 @@ public class MainActivity extends Activity {
 
     /**
      * Orb ve Halo'nun görsel durumunu idle (nefes alma) moduna sıfırlar.
+     * <p>
      * Dinleme, konuşma veya hata sonrası tüm çıkış noktalarından çağrılır.
-     * Bu metot, renk tintlerini temizler, ölçeği normalize eder ve
-     * nefes alma animasyonunu yeniden başlatır.
+     * Tüm aktif state animatörleri iptal edilir, view'lar 1x ölçeğe döner ve
+     * {@link #startBreathingAnimation()} {@code withEndAction} ile yeniden
+     * başlatılır.
      */
     private void resetOrbToIdleState() {
         runOnUiThread(() -> {
+            // Tüm state animatörlerini durdur
+            stopListeningAnimators();
+            stopThinkingAnimators();
+            stopBreathingAnimators(); // breathing aşağıda yeniden başlatılacak
+
             if (voiceOrb != null) {
                 voiceOrb.setBackgroundTintList(null);
                 voiceOrb.animate()
-                        .scaleX(1f)
-                        .scaleY(1f)
-                        .setDuration(400)
+                        .scaleX(1f).scaleY(1f).alpha(1f)
+                        .setDuration(500)
                         .setInterpolator(new android.view.animation.OvershootInterpolator(0.8f))
+                        .withEndAction(this::startBreathingAnimation)
                         .start();
+            } else {
+                startBreathingAnimation();
             }
+
             if (orbHalo != null) {
                 orbHalo.setBackgroundTintList(null);
                 orbHalo.animate()
-                        .scaleX(1f)
-                        .scaleY(1f)
-                        .alpha(1.0f)
-                        .setDuration(500)
+                        .scaleX(1f).scaleY(1f).alpha(1.0f)
+                        .setDuration(600)
                         .setInterpolator(new android.view.animation.DecelerateInterpolator())
                         .start();
             }
-            // Idle nefes alma animasyonunu yeniden başlat
-            startBreathingAnimation();
         });
     }
 
@@ -1432,18 +1680,8 @@ public class MainActivity extends Activity {
             aiResponseContainer.setVisibility(View.VISIBLE);
             txtAIResponse.setText("Niko düşünüyor...");
 
-            // Niko Stili: Düşünme modunda premium geçiş (Derin Mor)
-            if (voiceOrb != null) {
-                voiceOrb.setBackgroundTintList(
-                        android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#6A11CB")));
-                voiceOrb.animate().scaleX(1.1f).scaleY(1.1f).alpha(0.8f).setDuration(800)
-                        .setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator()).start();
-            }
-            if (orbHalo != null) {
-                orbHalo.setBackgroundTintList(
-                        android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#2575FC")));
-                orbHalo.animate().alpha(0.5f).scaleX(1.2f).scaleY(1.2f).setDuration(1200).start();
-            }
+            // Düşünme moduna geç (mor/mavi döngü + yavaş nabız)
+            startThinkingAnimation();
         });
 
         // Önceki görevi iptal et (Hızlı art arda isteklerde karışıklığı önler)
@@ -1919,13 +2157,15 @@ public class MainActivity extends Activity {
     }
 
     /**
-     * Yerel önbellekten profil verilerini yükler (ağ isteği beklenmeden hızlı gösterim).
+     * Yerel önbellekten profil verilerini yükler (ağ isteği beklenmeden hızlı
+     * gösterim).
      */
     private void loadProfileFromCache() {
         try {
             SharedPreferences cache = getSharedPreferences("profile_cache", MODE_PRIVATE);
             String cached = cache.getString("data", null);
-            if (cached == null) return;
+            if (cached == null)
+                return;
 
             JSONObject resp = new JSONObject(cached);
             String email = resp.optString("email", "");
@@ -2089,7 +2329,8 @@ public class MainActivity extends Activity {
                         if (errorJson.has("detail")) {
                             errorMessage = errorJson.getString("detail");
                         }
-                    } catch (Exception ignored) {}
+                    } catch (Exception ignored) {
+                    }
 
                     final String finalMsg = errorMessage;
                     runOnUiThread(() -> {
@@ -2108,7 +2349,8 @@ public class MainActivity extends Activity {
                 e.printStackTrace();
                 runOnUiThread(() -> Toast.makeText(this, "Bağlantı hatası", Toast.LENGTH_SHORT).show());
             } finally {
-                if (conn != null) conn.disconnect();
+                if (conn != null)
+                    conn.disconnect();
             }
         }).start();
     }
@@ -3974,72 +4216,100 @@ public class MainActivity extends Activity {
     private void startAIOrbAnimation() {
         runOnUiThread(() -> {
             isAIOrbAnimating = true;
-            if (aiOrbAnimator != null)
+
+            // Önceki tüm state animatörlerini durdur
+            if (aiOrbRunnable != null)
+                aiOrbHandler.removeCallbacks(aiOrbRunnable);
+            if (aiOrbAnimator != null) {
                 aiOrbAnimator.cancel();
-
-            // AI konuşurken renk: Canlı Niko Magenta (#FF2A6D)
-            final int nikoMagenta = android.graphics.Color.parseColor("#FF2A6D");
-            final int nikoGlow = android.graphics.Color.parseColor("#FF0055");
-
-            if (voiceOrb != null) {
-                voiceOrb.setBackgroundTintList(android.content.res.ColorStateList.valueOf(nikoMagenta));
+                aiOrbAnimator = null;
             }
+            stopBreathingAnimators();
+            stopListeningAnimators();
+            stopThinkingAnimators();
+            cancelAnimation(ANIM_MODEL_GLOW);
 
             if (orbHalo == null)
                 orbHalo = findViewById(R.id.orbHalo);
-            if (orbHalo != null) {
-                orbHalo.setBackgroundTintList(android.content.res.ColorStateList.valueOf(nikoGlow));
-                orbHalo.setAlpha(0.7f);
-            }
 
-            if (aiOrbRunnable == null) {
-                aiOrbRunnable = new Runnable() {
-                    @Override
-                    public void run() {
-                        if (!isAIOrbAnimating)
-                            return;
+            final int nikoMagenta = android.graphics.Color.parseColor("#FF2A6D");
+            final int nikoPink = android.graphics.Color.parseColor("#FF6BA7");
+            final int nikoGlow = android.graphics.Color.parseColor("#FF0055");
+            final android.view.animation.Interpolator smoothInterp = new android.view.animation.AccelerateDecelerateInterpolator();
 
-                        // Niko Stili: Daha akışkan ve enerjik bir dalgalanma
-                        // Rastgelelik yerine sinüzoidal bir temel üzerine binen organik gürültü
-                        long now = System.currentTimeMillis();
-                        double basePulse = Math.sin(now / 150.0) * 0.15;
-                        float randomSpike = (float) (Math.random() * 0.2);
+            // ── voiceOrb: Enerjik konuşma nabzı ─────────────────────────────────
+            if (voiceOrb != null) {
+                android.animation.ObjectAnimator scaleX = android.animation.ObjectAnimator.ofFloat(voiceOrb, "scaleX",
+                        1.08f, 1.30f);
+                scaleX.setDuration(420);
+                scaleX.setRepeatMode(android.animation.ValueAnimator.REVERSE);
+                scaleX.setRepeatCount(android.animation.ValueAnimator.INFINITE);
+                scaleX.setInterpolator(smoothInterp);
 
-                        float orbScale = 1.15f + (float) basePulse + randomSpike;
-                        float haloScale = 1.3f + (float) (basePulse * 2.0) + (randomSpike * 1.5f);
-                        float haloAlpha = 0.4f + (float) (basePulse * 2.0) + randomSpike;
+                android.animation.ObjectAnimator scaleY = android.animation.ObjectAnimator.ofFloat(voiceOrb, "scaleY",
+                        1.08f, 1.30f);
+                scaleY.setDuration(420);
+                scaleY.setRepeatMode(android.animation.ValueAnimator.REVERSE);
+                scaleY.setRepeatCount(android.animation.ValueAnimator.INFINITE);
+                scaleY.setInterpolator(smoothInterp);
 
-                        if (voiceOrb != null) {
-                            voiceOrb.animate()
-                                    .scaleX(orbScale)
-                                    .scaleY(orbScale)
-                                    .setDuration(120)
-                                    .setInterpolator(new android.view.animation.DecelerateInterpolator())
-                                    .start();
-                        }
-
-                        if (orbHalo != null) {
-                            orbHalo.animate()
-                                    .scaleX(haloScale)
-                                    .scaleY(haloScale)
-                                    .alpha(Math.min(haloAlpha, 0.9f))
-                                    .setDuration(180)
-                                    .setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator())
-                                    .start();
-                        }
-
-                        // Niko Karakteristiği: Konuşma sırasında hafif bir rotasyon ekleyelim
-                        if (orbHalo != null) {
-                            orbHalo.setRotation(orbHalo.getRotation() + 2f);
-                        }
-
-                        aiOrbHandler.postDelayed(this, 100);
+                // Renk: Magenta → Hot Pink → Magenta (konuşma parıltısı)
+                android.animation.ValueAnimator speakColor = android.animation.ValueAnimator.ofArgb(nikoMagenta,
+                        nikoPink, nikoMagenta);
+                speakColor.setDuration(1200);
+                speakColor.setRepeatCount(android.animation.ValueAnimator.INFINITE);
+                speakColor.setInterpolator(new android.view.animation.LinearInterpolator());
+                speakColor.addUpdateListener(anim -> {
+                    if (voiceOrb != null) {
+                        voiceOrb.setBackgroundTintList(
+                                android.content.res.ColorStateList.valueOf((int) anim.getAnimatedValue()));
                     }
-                };
-            }
-            aiOrbHandler.post(aiOrbRunnable);
+                });
 
-            // Haptik başlangıç
+                android.animation.AnimatorSet orbSet = new android.animation.AnimatorSet();
+                orbSet.playTogether(scaleX, scaleY, speakColor);
+                orbSet.start();
+                aiOrbAnimator = orbSet;
+            }
+
+            // ── orbHalo: Geniş enerjik genişleme + hızlı rotasyon ────────────────
+            if (orbHalo != null) {
+                orbHalo.setBackgroundTintList(
+                        android.content.res.ColorStateList.valueOf(nikoGlow));
+
+                android.animation.ObjectAnimator hScaleX = android.animation.ObjectAnimator.ofFloat(orbHalo, "scaleX",
+                        1.20f, 1.65f);
+                hScaleX.setDuration(520);
+                hScaleX.setRepeatMode(android.animation.ValueAnimator.REVERSE);
+                hScaleX.setRepeatCount(android.animation.ValueAnimator.INFINITE);
+                hScaleX.setInterpolator(new android.view.animation.DecelerateInterpolator());
+
+                android.animation.ObjectAnimator hScaleY = android.animation.ObjectAnimator.ofFloat(orbHalo, "scaleY",
+                        1.20f, 1.65f);
+                hScaleY.setDuration(520);
+                hScaleY.setRepeatMode(android.animation.ValueAnimator.REVERSE);
+                hScaleY.setRepeatCount(android.animation.ValueAnimator.INFINITE);
+                hScaleY.setInterpolator(new android.view.animation.DecelerateInterpolator());
+
+                android.animation.ObjectAnimator hAlpha = android.animation.ObjectAnimator.ofFloat(orbHalo, "alpha",
+                        0.45f, 0.92f);
+                hAlpha.setDuration(520);
+                hAlpha.setRepeatMode(android.animation.ValueAnimator.REVERSE);
+                hAlpha.setRepeatCount(android.animation.ValueAnimator.INFINITE);
+
+                // Konuşma sırasında halo hızlanır (3.5 s / tur)
+                android.animation.ObjectAnimator hRot = android.animation.ObjectAnimator.ofFloat(orbHalo, "rotation",
+                        0f, 360f);
+                hRot.setDuration(3500);
+                hRot.setRepeatCount(android.animation.ObjectAnimator.INFINITE);
+                hRot.setInterpolator(new android.view.animation.LinearInterpolator());
+
+                android.animation.AnimatorSet haloSet = new android.animation.AnimatorSet();
+                haloSet.playTogether(hScaleX, hScaleY, hAlpha, hRot);
+                haloSet.start();
+                activeAnimations.put(ANIM_MODEL_GLOW, haloSet);
+            }
+
             hapticFeedback(HapticType.LIGHT);
         });
     }
@@ -4052,22 +4322,29 @@ public class MainActivity extends Activity {
             }
             if (aiOrbAnimator != null) {
                 aiOrbAnimator.cancel();
+                aiOrbAnimator = null;
             }
+            cancelAnimation(ANIM_MODEL_GLOW);
 
-            // Orijinal (Breathing) durumuna yumuşak geçiş
-            if (voiceOrb != null) {
-                voiceOrb.setBackgroundTintList(null); // Orijinal degradeye dön
-                voiceOrb.animate().scaleX(1f).scaleY(1f).setDuration(600)
-                        .setInterpolator(new android.view.animation.OvershootInterpolator(0.8f)).start();
-            }
+            // Halo tintini temizle, orb'u 1x'e döndür; bittikten sonra breathing başlat
             if (orbHalo != null) {
                 orbHalo.setBackgroundTintList(null);
-                orbHalo.animate().scaleX(1f).scaleY(1f).alpha(1.0f).setDuration(800)
-                        .setInterpolator(new android.view.animation.DecelerateInterpolator()).start();
+                orbHalo.animate()
+                        .scaleX(1f).scaleY(1f).alpha(1.0f)
+                        .setDuration(700)
+                        .setInterpolator(new android.view.animation.DecelerateInterpolator())
+                        .start();
             }
-
-            // Eğer breathing animasyonu durmuşsa tekrar başlat
-            startBreathingAnimation();
+            if (voiceOrb != null) {
+                voiceOrb.animate()
+                        .scaleX(1f).scaleY(1f).alpha(1f)
+                        .setDuration(700)
+                        .setInterpolator(new android.view.animation.OvershootInterpolator(0.8f))
+                        .withEndAction(this::startBreathingAnimation)
+                        .start();
+            } else {
+                startBreathingAnimation();
+            }
         });
     }
 
@@ -7294,6 +7571,20 @@ public class MainActivity extends Activity {
      * Tüm aktif animasyonları iptal eder (Bellek sızıntısı önleme).
      */
     private void cancelAllAnimations() {
+        // Orb state animatörleri
+        stopBreathingAnimators();
+        stopListeningAnimators();
+        stopThinkingAnimators();
+
+        // AI konuşma animatörleri
+        if (aiOrbRunnable != null)
+            aiOrbHandler.removeCallbacks(aiOrbRunnable);
+        if (aiOrbAnimator != null) {
+            aiOrbAnimator.cancel();
+            aiOrbAnimator = null;
+        }
+
+        // Genel animatör önbelleği
         for (int i = 0; i < activeAnimations.size(); i++) {
             android.animation.Animator anim = activeAnimations.valueAt(i);
             if (anim != null && anim.isRunning()) {
