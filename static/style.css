@@ -2214,9 +2214,17 @@ option {
   border-radius: 50%;
   border: 2px solid transparent;
   border-top-color: rgba(0, 212, 255, 0.6);
-  border-right-color: rgba(0, 114, 255, 0.3);
-  animation: profileRingSpin 3s linear infinite;
+  border-right-color: rgba(0, 114, 255, 0.25);
+  animation: profileRingSpin 4s linear infinite;
   pointer-events: none;
+  transition: border-color var(--transition-normal), box-shadow var(--transition-normal);
+}
+
+#profileModal .profile-pic-container:hover .profile-pic-ring {
+  border-top-color: rgba(0, 212, 255, 0.95);
+  border-right-color: rgba(0, 212, 255, 0.45);
+  animation-duration: 2s;
+  box-shadow: 0 0 15px rgba(0, 212, 255, 0.25);
 }
 
 #profileModal .profile-pic-wrapper {
@@ -2228,14 +2236,14 @@ option {
   cursor: pointer;
   border: 3px solid rgba(0, 212, 255, 0.35);
   background: var(--bg-tertiary);
-  box-shadow: 0 0 40px rgba(0, 212, 255, 0.15), 0 8px 32px rgba(0, 0, 0, 0.4);
-  transition: all var(--transition-fast);
+  box-shadow: 0 0 35px rgba(0, 212, 255, 0.12), 0 8px 32px rgba(0, 0, 0, 0.45);
+  transition: all var(--transition-normal);
 }
 
 #profileModal .profile-pic-wrapper:hover {
-  border-color: rgba(0, 212, 255, 0.7);
-  box-shadow: 0 0 50px rgba(0, 212, 255, 0.25), 0 8px 32px rgba(0, 0, 0, 0.4);
-  transform: scale(1.04);
+  border-color: rgba(0, 212, 255, 0.85);
+  box-shadow: 0 0 45px rgba(0, 212, 255, 0.3), 0 8px 32px rgba(0, 0, 0, 0.45);
+  transform: scale(1.05);
 }
 
 #profileModal #profilePicPreview {
@@ -2245,7 +2253,7 @@ option {
 }
 
 #profileModal .profile-pic-wrapper:hover #profilePicPreview {
-  transform: scale(1.08);
+  transform: scale(1.1);
 }
 
 #profileModal .profile-pic-overlay {
@@ -2255,11 +2263,12 @@ option {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.2rem;
-  background: rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(4px);
+  gap: 0.4rem;
+  background: radial-gradient(circle, rgba(0, 40, 80, 0.75) 0%, rgba(4, 8, 20, 0.88) 100%);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   opacity: 0;
-  transition: opacity var(--transition-fast);
+  transition: opacity var(--transition-normal);
 }
 
 #profileModal .profile-pic-wrapper:hover .profile-pic-overlay {
@@ -2267,16 +2276,33 @@ option {
 }
 
 #profileModal .profile-pic-overlay-icon {
-  width: 20px; height: 20px;
-  color: rgba(255, 255, 255, 0.9);
+  width: 22px;
+  height: 22px;
+  color: #00d4ff;
+  filter: drop-shadow(0 0 8px rgba(0, 212, 255, 0.5));
+  transform: translateY(6px) scale(0.85);
+  transition: transform var(--transition-normal), color var(--transition-normal);
+}
+
+#profileModal .profile-pic-wrapper:hover .profile-pic-overlay-icon {
+  transform: translateY(0) scale(1);
+  color: #ffffff;
 }
 
 #profileModal .profile-pic-overlay-label {
-  color: rgba(255, 255, 255, 0.85);
-  font-size: 0.6rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
+  color: #00d4ff;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.15em;
   text-transform: uppercase;
+  text-shadow: 0 0 8px rgba(0, 212, 255, 0.35);
+  transform: translateY(10px);
+  transition: transform var(--transition-normal), color var(--transition-normal);
+}
+
+#profileModal .profile-pic-wrapper:hover .profile-pic-overlay-label {
+  transform: translateY(0);
+  color: #ffffff;
 }
 
 /* Hero info */
