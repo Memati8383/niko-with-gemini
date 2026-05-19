@@ -125,7 +125,7 @@
   height: 52px;
   flex-shrink: 0;
   border-radius: 16px;
-  padding: 6px;
+  padding: 0;
   background: linear-gradient(168deg, rgba(22, 38, 72, 0.95) 0%, rgba(3, 6, 14, 1) 100%);
   border: 1px solid rgba(0, 220, 255, 0.42);
   box-shadow:
@@ -135,13 +135,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
 }
 
 .admin-scope .admin-logo-badge img {
   width: 100%;
   height: 100%;
-  object-fit: contain;
-  border-radius: 10px;
+  object-fit: cover;
+  border-radius: inherit;
   filter: drop-shadow(0 0 12px rgba(0, 212, 255, 0.45));
 }
 
@@ -615,7 +616,8 @@
 .admin-scope .empty-state-icon img {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
+  border-radius: inherit;
 }
 
 @keyframes ap-spin {
