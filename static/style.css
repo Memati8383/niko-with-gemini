@@ -1863,7 +1863,7 @@ option {
 
   #profileModal .profile-modal-body {
     max-height: 82vh;
-    padding: 0 1.15rem 1.15rem;
+    padding: 0 0 1.15rem 0;
   }
 
   #profileModal .profile-banner {
@@ -1874,12 +1874,24 @@ option {
     margin-top: -44px;
   }
 
+  #profileModal .profile-hero-info {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
   #profileModal .profile-modal-title {
     font-size: 1.2rem;
   }
 
   #profileModal .profile-card-section {
+    margin-left: 1rem;
+    margin-right: 1rem;
     padding: 1rem;
+  }
+
+  #profileModal .profile-admin-slot {
+    margin-left: 1rem;
+    margin-right: 1rem;
   }
 
   .modal-actions {
@@ -2176,7 +2188,7 @@ option {
 #profileModal .profile-modal-body {
   position: relative;
   z-index: 1;
-  padding: 0 1.5rem 1.5rem;
+  padding: 0 0 1.5rem 0;
   max-height: min(78vh, 660px);
   overflow-y: auto;
 }
@@ -2270,6 +2282,8 @@ option {
 /* Hero info */
 #profileModal .profile-hero-info {
   margin-top: 0.25rem;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
 }
 
 #profileModal .profile-modal-title {
@@ -2290,6 +2304,8 @@ option {
 /* --- Glass Card Sections --- */
 #profileModal .profile-card-section {
   margin-top: 1.25rem;
+  margin-left: 1.5rem;
+  margin-right: 1.5rem;
   padding: 1.25rem;
   border-radius: 16px;
   border: 1px solid rgba(0, 212, 255, 0.08);
@@ -2488,6 +2504,8 @@ option {
 /* --- Admin Slot --- */
 #profileModal .profile-admin-slot {
   margin-top: 1.25rem;
+  margin-left: 1.5rem;
+  margin-right: 1.5rem;
 }
 
 #profileModal .profile-admin-slot .admin-badge-btn {
