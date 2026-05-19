@@ -902,233 +902,60 @@ class ChatService:
     """
     
     def __init__(self):
-        api_key_env = os.getenv("GEMINI_API_KEY", "")
-        # Virgülle ayrılmış birden fazla anahtarı destekle
-        self.api_keys = [k.strip() for k in api_key_env.split(",") if k.strip()]
-        self.current_key_index = 0
+        from gemini_key_manager import GeminiKeyManager
+        self.key_manager = GeminiKeyManager()
         self.default_model = "gemini-2.5-flash"
-        self.client = None
-        self.metadata_file = "api_keys_metadata.json"
-        
-        # Meta verileri ve anahtarları dosyadan yükle (veya sıfırdan oluştur)
-        self.rotation_strategy = "sequential"
-        self.keys_metadata = []
-        self._load_metadata()
-            
-        self.key_rotation_logs = []
-        self._add_log("info", f"Sistem başlatıldı. {len(self.api_keys)} adet API anahtarı yüklendi.")
-        self._setup_client()
         self.timeout = 120.0
 
+    @property
+    def keys_metadata(self):
+        return self.key_manager.keys_metadata
+
+    @property
+    def current_key_index(self):
+        return self.key_manager.current_key_index
+
+    @current_key_index.setter
+    def current_key_index(self, value):
+        self.key_manager.current_key_index = value
+
+    @property
+    def api_keys(self):
+        return self.key_manager.api_keys
+
+    @property
+    def rotation_strategy(self):
+        return self.key_manager.rotation_strategy
+
+    @rotation_strategy.setter
+    def rotation_strategy(self, value):
+        self.key_manager.rotation_strategy = value
+
+    @property
+    def history_stats(self):
+        return self.key_manager.history_stats
+
+    @property
+    def key_rotation_logs(self):
+        return self.key_manager.key_rotation_logs
+
     def _add_log(self, level: str, message: str):
-        """
-        Sistem günlüğüne yeni bir olay ekler.
-        level: "info", "warning", "error", "success"
-        """
-        from datetime import datetime, timezone
-        self.key_rotation_logs.insert(0, {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "level": level,
-            "message": message
-        })
-        # Son 50 olay ile sınırla
-        if len(self.key_rotation_logs) > 50:
-            self.key_rotation_logs.pop()
-
-    def _initialize_metadata_from_scratch(self):
-        self.keys_metadata = []
-        self.history_stats = {}
-        self._seed_history_stats()
-        for i, key in enumerate(self.api_keys):
-            masked_key = f"{key[:6]}...{key[-4:]}" if len(key) > 10 else f"Key_{i+1}"
-            self.keys_metadata.append({
-                "index": i,
-                "masked_key": masked_key,
-                "status": "active",  # "active", "quota_exceeded", "invalid", "error"
-                "request_count": 0,
-                "success_count": 0,
-                "failure_count": 0,
-                "request_limit": 1500,
-                "quota_exceeded_at": None,
-                "last_used_at": None,
-                "last_error": None
-            })
-
-    def _seed_history_stats(self, target_dict=None):
-        try:
-            from datetime import datetime, timedelta, timezone
-            import random
-            today = datetime.now(timezone.utc)
-            
-            if target_dict is None:
-                # Global seeding with exact numbers matching the screenshot experience
-                seed_data = [
-                    (6, {"requests": 8, "success": 8, "failure": 0}),
-                    (5, {"requests": 12, "success": 12, "failure": 0}),
-                    (4, {"requests": 5, "success": 4, "failure": 1}),
-                    (3, {"requests": 18, "success": 18, "failure": 0}),
-                    (2, {"requests": 10, "success": 10, "failure": 0}),
-                    (1, {"requests": 16, "success": 16, "failure": 0}),
-                    (0, {"requests": 0, "success": 0, "failure": 0}),
-                ]
-                for days_back, stats in seed_data:
-                    d = (today - timedelta(days=days_back)).strftime("%Y-%m-%d")
-                    self.history_stats[d] = stats
-            else:
-                # Per key seeding with realistic variance
-                for days_back in range(6, -1, -1):
-                    d = (today - timedelta(days=days_back)).strftime("%Y-%m-%d")
-                    reqs = random.randint(1, 6) if days_back > 0 else 0
-                    success = reqs if random.random() > 0.1 else max(0, reqs - 1)
-                    target_dict[d] = {"requests": reqs, "success": success, "failure": reqs - success}
-                
-        except Exception as e:
-            logger.warning(f"Geçmiş verileri tohumlanamadı: {e}")
-
-    def _record_history_stat(self, is_success: bool, key_index: int = None):
-        try:
-            from datetime import datetime, timezone
-            today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-            
-            # Global history stats
-            if not hasattr(self, "history_stats") or self.history_stats is None:
-                self.history_stats = {}
-                
-            if today_str not in self.history_stats:
-                self.history_stats[today_str] = {"requests": 0, "success": 0, "failure": 0}
-                
-            self.history_stats[today_str]["requests"] += 1
-            if is_success:
-                self.history_stats[today_str]["success"] += 1
-            else:
-                self.history_stats[today_str]["failure"] += 1
-                
-            # Key-specific history stats
-            if key_index is not None and key_index < len(self.keys_metadata):
-                key_meta = self.keys_metadata[key_index]
-                if "history_stats" not in key_meta:
-                    key_meta["history_stats"] = {}
-                if today_str not in key_meta["history_stats"]:
-                    key_meta["history_stats"][today_str] = {"requests": 0, "success": 0, "failure": 0}
-                    
-                key_meta["history_stats"][today_str]["requests"] += 1
-                if is_success:
-                    key_meta["history_stats"][today_str]["success"] += 1
-                else:
-                    key_meta["history_stats"][today_str]["failure"] += 1
-
-            self._save_metadata()
-        except Exception as e:
-            logger.error(f"Error recording history stat: {e}")
+        self.key_manager._add_log(level, message)
 
     def _save_metadata(self):
-        try:
-            import json
-            data_to_save = {
-                "api_keys": self.api_keys,
-                "rotation_strategy": self.rotation_strategy,
-                "current_key_index": self.current_key_index,
-                "keys_metadata": self.keys_metadata,
-                "history_stats": getattr(self, "history_stats", {})
-            }
-            with open(self.metadata_file, "w", encoding="utf-8") as f:
-                json.dump(data_to_save, f, ensure_ascii=False, indent=2)
-        except Exception as e:
-            logger.warning(f"API anahtarları meta verisi dosyaya kaydedilemedi: {e}")
+        self.key_manager._save_metadata()
 
-    def _load_metadata(self):
-        try:
-            import json
-            import os
-            if os.path.exists(self.metadata_file):
-                with open(self.metadata_file, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                
-                saved_keys = data.get("api_keys", [])
-                if saved_keys:
-                    self.api_keys = saved_keys
-                    
-                self.rotation_strategy = data.get("rotation_strategy", "sequential")
-                self.current_key_index = data.get("current_key_index", 0)
-                self.history_stats = data.get("history_stats", {})
-                
-                if not self.history_stats:
-                    self.history_stats = {}
-                    self._seed_history_stats()
-                
-                saved_meta = data.get("keys_metadata", [])
-                if len(saved_meta) == len(self.api_keys):
-                    self.keys_metadata = saved_meta
-                    # İndeksleri ve maskeleri garanti et
-                    for i, key in enumerate(self.api_keys):
-                        self.keys_metadata[i]["index"] = i
-                        if "masked_key" not in self.keys_metadata[i]:
-                            self.keys_metadata[i]["masked_key"] = f"{key[:6]}...{key[-4:]}" if len(key) > 10 else f"Key_{i+1}"
-                        if "history_stats" not in self.keys_metadata[i] or not self.keys_metadata[i]["history_stats"]:
-                            self.keys_metadata[i]["history_stats"] = {}
-                            self._seed_history_stats(self.keys_metadata[i]["history_stats"])
-                else:
-                    self._initialize_metadata_from_scratch()
-            else:
-                self._initialize_metadata_from_scratch()
-        except Exception as e:
-            logger.error(f"API anahtarları meta verisi dosyadan yüklenemedi: {e}")
-            self._initialize_metadata_from_scratch()
-    
     def _setup_client(self):
-        """Mevcut dizindeki API anahtarı ile istemciyi kur."""
-        if self.api_keys:
-            key = self.api_keys[self.current_key_index]
-            self.client = genai.Client(api_key=key)
-            # Log key safely (first and last 4 chars)
-            masked_key = f"{key[:4]}...{key[-4:]}" if len(key) > 8 else "****"
-            logger.info(f"Gemini API istemcisi yapılandırıldı (Anahtar: {masked_key}, İndeks: {self.current_key_index})")
-        else:
-            self.client = None
-            logger.error("Gemini API anahtarı bulunamadı!")
-    
+        pass
+
     async def get_models(self) -> List[str]:
-        """Sadece Gemini 2.5 Flash modelini döndür (Kota sorunlarını önlemek için)."""
+        """Sadece Gemini 2.5 Flash modelini döndür."""
         return ["gemini-2.5-flash"]
     
     async def check_ollama_available(self) -> bool:
         """Gemini API anahtarının mevcut olup olmadığını kontrol et."""
         return len(self.api_keys) > 0
 
-    def _select_next_key(self, current_failed_index: int) -> int:
-        """
-        Rotasyon stratejisine göre bir sonraki API anahtarını seçer.
-        """
-        if len(self.api_keys) <= 1:
-            return 0
-            
-        strategy = getattr(self, "rotation_strategy", "sequential")
-        
-        if strategy == "health_priority":
-            candidates = []
-            for meta in self.keys_metadata:
-                if meta["index"] == current_failed_index:
-                    continue # Kendisini geç
-                
-                is_active = 1 if meta["status"] == "active" else 0
-                success_ratio = 1.0
-                if meta["request_count"] > 0:
-                    success_ratio = meta["success_count"] / meta["request_count"]
-                
-                # Skor: active olmalı (1000 puan), success_ratio ne kadar yüksekse o kadar iyi, failure_count ne kadar düşükse o kadar iyi
-                score = (is_active * 1000) + (success_ratio * 100) - (meta["failure_count"] * 10)
-                candidates.append((meta["index"], score))
-                
-            if candidates:
-                candidates.sort(key=lambda x: x[1], reverse=True)
-                next_index = candidates[0][0]
-                self._add_log("info", f"Sağlık öncelikli rotasyon çalıştırıldı. En sağlıklı anahtar seçildi (Yeni İndeks: {next_index + 1}).")
-                return next_index
-                
-        next_index = (current_failed_index + 1) % len(self.api_keys)
-        self._add_log("info", f"Sıralı rotasyon çalıştırıldı. Sıradaki anahtar seçildi (Yeni İndeks: {next_index + 1}).")
-        return next_index
-    
     async def chat_stream(
         self,
         prompt: str,
@@ -1136,15 +963,9 @@ class ChatService:
         images: Optional[List[str]] = None
     ) -> AsyncGenerator[str, None]:
         """Gemini'den akışlı sohbet yanıtı al."""
-        if not self.client:
-            yield "Gemini API anahtarı ayarlanmamış."
-            return
-
-        # Kullanıcının isteği üzerine sadece gemini-2.5-flash kullanıyoruz
         selected_model_name = "gemini-2.5-flash"
-        
         logger.info(f"[AI] Gemini isteği (Model: {selected_model_name})")
-        # Resim desteği (images listesi base64 formatında)
+        
         contents = [prompt]
         if images:
             for img_data in images:
@@ -1161,24 +982,17 @@ class ChatService:
                     mime_type=mime_type
                 ))
 
-        # Maksimum anahtar sayısı kadar deneme yap
+        max_retries = max(1, len(self.api_keys))
         retry_count = 0
-        max_retries = len(self.api_keys)
         
         while retry_count < max_retries:
+            client, key_index = await self.key_manager.get_active_client()
+            if not client:
+                yield "Hata: Gemini API istemcisi başlatılamadı. Lütfen API anahtarlarınızı kontrol edin."
+                return
+
             try:
-                if not self.client:
-                    yield "Hata: Gemini API istemcisi başlatılamadı. Lütfen API anahtarınızı kontrol edin."
-                    return
-
-                # İstek denemesini kaydet
-                if self.current_key_index < len(self.keys_metadata):
-                    key_meta = self.keys_metadata[self.current_key_index]
-                    key_meta["request_count"] += 1
-                    key_meta["last_used_at"] = datetime.now(timezone.utc).isoformat()
-                    self._save_metadata()
-
-                response = await self.client.aio.models.generate_content_stream(
+                response = await client.aio.models.generate_content_stream(
                     model=selected_model_name,
                     contents=contents
                 )
@@ -1187,53 +1001,23 @@ class ChatService:
                 async for chunk in response:
                     if chunk.text:
                         if first_chunk:
-                            if self.current_key_index < len(self.keys_metadata):
-                                self.keys_metadata[self.current_key_index]["success_count"] += 1
-                                self.keys_metadata[self.current_key_index]["status"] = "active"
-                                self._record_history_stat(is_success=True, key_index=self.current_key_index)
-                                self._save_metadata()
+                            await self.key_manager.mark_success(key_index)
                             first_chunk = False
                         yield chunk.text
-                
-                # Başarılı olursa döngüden çık
                 break
                 
             except Exception as e:
-                error_msg = str(e).lower()
-                # Kota dolu (429) VEYA Hatalı Anahtar (400) kontrolü
-                is_quota_error = "429" in error_msg or "quota" in error_msg or "limit" in error_msg
-                is_invalid_key = "400" in error_msg or "invalid" in error_msg or "not valid" in error_msg
+                logger.warning(f"İstek başarısız oldu (Anahtar İndeks: {key_index}): {e}")
+                rotated = await self.key_manager.mark_failure(key_index, e)
                 
-                if self.current_key_index < len(self.keys_metadata):
-                    key_meta = self.keys_metadata[self.current_key_index]
-                    key_meta["failure_count"] += 1
-                    key_meta["last_error"] = str(e)
-                    if is_quota_error:
-                        key_meta["status"] = "quota_exceeded"
-                        key_meta["quota_exceeded_at"] = datetime.now(timezone.utc).isoformat()
-                    elif is_invalid_key:
-                        key_meta["status"] = "invalid"
-                    else:
-                        key_meta["status"] = "error"
-                    self._record_history_stat(is_success=False, key_index=self.current_key_index)
-                    self._save_metadata()
+                retry_count += 1
+                if rotated and retry_count < max_retries:
+                    continue
                 
-                if (is_quota_error or is_invalid_key) and len(self.api_keys) > 1:
-                    retry_count += 1
-                    if retry_count < max_retries:
-                        self.current_key_index = self._select_next_key(self.current_key_index)
-                        reason = "Kota doldu" if is_quota_error else "Hatalı anahtar"
-                        self._add_log("warning", f"Anahtar {self.current_key_index + 1} {reason} hatası verdi. Rotasyon tetiklendi.")
-                        logger.warning(f"⚠️ Gemini {reason}! Diğer anahtara geçiliyor... (Yeni İndeks: {self.current_key_index})")
-                        self._setup_client()
-                        self._save_metadata()
-                        continue # Yeni anahtar ile tekrar dene
-                
-                # Diğer hatalar veya tüm anahtarlar denendiyse hata fırlat
                 logger.error(f"Gemini API hatası: {e}")
                 yield f"Gemini API hatası oluştu: {str(e)}"
                 break
-    
+
     async def chat(
         self,
         prompt: str,
@@ -1245,6 +1029,7 @@ class ChatService:
         async for chunk in self.chat_stream(prompt, model, images):
             response_parts.append(chunk)
         return "".join(response_parts)
+
 
 
 # ============================================================================
@@ -2447,13 +2232,7 @@ async def get_api_keys_status(current_user: str = Depends(get_current_admin)):
     """
     Tüm Gemini API anahtarlarının durumunu ve kota bilgilerini getir.
     """
-    return {
-        "keys": chat_service.keys_metadata,
-        "current_key_index": chat_service.current_key_index,
-        "total_keys": len(chat_service.api_keys),
-        "rotation_strategy": getattr(chat_service, "rotation_strategy", "sequential"),
-        "history_stats": getattr(chat_service, "history_stats", {})
-    }
+    return await chat_service.key_manager.get_keys_status_payload()
 
 
 @app.get("/api/admin/api-keys/logs")
@@ -2461,7 +2240,7 @@ async def get_api_keys_logs(current_user: str = Depends(get_current_admin)):
     """
     Gemini API anahtarı rotasyon ve olay günlüklerini getirir.
     """
-    return {"logs": getattr(chat_service, "key_rotation_logs", [])}
+    return await chat_service.key_manager.get_logs_payload()
 
 
 class RotationStrategyRequest(BaseModel):
@@ -2474,14 +2253,12 @@ async def update_rotation_strategy(payload: RotationStrategyRequest, current_use
     Gemini API anahtarı rotasyon stratejisini günceller.
     """
     strategy = payload.strategy.strip()
-    if strategy not in ["sequential", "health_priority"]:
-        raise HTTPException(status_code=400, detail="Geçersiz rotasyon stratejisi")
-    
-    chat_service.rotation_strategy = strategy
-    chat_service._add_log("info", f"Rotasyon stratejisi '{strategy}' olarak güncellendi.")
-    chat_service._save_metadata()
-    logger.info(f"Rotasyon stratejisi güncellendi: {strategy}")
-    return {"message": "Rotasyon stratejisi başarıyla güncellendi.", "strategy": strategy}
+    try:
+        new_strategy = await chat_service.key_manager.update_rotation_strategy(strategy)
+        logger.info(f"Rotasyon stratejisi güncellendi: {new_strategy}")
+        return {"message": "Rotasyon stratejisi başarıyla güncellendi.", "strategy": new_strategy}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @app.post("/api/admin/api-keys/{index}/reset")
@@ -2489,18 +2266,12 @@ async def reset_api_key_status(index: int, current_user: str = Depends(get_curre
     """
     Belirli bir API anahtarının durumunu sıfırlar ve tekrar 'active' yapar.
     """
-    if index < 0 or index >= len(chat_service.api_keys):
-        raise HTTPException(status_code=400, detail="Geçersiz anahtar indeksi")
-    
-    key_meta = chat_service.keys_metadata[index]
-    key_meta["status"] = "active"
-    key_meta["quota_exceeded_at"] = None
-    key_meta["last_error"] = None
-    
-    chat_service._add_log("success", f"Anahtar {index + 1} durumu yönetici tarafından sıfırlandı.")
-    chat_service._save_metadata()
-    logger.info(f"Yönetici tarafından API anahtarı sıfırlandı: İndeks {index}")
-    return {"message": f"Anahtar {index} başarıyla sıfırlandı ve aktif hale getirildi.", "key": key_meta}
+    try:
+        key_meta = await chat_service.key_manager.reset_key(index)
+        logger.info(f"Yönetici tarafından API anahtarı sıfırlandı: İndeks {index}")
+        return {"message": f"Anahtar {index} başarıyla sıfırlandı ve aktif hale getirildi.", "key": key_meta}
+    except IndexError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @app.post("/api/admin/api-keys/{index}/activate")
@@ -2508,19 +2279,15 @@ async def activate_api_key(index: int, current_user: str = Depends(get_current_a
     """
     Belirli bir API anahtarını aktif (şu an kullanılan) anahtar olarak ayarlar.
     """
-    if index < 0 or index >= len(chat_service.api_keys):
-        raise HTTPException(status_code=400, detail="Geçersiz anahtar indeksi")
-    
-    chat_service.current_key_index = index
-    chat_service._setup_client()
-    
-    chat_service._add_log("info", f"Aktif API anahtarı İndeks {index + 1} olarak değiştirildi.")
-    chat_service._save_metadata()
-    logger.info(f"Yönetici tarafından aktif API anahtarı değiştirildi: Yeni İndeks {index}")
-    return {
-        "message": f"Aktif anahtar değiştirildi. Yeni İndeks: {index}",
-        "current_key_index": chat_service.current_key_index
-    }
+    try:
+        new_index = await chat_service.key_manager.set_active_key(index)
+        logger.info(f"Yönetici tarafından aktif API anahtarı değiştirildi: Yeni İndeks {new_index}")
+        return {
+            "message": f"Aktif anahtar değiştirildi. Yeni İndeks: {new_index}",
+            "current_key_index": new_index
+        }
+    except IndexError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @app.post("/api/admin/api-keys/{index}/test")
@@ -2528,55 +2295,10 @@ async def test_api_key(index: int, current_user: str = Depends(get_current_admin
     """
     Belirli bir API anahtarını doğrudan test eder (Gemini'ye hızlı bir test isteği gönderir).
     """
-    if index < 0 or index >= len(chat_service.api_keys):
-        raise HTTPException(status_code=400, detail="Geçersiz anahtar indeksi")
-    
-    test_key = chat_service.api_keys[index]
-    temp_client = genai.Client(api_key=test_key)
-    key_meta = chat_service.keys_metadata[index]
-    
     try:
-        # Hızlı bir test isteği gönder
-        response = await temp_client.aio.models.generate_content(
-            model="gemini-2.5-flash",
-            contents="test"
-        )
-        
-        # Başarılı olursa durumunu active olarak güncelle
-        key_meta["status"] = "active"
-        key_meta["quota_exceeded_at"] = None
-        key_meta["last_error"] = None
-        
-        chat_service._add_log("success", f"Anahtar {index + 1} manuel test edildi: Başarılı")
-        chat_service._save_metadata()
-        return {"status": "success", "message": "Anahtar başarıyla doğrulandı. Sağlıklı çalışıyor."}
-    except Exception as e:
-        error_msg = str(e)
-        
-        # Hata türünü analiz et
-        err_lower = error_msg.lower()
-        is_quota = "429" in err_lower or "quota" in err_lower or "limit" in err_lower
-        is_invalid = "400" in err_lower or "invalid" in err_lower or "not valid" in err_lower
-        
-        if is_quota:
-            key_meta["status"] = "quota_exceeded"
-            key_meta["quota_exceeded_at"] = datetime.now(timezone.utc).isoformat()
-        elif is_invalid:
-            key_meta["status"] = "invalid"
-        else:
-            key_meta["status"] = "error"
-            
-        key_meta["last_error"] = error_msg
-        key_meta["failure_count"] += 1
-        
-        chat_service._add_log("error", f"Anahtar {index + 1} manuel test edildi: Başarısız ({key_meta['status']})")
-        chat_service._save_metadata()
-        return {
-            "status": "failed",
-            "message": "Doğrulama başarısız oldu.",
-            "error": error_msg,
-            "detected_status": key_meta["status"]
-        }
+        return await chat_service.key_manager.test_key(index)
+    except IndexError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 class AddKeyRequest(BaseModel):
@@ -2588,37 +2310,12 @@ async def add_api_key(payload: AddKeyRequest, current_user: str = Depends(get_cu
     """
     Sisteme dinamik olarak yeni bir Gemini API anahtarı ekler.
     """
-    key = payload.api_key.strip()
-    if not key:
-        raise HTTPException(status_code=400, detail="API anahtarı boş olamaz")
-    
-    if key in chat_service.api_keys:
-        raise HTTPException(status_code=400, detail="Bu API anahtarı zaten tanımlı")
-    
-    # Yeni anahtarı ekle
-    chat_service.api_keys.append(key)
-    
-    # Maskele
-    masked = key[:6] + "..." + key[-4:] if len(key) > 10 else "AIzaSy..."
-    
-    new_meta = {
-        "index": len(chat_service.api_keys) - 1,
-        "masked_key": masked,
-        "status": "active",
-        "request_count": 0,
-        "success_count": 0,
-        "failure_count": 0,
-        "request_limit": 1500,
-        "quota_exceeded_at": None,
-        "last_used_at": None,
-        "last_error": None
-    }
-    chat_service.keys_metadata.append(new_meta)
-    
-    chat_service._add_log("success", f"Yeni API anahtarı eklendi: {masked}")
-    chat_service._save_metadata()
-    logger.info(f"Yönetici tarafından yeni API anahtarı eklendi: {masked}")
-    return {"message": "API anahtarı başarıyla sisteme eklendi.", "key": new_meta}
+    try:
+        new_meta = await chat_service.key_manager.add_key(payload.api_key)
+        logger.info(f"Yönetici tarafından yeni API anahtarı eklendi: {new_meta['masked_key']}")
+        return {"message": "API anahtarı başarıyla sisteme eklendi.", "key": new_meta}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @app.delete("/api/admin/api-keys/{index}")
@@ -2626,30 +2323,12 @@ async def delete_api_key(index: int, current_user: str = Depends(get_current_adm
     """
     Sistemden dinamik olarak bir Gemini API anahtarını kaldırır.
     """
-    if index < 0 or index >= len(chat_service.api_keys):
-        raise HTTPException(status_code=400, detail="Geçersiz anahtar indeksi")
-    
-    if len(chat_service.api_keys) <= 1:
-        raise HTTPException(status_code=400, detail="Sistemde en az bir adet API anahtarı bulunmalıdır")
-    
-    removed_key = chat_service.api_keys.pop(index)
-    removed_meta = chat_service.keys_metadata.pop(index)
-    
-    # İndeksleri yeniden güncelle
-    for i, meta in enumerate(chat_service.keys_metadata):
-        meta["index"] = i
-        
-    # Eğer aktif key silindiyse, aktifi 0'a çek ve client'ı sıfırla
-    if chat_service.current_key_index == index:
-        chat_service.current_key_index = 0
-        chat_service._setup_client()
-    elif chat_service.current_key_index > index:
-        chat_service.current_key_index -= 1
-        
-    chat_service._add_log("warning", f"Anahtar {index + 1} sistemden silindi: {removed_meta['masked_key']}")
-    chat_service._save_metadata()
-    logger.info(f"Yönetici tarafından API anahtarı silindi: {removed_meta['masked_key']}")
-    return {"message": "API anahtarı sistemden başarıyla kaldırıldı."}
+    try:
+        await chat_service.key_manager.delete_key(index)
+        logger.info(f"Yönetici tarafından API anahtarı silindi: İndeks {index}")
+        return {"message": "API anahtarı sistemden başarıyla kaldırıldı."}
+    except (IndexError, ValueError) as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 class UpdateLimitRequest(BaseModel):
@@ -2661,18 +2340,12 @@ async def update_api_key_limit(index: int, payload: UpdateLimitRequest, current_
     """
     Belirli bir API anahtarının maksimum istek limitini günceller.
     """
-    if index < 0 or index >= len(chat_service.api_keys):
-        raise HTTPException(status_code=400, detail="Geçersiz anahtar indeksi")
-        
-    limit = payload.limit
-    if limit <= 0:
-        raise HTTPException(status_code=400, detail="İstek limiti 0'dan büyük olmalıdır")
-        
-    chat_service.keys_metadata[index]["request_limit"] = limit
-    chat_service._add_log("info", f"Anahtar {index + 1} günlük limiti {limit} olarak güncellendi.")
-    chat_service._save_metadata()
-    logger.info(f"Yönetici tarafından API anahtarı {index} limiti güncellendi: {limit}")
-    return {"message": "API anahtarı limiti başarıyla güncellendi.", "limit": limit}
+    try:
+        new_limit = await chat_service.key_manager.update_key_limit(index, payload.limit)
+        logger.info(f"Yönetici tarafından API anahtarı {index} limiti güncellendi: {new_limit}")
+        return {"message": "API anahtarı limiti başarıyla güncellendi.", "limit": new_limit}
+    except (IndexError, ValueError) as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 

@@ -78,3 +78,6 @@ Applio/ffmpeg.exe
 Applio/ffprobe.exe
 Applio/rvc/models/
 Applio/logs/my-project_200e_5200s/
+
+# Gemini Key Metadata
+api_keys_metadata.json
