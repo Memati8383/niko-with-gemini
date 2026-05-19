@@ -10,143 +10,6 @@
     <link rel="apple-touch-icon" href="/niko-icon.png" />
     <link rel="stylesheet" href="/style.css" />
     <link rel="stylesheet" href="/admin-panel.css?v=3" />
-    <!-- Custom styling for Gemini API Performance Timeline -->
-    <style>
-      .api-day-card {
-        background: rgba(255, 255, 255, 0.02);
-        border: 1px solid rgba(255, 255, 255, 0.06);
-        border-radius: 14px;
-        padding: 12px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 10px;
-        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-        position: relative;
-        overflow: hidden;
-        min-height: 250px;
-      }
-      .api-day-card:hover {
-        background: rgba(0, 212, 255, 0.04);
-        border-color: rgba(0, 212, 255, 0.3);
-        box-shadow: 0 10px 20px rgba(0, 212, 255, 0.08), inset 0 0 12px rgba(0, 212, 255, 0.05);
-        transform: translateY(-4px);
-      }
-      .api-day-header {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 2px;
-        width: 100%;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        padding-bottom: 6px;
-      }
-      .api-day-date {
-        font-size: 0.8rem;
-        font-weight: 700;
-        color: #fff;
-      }
-      .api-day-name {
-        font-size: 0.65rem;
-        color: var(--adm-muted);
-        font-family: var(--adm-mono);
-        text-transform: uppercase;
-      }
-      .api-day-bar-container {
-        height: 100px;
-        width: 100%;
-        display: flex;
-        align-items: flex-end;
-        justify-content: center;
-        position: relative;
-        margin: 8px 0;
-      }
-      .api-day-bar {
-        width: 24px;
-        background: linear-gradient(to top, #0072ff, #00d4ff);
-        border-radius: 12px;
-        box-shadow: 0 0 10px rgba(0, 212, 255, 0.2);
-        transition: height 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        position: relative;
-        min-height: 4px;
-      }
-      .api-day-card:hover .api-day-bar {
-        box-shadow: 0 0 15px rgba(0, 212, 255, 0.6);
-        filter: brightness(1.1);
-      }
-      .api-day-requests-label {
-        position: absolute;
-        top: -20px;
-        left: 50%;
-        transform: translateX(-50%);
-        font-size: 0.7rem;
-        font-weight: 700;
-        color: #00d4ff;
-        font-family: var(--adm-mono);
-        opacity: 0.8;
-      }
-      .api-day-success-badge {
-        padding: 3px 8px;
-        border-radius: 20px;
-        font-size: 0.7rem;
-        font-weight: 700;
-        font-family: var(--adm-mono);
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-      }
-      .api-day-success-high {
-        background: rgba(16, 185, 129, 0.1);
-        color: #10b981;
-        border: 1px solid rgba(16, 185, 129, 0.2);
-      }
-      .api-day-success-med {
-        background: rgba(245, 158, 11, 0.1);
-        color: #fbbf24;
-        border: 1px solid rgba(245, 158, 11, 0.2);
-      }
-      .api-day-success-low {
-        background: rgba(239, 68, 68, 0.1);
-        color: #ef4444;
-        border: 1px solid rgba(239, 68, 68, 0.2);
-      }
-      .api-day-details {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-        width: 100%;
-        font-size: 0.68rem;
-        color: var(--adm-muted);
-        font-family: var(--adm-mono);
-        margin-top: auto;
-        border-top: 1px solid rgba(255, 255, 255, 0.05);
-        padding-top: 6px;
-      }
-      .api-day-detail-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
-      .api-day-detail-value {
-        color: #fff;
-        font-weight: 600;
-      }
-      @media (max-width: 960px) {
-        #apiStatsVisualContainer {
-          grid-template-columns: repeat(4, 1fr) !important;
-        }
-      }
-      @media (max-width: 600px) {
-        #apiStatsVisualContainer {
-          grid-template-columns: repeat(2, 1fr) !important;
-        }
-      }
-      @media (max-width: 380px) {
-        #apiStatsVisualContainer {
-          grid-template-columns: 1fr !important;
-        }
-      }
-    </style>
   </head>
   <body class="admin-scope">
     <div class="noise-overlay"></div>
@@ -330,22 +193,6 @@
             </div>
           </div>
 
-        </div>
-
-        <!-- API İstek Aktiviteleri & Başarı Oranı timeline paneli -->
-        <div class="stat-card" style="margin-bottom: 1.5rem; padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; background: linear-gradient(165deg, rgba(10, 16, 35, 0.45) 0%, rgba(6, 11, 22, 0.65) 100%); border: 1px solid var(--adm-border); border-radius: var(--adm-radius-lg); box-shadow: 0 16px 36px rgba(0, 0, 0, 0.3);">
-          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-            <div>
-              <h3 style="font-size: 0.95rem; font-weight: 700; color: #fff; margin: 0; display: flex; align-items: center; gap: 8px; font-family: var(--adm-font);">
-                <span style="color: var(--adm-cyan); font-size: 1.1rem;">⚡</span> <span id="apiStatsChartTitleText">Gemini API Performans Dağılımı (Tümü)</span>
-              </h3>
-              <p style="font-size: 0.74rem; color: var(--adm-muted); margin: 4px 0 0 0; font-family: var(--adm-font);">Son 7 günlük detaylı API istek hacmi ve başarı oranları timeline matrisi</p>
-            </div>
-          </div>
-          
-          <div id="apiStatsVisualContainer" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 12px; min-height: 250px; margin-top: 0.5rem; width: 100%;">
-            <!-- Günlük timeline kartları buraya dinamik yüklenecek -->
-          </div>
         </div>
 
         <div class="users-table-container">
@@ -1096,152 +943,9 @@
         }
       }
 
-      // Native SVG/HTML chart system replaces ApexCharts
-      let globalHistoryStats = null;
-      let apiKeysDataList = [];
-      let selectedChartKeyIndex = null;
-
-      function selectApiKeyForChart(index, event) {
-        if (event && (event.target.tagName === 'BUTTON' || event.target.tagName === 'SVG' || event.target.closest('button') || event.target.closest('.error-tooltip-container'))) {
-          return;
-        }
-        
-        const titleEl = document.getElementById('apiStatsChartTitleText');
-        
-        if (selectedChartKeyIndex === index) {
-          // Deselect and revert to global stats
-          selectedChartKeyIndex = null;
-          if (titleEl) titleEl.textContent = "Gemini API İstek Trafiği & Performans Trendi (Tümü)";
-          renderApiStatsChart(globalHistoryStats);
-        } else {
-          // Select specific key
-          selectedChartKeyIndex = index;
-          const keyData = apiKeysDataList.find(k => k.index === index);
-          if (titleEl) titleEl.textContent = `Gemini API İstek Trafiği & Performans Trendi (Anahtar ${index + 1})`;
-          renderApiStatsChart(keyData ? (keyData.history_stats || {}) : {});
-        }
-        
-        // Highlight active row visually
-        document.querySelectorAll('#apiKeysTableBody tr').forEach(tr => {
-          if (parseInt(tr.dataset.keyIndex) === selectedChartKeyIndex) {
-            tr.style.outline = '2px solid var(--adm-cyan)';
-            tr.style.outlineOffset = '-2px';
-            tr.style.background = 'rgba(0, 212, 255, 0.08)';
-          } else {
-            tr.style.outline = 'none';
-            // Restore active background if it is the active key
-            if (tr.classList.contains('active-key-row')) {
-              tr.style.background = 'rgba(0, 212, 255, 0.04)';
-            } else {
-              tr.style.background = 'transparent';
-            }
-          }
-        });
-      }
-
-      function renderApiStatsChart(historyStats) {
-        const container = document.getElementById("apiStatsVisualContainer");
-        if (!container) return;
-
-        if (!historyStats || Object.keys(historyStats).length === 0) {
-          container.innerHTML = `
-            <div style="grid-column: span 7; display: flex; align-items: center; justify-content: center; height: 220px; color: var(--adm-muted); font-family: var(--adm-mono); font-size: 0.8rem; background: rgba(0, 0, 0, 0.1); border-radius: var(--adm-radius-md); border: 1px dashed rgba(255,255,255,0.06);">
-              Bu veri filtresine ait son 7 güne ait aktif trafik kaydı bulunmuyor.
-            </div>
-          `;
-          return;
-        }
-
-        // Sort dates chronologically
-        const dates = Object.keys(historyStats).sort();
-        
-        // Find max requests to normalize bar heights
-        const maxRequests = Math.max(...dates.map(d => historyStats[d].requests || 0), 10);
-        
-        const months = ["Oca", "Şub", "Mar", "Nis", "May", "Haz", "Tem", "Ağu", "Eyl", "Eki", "Kas", "Ara"];
-        const dayNames = ["Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi"];
-
-        container.innerHTML = dates.map(dStr => {
-          const stats = historyStats[dStr] || {};
-          const requests = stats.requests || 0;
-          const success = stats.success || 0;
-          const failure = Math.max(0, requests - success);
-          const successRate = requests > 0 ? Math.round((success / requests) * 100) : 100;
-
-          // Date & Day formatting
-          let formattedDate = dStr;
-          let dayName = "";
-          try {
-            const parts = dStr.split("-");
-            if (parts.length === 3) {
-              const dayVal = parseInt(parts[2], 10);
-              const monthVal = months[parseInt(parts[1], 10) - 1];
-              formattedDate = `${dayVal} ${monthVal}`;
-            }
-            const dateObj = new Date(dStr);
-            if (!isNaN(dateObj.getTime())) {
-              dayName = dayNames[dateObj.getDay()];
-            }
-          } catch(e) {}
-
-          // Bar height calculation (min 4% for style, max 100%)
-          const barHeightPercent = Math.min(100, Math.max(4, (requests / maxRequests) * 100));
-
-          // Success indicators styling
-          let successClass = "api-day-success-high";
-          let successDotColor = "#10b981";
-          if (requests > 0) {
-            if (successRate >= 90) {
-              successClass = "api-day-success-high";
-              successDotColor = "#10b981";
-            } else if (successRate >= 60) {
-              successClass = "api-day-success-med";
-              successDotColor = "#fbbf24";
-            } else {
-              successClass = "api-day-success-low";
-              successDotColor = "#ef4444";
-            }
-          }
-
-          return `
-            <div class="api-day-card">
-              <div class="api-day-header">
-                <span class="api-day-date">${formattedDate}</span>
-                <span class="api-day-name">${dayName}</span>
-              </div>
-              
-              <div class="api-day-bar-container">
-                <div class="api-day-bar" style="height: ${barHeightPercent}%;">
-                  <span class="api-day-requests-label">${requests}</span>
-                </div>
-              </div>
-              
-              <div class="api-day-success-badge ${successClass}">
-                <span style="width: 6px; height: 6px; border-radius: 50%; background: ${successDotColor}; display: inline-block;"></span>
-                %${successRate} Başarı
-              </div>
-              
-              <div class="api-day-details">
-                <div class="api-day-detail-row">
-                  <span>Başarılı:</span>
-                  <span class="api-day-detail-value" style="color: #34d399;">${success}</span>
-                </div>
-                <div class="api-day-detail-row">
-                  <span>Hatalı:</span>
-                  <span class="api-day-detail-value" style="color: ${failure > 0 ? '#ef4444' : 'var(--adm-muted)'};">${failure}</span>
-                </div>
-              </div>
-            </div>
-          `;
-        }).join("");
-      }
-
       function renderApiKeys(data) {
         const keys = data.keys || [];
         const currentIndex = data.current_key_index;
-        
-        apiKeysDataList = keys;
-        globalHistoryStats = data.history_stats || {};
 
         // Metrik hesaplamaları yap
         const totalKeys = keys.length;
@@ -1342,7 +1046,7 @@
               : '';
 
             return `
-              <tr class="${isActiveKey ? 'active-key-row' : ''}" data-key-index="${key.index}" style="${isActiveKey ? 'background: rgba(0, 212, 255, 0.04);' : ''} cursor: pointer; transition: all 0.2s ease;" onclick="selectApiKeyForChart(${key.index}, event)" title="Bu anahtarın anlık istatistik grafiğini görmek için tıklayın">
+              <tr class="${isActiveKey ? 'active-key-row' : ''}" data-key-index="${key.index}" style="${isActiveKey ? 'background: rgba(0, 212, 255, 0.04);' : ''} transition: all 0.2s ease;">
                 <td data-label="İNDEKS" style="font-family: var(--adm-mono); font-weight: 700; color: ${isActiveKey ? 'var(--adm-cyan)' : 'var(--adm-muted)'};">${key.index + 1}</td>
                 <td data-label="API ANAHTARI">
                   <div style="display: flex; align-items: center; gap: 8px;">
@@ -1430,25 +1134,6 @@
             `;
           })
           .join("");
-
-        // Render or update statistics chart
-        if (selectedChartKeyIndex !== null) {
-          const selectedData = apiKeysDataList.find(k => k.index === selectedChartKeyIndex);
-          renderApiStatsChart(selectedData ? (selectedData.history_stats || {}) : {});
-          
-          // Ensure styling persists after table re-render
-          setTimeout(() => {
-            document.querySelectorAll('#apiKeysTableBody tr').forEach(tr => {
-              if (parseInt(tr.dataset.keyIndex) === selectedChartKeyIndex) {
-                tr.style.outline = '2px solid var(--adm-cyan)';
-                tr.style.outlineOffset = '-2px';
-                tr.style.background = 'rgba(0, 212, 255, 0.08)';
-              }
-            });
-          }, 10);
-        } else {
-          renderApiStatsChart(globalHistoryStats);
-        }
       }
 
       async function testApiKey(index) {
