@@ -920,6 +920,7 @@ class ChatService:
                 "request_count": 0,
                 "success_count": 0,
                 "failure_count": 0,
+                "request_limit": 1500,
                 "quota_exceeded_at": None,
                 "last_used_at": None,
                 "last_error": None
@@ -2432,6 +2433,7 @@ async def add_api_key(payload: AddKeyRequest, current_user: str = Depends(get_cu
         "request_count": 0,
         "success_count": 0,
         "failure_count": 0,
+        "request_limit": 1500,
         "quota_exceeded_at": None,
         "last_used_at": None,
         "last_error": None

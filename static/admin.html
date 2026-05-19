@@ -205,6 +205,7 @@
                 <th style="text-align: center;">Toplam İstek</th>
                 <th style="text-align: center;">Başarılı</th>
                 <th style="text-align: center;">Hatalı</th>
+                <th style="text-align: center; width: 140px;">Kalan Kullanım</th>
                 <th>Son Kullanım</th>
                 <th>İşlemler</th>
               </tr>
@@ -989,6 +990,26 @@
                   })()}
                 </td>
                 <td data-label="HATALI" style="text-align: center; font-family: var(--adm-mono); font-weight: 600; color: var(--adm-danger);">${key.failure_count}</td>
+                <td data-label="KALAN KULLANIM" style="text-align: center;">
+                  ${(() => {
+                    const limit = key.request_limit || 1500;
+                    const used = key.request_count || 0;
+                    const remaining = Math.max(0, limit - used);
+                    const percent = Math.round((remaining / limit) * 100);
+                    const barColor = percent > 50 ? '#34d399' : (percent > 15 ? '#fbbf24' : 'var(--adm-danger)');
+                    return `
+                      <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 4px 0;">
+                        <span style="font-family: var(--adm-mono); font-weight: 700; font-size: 0.76rem; color: ${barColor};">
+                          ${remaining} / ${limit}
+                        </span>
+                        <div style="width: 100px; height: 6px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; border: 1px solid rgba(255,255,255,0.04);">
+                          <div style="width: ${percent}%; height: 100%; background: ${barColor}; box-shadow: 0 0 6px ${barColor}; transition: width 0.3s ease; border-radius: 3px;"></div>
+                        </div>
+                        <span style="font-size: 0.65rem; color: var(--adm-muted);">%${percent} Kalan</span>
+                      </div>
+                    `;
+                  })()}
+                </td>
                 <td data-label="SON KULLANIM" style="font-family: var(--adm-mono); font-size: 0.76rem; color: rgba(255,255,255,0.45);">${lastUsedFormatted}</td>
                 <td>
                   <div class="action-buttons">
