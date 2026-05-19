@@ -126,7 +126,11 @@
           <h2 class="data-toolbar-title" style="display: flex; align-items: center; gap: 0.5rem;">
             <span style="color: var(--adm-cyan);">✦</span> Gemini API Kota & Anahtar Yönetimi
           </h2>
-          <div class="table-controls">
+          <div class="table-controls" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+            <form id="addApiKeyForm" style="display: flex; gap: 8px; align-items: center; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); padding: 4px 10px; border-radius: 8px;">
+              <input type="password" id="newApiKeyInput" placeholder="Yeni Gemini API Anahtarı" required style="background: transparent; border: none; outline: none; color: #fff; font-size: 0.78rem; font-family: var(--adm-mono); width: 220px;" autocomplete="new-password">
+              <button type="submit" class="btn btn-primary btn-sm" style="min-height: 26px !important; padding: 2px 10px !important; font-size: 0.72rem !important; background: var(--adm-cyan) !important; color: #000 !important; font-weight: 700 !important; border: none !important;">Ekle</button>
+            </form>
             <button class="btn btn-secondary btn-sm" id="refreshApiKeysBtn">
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M10 2v3H7M2 10V7h3M2.5 4.5A4 4 0 019 3.5l1 1.5M9.5 7.5A4 4 0 013 8.5l-1-1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
               Yenile
@@ -984,6 +988,9 @@
                     <button class="btn btn-primary btn-sm" onclick="resetApiKey(${key.index})" style="background: rgba(16, 185, 129, 0.15) !important; border: 1px solid rgba(16, 185, 129, 0.4) !important; color: #34d399 !important; box-shadow: none !important;" title="Kota durumunu ve hataları sıfırlar">
                       Sıfırla
                     </button>
+                    <button class="btn btn-primary btn-sm" onclick="deleteApiKey(${key.index})" style="background: rgba(239, 68, 68, 0.15) !important; border: 1px solid rgba(239, 68, 68, 0.4) !important; color: var(--adm-danger) !important; box-shadow: none !important;" title="API anahtarını tamamen kaldırır">
+                      Sil
+                    </button>
                   </div>
                 </td>
               </tr>
@@ -1076,6 +1083,34 @@
         }
       }
 
+      async function deleteApiKey(index) {
+        const token = getToken();
+        if (!token) return;
+
+        if (!confirm(`Anahtar ${index + 1} sistemden tamamen kaldırılacaktır. Emin misiniz?`)) {
+          return;
+        }
+
+        try {
+          const response = await fetch(`/api/admin/api-keys/${index}`, {
+            method: "DELETE",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+          const resData = await response.json();
+          if (!response.ok) {
+            throw new Error(resData.detail || "API anahtarı silinemedi");
+          }
+
+          showToast("API anahtarı başarıyla sistemden kaldırıldı", "success");
+          fetchApiKeys();
+        } catch (error) {
+          showToast(error.message, "error");
+        }
+      }
+
       // ============================================================================
       // Başlatma
       // ============================================================================
@@ -1097,6 +1132,39 @@
 
         // Yenile butonunu bağla
         document.getElementById("refreshApiKeysBtn").addEventListener("click", fetchApiKeys);
+
+        // API anahtarı ekleme formunu bağla
+        const addApiKeyForm = document.getElementById("addApiKeyForm");
+        if (addApiKeyForm) {
+          addApiKeyForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const input = document.getElementById("newApiKeyInput");
+            const newKey = input.value.trim();
+            if (!newKey) return;
+
+            try {
+              const response = await fetch("/api/admin/api-keys/add", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ api_key: newKey })
+              });
+
+              const resData = await response.json();
+              if (!response.ok) {
+                throw new Error(resData.detail || "API anahtarı eklenemedi");
+              }
+
+              showToast("Yeni API anahtarı başarıyla eklendi", "success");
+              input.value = "";
+              fetchApiKeys();
+            } catch (error) {
+              showToast(error.message, "error");
+            }
+          });
+        }
       });
     </script>
   </body>

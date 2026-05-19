@@ -2353,6 +2353,75 @@ async def test_api_key(index: int, current_user: str = Depends(get_current_admin
         }
 
 
+class AddKeyRequest(BaseModel):
+    api_key: str
+
+
+@app.post("/api/admin/api-keys/add")
+async def add_api_key(payload: AddKeyRequest, current_user: str = Depends(get_current_admin)):
+    """
+    Sisteme dinamik olarak yeni bir Gemini API anahtarı ekler.
+    """
+    key = payload.api_key.strip()
+    if not key:
+        raise HTTPException(status_code=400, detail="API anahtarı boş olamaz")
+    
+    if key in chat_service.api_keys:
+        raise HTTPException(status_code=400, detail="Bu API anahtarı zaten tanımlı")
+    
+    # Yeni anahtarı ekle
+    chat_service.api_keys.append(key)
+    
+    # Maskele
+    masked = key[:6] + "..." + key[-4:] if len(key) > 10 else "AIzaSy..."
+    
+    new_meta = {
+        "index": len(chat_service.api_keys) - 1,
+        "masked_key": masked,
+        "status": "active",
+        "request_count": 0,
+        "success_count": 0,
+        "failure_count": 0,
+        "quota_exceeded_at": None,
+        "last_used_at": None,
+        "last_error": None
+    }
+    chat_service.keys_metadata.append(new_meta)
+    
+    logger.info(f"Yönetici tarafından yeni API anahtarı eklendi: {masked}")
+    return {"message": "API anahtarı başarıyla sisteme eklendi.", "key": new_meta}
+
+
+@app.delete("/api/admin/api-keys/{index}")
+async def delete_api_key(index: int, current_user: str = Depends(get_current_admin)):
+    """
+    Sistemden dinamik olarak bir Gemini API anahtarını kaldırır.
+    """
+    if index < 0 or index >= len(chat_service.api_keys):
+        raise HTTPException(status_code=400, detail="Geçersiz anahtar indeksi")
+    
+    if len(chat_service.api_keys) <= 1:
+        raise HTTPException(status_code=400, detail="Sistemde en az bir adet API anahtarı bulunmalıdır")
+    
+    removed_key = chat_service.api_keys.pop(index)
+    removed_meta = chat_service.keys_metadata.pop(index)
+    
+    # İndeksleri yeniden güncelle
+    for i, meta in enumerate(chat_service.keys_metadata):
+        meta["index"] = i
+        
+    # Eğer aktif key silindiyse, aktifi 0'a çek ve client'ı sıfırla
+    if chat_service.current_key_index == index:
+        chat_service.current_key_index = 0
+        chat_service._setup_client()
+    elif chat_service.current_key_index > index:
+        chat_service.current_key_index -= 1
+        
+    logger.info(f"Yönetici tarafından API anahtarı silindi: {removed_meta['masked_key']}")
+    return {"message": "API anahtarı sistemden başarıyla kaldırıldı."}
+
+
+
 
 
 
