@@ -15,7 +15,7 @@ import re
 import json
 import time
 from typing import Optional, List, Dict, Tuple
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Depends, Request, Header
 from fastapi.middleware.cors import CORSMiddleware
@@ -908,6 +908,23 @@ class ChatService:
         self.current_key_index = 0
         self.default_model = "gemini-2.5-flash"
         self.client = None
+        
+        # Anahtar meta verilerini ilklendir
+        self.keys_metadata = []
+        for i, key in enumerate(self.api_keys):
+            masked_key = f"{key[:6]}...{key[-4:]}" if len(key) > 10 else f"Key_{i+1}"
+            self.keys_metadata.append({
+                "index": i,
+                "masked_key": masked_key,
+                "status": "active",  # "active", "quota_exceeded", "invalid", "error"
+                "request_count": 0,
+                "success_count": 0,
+                "failure_count": 0,
+                "quota_exceeded_at": None,
+                "last_used_at": None,
+                "last_error": None
+            })
+            
         self._setup_client()
         self.timeout = 120.0
     
@@ -973,13 +990,25 @@ class ChatService:
                     yield "Hata: Gemini API istemcisi başlatılamadı. Lütfen API anahtarınızı kontrol edin."
                     return
 
+                # İstek denemesini kaydet
+                if self.current_key_index < len(self.keys_metadata):
+                    key_meta = self.keys_metadata[self.current_key_index]
+                    key_meta["request_count"] += 1
+                    key_meta["last_used_at"] = datetime.now(timezone.utc).isoformat()
+
                 response = await self.client.aio.models.generate_content_stream(
                     model=selected_model_name,
                     contents=contents
                 )
                 
+                first_chunk = True
                 async for chunk in response:
                     if chunk.text:
+                        if first_chunk:
+                            if self.current_key_index < len(self.keys_metadata):
+                                self.keys_metadata[self.current_key_index]["success_count"] += 1
+                                self.keys_metadata[self.current_key_index]["status"] = "active"
+                            first_chunk = False
                         yield chunk.text
                 
                 # Başarılı olursa döngüden çık
@@ -990,6 +1019,18 @@ class ChatService:
                 # Kota dolu (429) VEYA Hatalı Anahtar (400) kontrolü
                 is_quota_error = "429" in error_msg or "quota" in error_msg or "limit" in error_msg
                 is_invalid_key = "400" in error_msg or "invalid" in error_msg or "not valid" in error_msg
+                
+                if self.current_key_index < len(self.keys_metadata):
+                    key_meta = self.keys_metadata[self.current_key_index]
+                    key_meta["failure_count"] += 1
+                    key_meta["last_error"] = str(e)
+                    if is_quota_error:
+                        key_meta["status"] = "quota_exceeded"
+                        key_meta["quota_exceeded_at"] = datetime.now(timezone.utc).isoformat()
+                    elif is_invalid_key:
+                        key_meta["status"] = "invalid"
+                    else:
+                        key_meta["status"] = "error"
                 
                 if (is_quota_error or is_invalid_key) and len(self.api_keys) > 1:
                     retry_count += 1
@@ -2211,6 +2252,56 @@ async def create_user(user: UserAdminCreate, current_user: str = Depends(get_cur
         return created_user.dict()
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.get("/api/admin/api-keys")
+async def get_api_keys_status(current_user: str = Depends(get_current_admin)):
+    """
+    Tüm Gemini API anahtarlarının durumunu ve kota bilgilerini getir.
+    """
+    return {
+        "keys": chat_service.keys_metadata,
+        "current_key_index": chat_service.current_key_index,
+        "total_keys": len(chat_service.api_keys)
+    }
+
+
+@app.post("/api/admin/api-keys/{index}/reset")
+async def reset_api_key_status(index: int, current_user: str = Depends(get_current_admin)):
+    """
+    Belirli bir API anahtarının durumunu sıfırlar ve tekrar 'active' yapar.
+    """
+    if index < 0 or index >= len(chat_service.api_keys):
+        raise HTTPException(status_code=400, detail="Geçersiz anahtar indeksi")
+    
+    key_meta = chat_service.keys_metadata[index]
+    key_meta["status"] = "active"
+    key_meta["quota_exceeded_at"] = None
+    key_meta["last_error"] = None
+    
+    logger.info(f"Yönetici tarafından API anahtarı sıfırlandı: İndeks {index}")
+    return {"message": f"Anahtar {index} başarıyla sıfırlandı ve aktif hale getirildi.", "key": key_meta}
+
+
+@app.post("/api/admin/api-keys/{index}/activate")
+async def activate_api_key(index: int, current_user: str = Depends(get_current_admin)):
+    """
+    Belirli bir API anahtarını aktif (şu an kullanılan) anahtar olarak ayarlar.
+    """
+    if index < 0 or index >= len(chat_service.api_keys):
+        raise HTTPException(status_code=400, detail="Geçersiz anahtar indeksi")
+    
+    chat_service.current_key_index = index
+    chat_service._setup_client()
+    
+    logger.info(f"Yönetici tarafından aktif API anahtarı değiştirildi: Yeni İndeks {index}")
+    return {
+        "message": f"Aktif anahtar değiştirildi. Yeni İndeks: {index}",
+        "current_key_index": chat_service.current_key_index
+    }
+
+
+
 
 
 

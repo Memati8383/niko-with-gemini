@@ -119,6 +119,46 @@
           </div>
         </div>
       </section>
+
+      <!-- Gemini API Kota & Anahtar Yönetimi -->
+      <section class="admin-data" id="apiQuotaSection" aria-label="Gemini API Kota Yönetimi" style="margin-top: clamp(1.25rem, 3vw, 2rem);">
+        <div class="data-toolbar">
+          <h2 class="data-toolbar-title" style="display: flex; align-items: center; gap: 0.5rem;">
+            <span style="color: var(--adm-cyan);">✦</span> Gemini API Kota & Anahtar Yönetimi
+          </h2>
+          <div class="table-controls">
+            <button class="btn btn-secondary btn-sm" id="refreshApiKeysBtn">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M10 2v3H7M2 10V7h3M2.5 4.5A4 4 0 019 3.5l1 1.5M9.5 7.5A4 4 0 013 8.5l-1-1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Yenile
+            </button>
+          </div>
+        </div>
+
+        <div class="users-table-container">
+          <table class="users-table" id="apiKeysTable">
+            <thead>
+              <tr>
+                <th style="width: 80px;">İndeks</th>
+                <th>API Anahtarı</th>
+                <th>Durum</th>
+                <th style="text-align: center;">Toplam İstek</th>
+                <th style="text-align: center;">Başarılı</th>
+                <th style="text-align: center;">Hatalı</th>
+                <th>Son Kullanım</th>
+                <th>İşlemler</th>
+              </tr>
+            </thead>
+            <tbody id="apiKeysTableBody">
+              <!-- API durumları buraya yüklenecek -->
+            </tbody>
+          </table>
+
+          <div class="loading-state" id="apiKeysLoadingState">
+            <div class="loading-spinner"></div>
+            <p class="loading-state-msg">Yükleniyor…</p>
+          </div>
+        </div>
+      </section>
     </div>
 
     <!-- Create/Edit User Modal -->
@@ -707,6 +747,179 @@
       });
 
       // ============================================================================
+      // Gemini API Anahtarları Kota İşlemleri
+      // ============================================================================
+
+      const apiKeysTableBody = document.getElementById("apiKeysTableBody");
+      const apiKeysLoadingState = document.getElementById("apiKeysLoadingState");
+
+      async function fetchApiKeys() {
+        const token = getToken();
+        if (!token) return;
+
+        apiKeysLoadingState.classList.remove("hidden");
+
+        try {
+          const response = await fetch("/api/admin/api-keys", {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+          if (!response.ok) {
+            const errData = await response.json();
+            throw new Error(getErrorMessage(errData) || "API bilgileri alınamadı");
+          }
+
+          const data = await response.json();
+          renderApiKeys(data);
+        } catch (error) {
+          console.error("API keys fetch error:", error);
+          showToast(error.message, "error");
+        } finally {
+          apiKeysLoadingState.classList.add("hidden");
+        }
+      }
+
+      function renderApiKeys(data) {
+        const keys = data.keys || [];
+        const currentIndex = data.current_key_index;
+
+        if (keys.length === 0) {
+          apiKeysTableBody.innerHTML = `
+            <tr>
+              <td colspan="8" style="text-align: center; padding: 2rem; color: var(--adm-muted);">
+                Tanımlanmış Gemini API anahtarı bulunamadı (.env dosyasını kontrol edin)
+              </td>
+            </tr>
+          `;
+          return;
+        }
+
+        apiKeysTableBody.innerHTML = keys
+          .map((key) => {
+            const isActiveKey = key.index === currentIndex;
+            
+            // Status badge classes and labels
+            let badgeClass = "badge-user";
+            let statusLabel = "Pasif / Hazır";
+            
+            if (isActiveKey) {
+              badgeClass = "badge-admin";
+              statusLabel = "🟢 AKTİF KULLANIMDA";
+            } else if (key.status === "quota_exceeded") {
+              badgeClass = "badge-quota-exceeded";
+              statusLabel = "⚠️ KOTA DOLDU (429)";
+            } else if (key.status === "invalid") {
+              badgeClass = "badge-invalid";
+              statusLabel = "❌ GEÇERSİZ ANAHTAR";
+            } else if (key.status === "error") {
+              badgeClass = "badge-error";
+              statusLabel = "🛑 HATALI";
+            } else {
+              badgeClass = "badge-ready";
+              statusLabel = "🔵 BEKLEMEDE / HAZIR";
+            }
+
+            const lastUsedFormatted = formatDate(key.last_used_at);
+            const quotaExceededFormatted = key.quota_exceeded_at ? `<br><small style="color: var(--adm-danger);">Bloke Zamanı: ${formatDate(key.quota_exceeded_at)}</small>` : '';
+
+            // Last error details
+            const errorDetail = key.last_error 
+              ? `<div class="error-tooltip-container" style="position: relative; display: inline-block; margin-left: 6px; vertical-align: middle;">
+                   <span class="info-icon" style="cursor: help; background: rgba(248,113,113,0.15); color: var(--adm-danger); width: 16px; height: 16px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 0.68rem; font-weight: bold;" title="${escapeHtml(key.last_error)}">i</span>
+                 </div>` 
+              : '';
+
+            return `
+              <tr class="${isActiveKey ? 'active-key-row' : ''}" style="${isActiveKey ? 'background: rgba(0, 212, 255, 0.04);' : ''}">
+                <td data-label="İNDEKS" style="font-family: var(--adm-mono); font-weight: 700; color: ${isActiveKey ? 'var(--adm-cyan)' : 'var(--adm-muted)'};">${key.index + 1}</td>
+                <td data-label="API ANAHTARI">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <code style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); padding: 4px 8px; border-radius: 6px; font-family: var(--adm-mono); font-size: 0.78rem; color: #fff;">
+                      ${escapeHtml(key.masked_key)}
+                    </code>
+                    <button class="btn btn-secondary btn-sm" onclick="copyToClipboard('${escapeHtml(key.masked_key)}')" style="padding: 2px 6px !important; min-height: 24px; font-size: 0.65rem !important;" title="Maskeli Anahtarı Kopyala">
+                      Kopyala
+                    </button>
+                  </div>
+                </td>
+                <td data-label="DURUM">
+                  <span class="badge ${badgeClass}">
+                    ${statusLabel}
+                  </span>
+                  ${quotaExceededFormatted}
+                  ${errorDetail}
+                </td>
+                <td data-label="TOPLAM İSTEK" style="text-align: center; font-family: var(--adm-mono); font-weight: 600;">${key.request_count}</td>
+                <td data-label="BAŞARILI" style="text-align: center; font-family: var(--adm-mono); font-weight: 600; color: #34d399;">${key.success_count}</td>
+                <td data-label="HATALI" style="text-align: center; font-family: var(--adm-mono); font-weight: 600; color: var(--adm-danger);">${key.failure_count}</td>
+                <td data-label="SON KULLANIM" style="font-family: var(--adm-mono); font-size: 0.76rem; color: rgba(255,255,255,0.45);">${lastUsedFormatted}</td>
+                <td>
+                  <div class="action-buttons">
+                    <button class="btn btn-secondary btn-sm" onclick="activateApiKey(${key.index})" ${isActiveKey ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}>
+                      Aktif Et
+                    </button>
+                    <button class="btn btn-primary btn-sm" onclick="resetApiKey(${key.index})" style="background: rgba(16, 185, 129, 0.15) !important; border: 1px solid rgba(16, 185, 129, 0.4) !important; color: #34d399 !important; box-shadow: none !important;" title="Kota durumunu ve hataları sıfırlar">
+                      Sıfırla
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            `;
+          })
+          .join("");
+      }
+
+      async function resetApiKey(index) {
+        const token = getToken();
+        if (!token) return;
+
+        try {
+          const response = await fetch(`/api/admin/api-keys/${index}/reset`, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+          const resData = await response.json();
+          if (!response.ok) {
+            throw new Error(resData.detail || "Sıfırlama işlemi başarısız");
+          }
+
+          showToast(`Anahtar ${index + 1} başarıyla sıfırlandı`, "success");
+          fetchApiKeys();
+        } catch (error) {
+          showToast(error.message, "error");
+        }
+      }
+
+      async function activateApiKey(index) {
+        const token = getToken();
+        if (!token) return;
+
+        try {
+          const response = await fetch(`/api/admin/api-keys/${index}/activate`, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+          const resData = await response.json();
+          if (!response.ok) {
+            throw new Error(resData.detail || "Aktifleştirme işlemi başarısız");
+          }
+
+          showToast(`Aktif anahtar İndeks ${index + 1} olarak değiştirildi`, "success");
+          fetchApiKeys();
+        } catch (error) {
+          showToast(error.message, "error");
+        }
+      }
+
+      // ============================================================================
       // Başlatma
       // ============================================================================
 
@@ -719,9 +932,14 @@
         }
 
         fetchUsers();
+        fetchApiKeys();
         
         // Yeni kullanıcı kayıt olduğunda anlık (her 5 saniyede bir) güncelleme yap
         setInterval(fetchUsers, 5000);
+        setInterval(fetchApiKeys, 5000);
+
+        // Yenile butonunu bağla
+        document.getElementById("refreshApiKeysBtn").addEventListener("click", fetchApiKeys);
       });
     </script>
   </body>
