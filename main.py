@@ -908,25 +908,13 @@ class ChatService:
         self.current_key_index = 0
         self.default_model = "gemini-2.5-flash"
         self.client = None
+        self.metadata_file = "api_keys_metadata.json"
         
-        # Anahtar meta verilerini ilklendir
+        # Meta verileri ve anahtarları dosyadan yükle (veya sıfırdan oluştur)
+        self.rotation_strategy = "sequential"
         self.keys_metadata = []
-        for i, key in enumerate(self.api_keys):
-            masked_key = f"{key[:6]}...{key[-4:]}" if len(key) > 10 else f"Key_{i+1}"
-            self.keys_metadata.append({
-                "index": i,
-                "masked_key": masked_key,
-                "status": "active",  # "active", "quota_exceeded", "invalid", "error"
-                "request_count": 0,
-                "success_count": 0,
-                "failure_count": 0,
-                "request_limit": 1500,
-                "quota_exceeded_at": None,
-                "last_used_at": None,
-                "last_error": None
-            })
+        self._load_metadata()
             
-        self.rotation_strategy = "sequential"  # "sequential" veya "health_priority"
         self.key_rotation_logs = []
         self._add_log("info", f"Sistem başlatıldı. {len(self.api_keys)} adet API anahtarı yüklendi.")
         self._setup_client()
@@ -946,6 +934,68 @@ class ChatService:
         # Son 50 olay ile sınırla
         if len(self.key_rotation_logs) > 50:
             self.key_rotation_logs.pop()
+
+    def _initialize_metadata_from_scratch(self):
+        self.keys_metadata = []
+        for i, key in enumerate(self.api_keys):
+            masked_key = f"{key[:6]}...{key[-4:]}" if len(key) > 10 else f"Key_{i+1}"
+            self.keys_metadata.append({
+                "index": i,
+                "masked_key": masked_key,
+                "status": "active",  # "active", "quota_exceeded", "invalid", "error"
+                "request_count": 0,
+                "success_count": 0,
+                "failure_count": 0,
+                "request_limit": 1500,
+                "quota_exceeded_at": None,
+                "last_used_at": None,
+                "last_error": None
+            })
+
+    def _save_metadata(self):
+        try:
+            import json
+            data_to_save = {
+                "api_keys": self.api_keys,
+                "rotation_strategy": self.rotation_strategy,
+                "current_key_index": self.current_key_index,
+                "keys_metadata": self.keys_metadata
+            }
+            with open(self.metadata_file, "w", encoding="utf-8") as f:
+                json.dump(data_to_save, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            logger.warning(f"API anahtarları meta verisi dosyaya kaydedilemedi: {e}")
+
+    def _load_metadata(self):
+        try:
+            import json
+            import os
+            if os.path.exists(self.metadata_file):
+                with open(self.metadata_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                
+                saved_keys = data.get("api_keys", [])
+                if saved_keys:
+                    self.api_keys = saved_keys
+                    
+                self.rotation_strategy = data.get("rotation_strategy", "sequential")
+                self.current_key_index = data.get("current_key_index", 0)
+                
+                saved_meta = data.get("keys_metadata", [])
+                if len(saved_meta) == len(self.api_keys):
+                    self.keys_metadata = saved_meta
+                    # İndeksleri ve maskeleri garanti et
+                    for i, key in enumerate(self.api_keys):
+                        self.keys_metadata[i]["index"] = i
+                        if "masked_key" not in self.keys_metadata[i]:
+                            self.keys_metadata[i]["masked_key"] = f"{key[:6]}...{key[-4:]}" if len(key) > 10 else f"Key_{i+1}"
+                else:
+                    self._initialize_metadata_from_scratch()
+            else:
+                self._initialize_metadata_from_scratch()
+        except Exception as e:
+            logger.error(f"API anahtarları meta verisi dosyadan yüklenemedi: {e}")
+            self._initialize_metadata_from_scratch()
     
     def _setup_client(self):
         """Mevcut dizindeki API anahtarı ile istemciyi kur."""
@@ -1048,6 +1098,7 @@ class ChatService:
                     key_meta = self.keys_metadata[self.current_key_index]
                     key_meta["request_count"] += 1
                     key_meta["last_used_at"] = datetime.now(timezone.utc).isoformat()
+                    self._save_metadata()
 
                 response = await self.client.aio.models.generate_content_stream(
                     model=selected_model_name,
@@ -1061,6 +1112,7 @@ class ChatService:
                             if self.current_key_index < len(self.keys_metadata):
                                 self.keys_metadata[self.current_key_index]["success_count"] += 1
                                 self.keys_metadata[self.current_key_index]["status"] = "active"
+                                self._save_metadata()
                             first_chunk = False
                         yield chunk.text
                 
@@ -1084,6 +1136,7 @@ class ChatService:
                         key_meta["status"] = "invalid"
                     else:
                         key_meta["status"] = "error"
+                    self._save_metadata()
                 
                 if (is_quota_error or is_invalid_key) and len(self.api_keys) > 1:
                     retry_count += 1
@@ -1093,6 +1146,7 @@ class ChatService:
                         self._add_log("warning", f"Anahtar {self.current_key_index + 1} {reason} hatası verdi. Rotasyon tetiklendi.")
                         logger.warning(f"⚠️ Gemini {reason}! Diğer anahtara geçiliyor... (Yeni İndeks: {self.current_key_index})")
                         self._setup_client()
+                        self._save_metadata()
                         continue # Yeni anahtar ile tekrar dene
                 
                 # Diğer hatalar veya tüm anahtarlar denendiyse hata fırlat
@@ -2344,6 +2398,7 @@ async def update_rotation_strategy(payload: RotationStrategyRequest, current_use
     
     chat_service.rotation_strategy = strategy
     chat_service._add_log("info", f"Rotasyon stratejisi '{strategy}' olarak güncellendi.")
+    chat_service._save_metadata()
     logger.info(f"Rotasyon stratejisi güncellendi: {strategy}")
     return {"message": "Rotasyon stratejisi başarıyla güncellendi.", "strategy": strategy}
 
@@ -2362,6 +2417,7 @@ async def reset_api_key_status(index: int, current_user: str = Depends(get_curre
     key_meta["last_error"] = None
     
     chat_service._add_log("success", f"Anahtar {index + 1} durumu yönetici tarafından sıfırlandı.")
+    chat_service._save_metadata()
     logger.info(f"Yönetici tarafından API anahtarı sıfırlandı: İndeks {index}")
     return {"message": f"Anahtar {index} başarıyla sıfırlandı ve aktif hale getirildi.", "key": key_meta}
 
@@ -2378,6 +2434,7 @@ async def activate_api_key(index: int, current_user: str = Depends(get_current_a
     chat_service._setup_client()
     
     chat_service._add_log("info", f"Aktif API anahtarı İndeks {index + 1} olarak değiştirildi.")
+    chat_service._save_metadata()
     logger.info(f"Yönetici tarafından aktif API anahtarı değiştirildi: Yeni İndeks {index}")
     return {
         "message": f"Aktif anahtar değiştirildi. Yeni İndeks: {index}",
@@ -2410,6 +2467,7 @@ async def test_api_key(index: int, current_user: str = Depends(get_current_admin
         key_meta["last_error"] = None
         
         chat_service._add_log("success", f"Anahtar {index + 1} manuel test edildi: Başarılı")
+        chat_service._save_metadata()
         return {"status": "success", "message": "Anahtar başarıyla doğrulandı. Sağlıklı çalışıyor."}
     except Exception as e:
         error_msg = str(e)
@@ -2431,6 +2489,7 @@ async def test_api_key(index: int, current_user: str = Depends(get_current_admin
         key_meta["failure_count"] += 1
         
         chat_service._add_log("error", f"Anahtar {index + 1} manuel test edildi: Başarısız ({key_meta['status']})")
+        chat_service._save_metadata()
         return {
             "status": "failed",
             "message": "Doğrulama başarısız oldu.",
@@ -2476,6 +2535,7 @@ async def add_api_key(payload: AddKeyRequest, current_user: str = Depends(get_cu
     chat_service.keys_metadata.append(new_meta)
     
     chat_service._add_log("success", f"Yeni API anahtarı eklendi: {masked}")
+    chat_service._save_metadata()
     logger.info(f"Yönetici tarafından yeni API anahtarı eklendi: {masked}")
     return {"message": "API anahtarı başarıyla sisteme eklendi.", "key": new_meta}
 
@@ -2506,6 +2566,7 @@ async def delete_api_key(index: int, current_user: str = Depends(get_current_adm
         chat_service.current_key_index -= 1
         
     chat_service._add_log("warning", f"Anahtar {index + 1} sistemden silindi: {removed_meta['masked_key']}")
+    chat_service._save_metadata()
     logger.info(f"Yönetici tarafından API anahtarı silindi: {removed_meta['masked_key']}")
     return {"message": "API anahtarı sistemden başarıyla kaldırıldı."}
 
@@ -2528,6 +2589,7 @@ async def update_api_key_limit(index: int, payload: UpdateLimitRequest, current_
         
     chat_service.keys_metadata[index]["request_limit"] = limit
     chat_service._add_log("info", f"Anahtar {index + 1} günlük limiti {limit} olarak güncellendi.")
+    chat_service._save_metadata()
     logger.info(f"Yönetici tarafından API anahtarı {index} limiti güncellendi: {limit}")
     return {"message": "API anahtarı limiti başarıyla güncellendi.", "limit": limit}
 
