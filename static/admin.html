@@ -131,6 +131,13 @@
               <input type="password" id="newApiKeyInput" placeholder="Yeni Gemini API Anahtarı" required style="background: transparent; border: none; outline: none; color: #fff; font-size: 0.78rem; font-family: var(--adm-mono); width: 220px;" autocomplete="new-password">
               <button type="submit" class="btn btn-primary btn-sm" style="min-height: 26px !important; padding: 2px 10px !important; font-size: 0.72rem !important; background: var(--adm-cyan) !important; color: #000 !important; font-weight: 700 !important; border: none !important;">Ekle</button>
             </form>
+            <div style="display: flex; gap: 6px; align-items: center; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); padding: 4px 10px; border-radius: 8px;">
+              <label for="rotationStrategySelect" style="font-size: 0.7rem; color: var(--adm-muted); font-weight: 600; text-transform: uppercase;">Strateji:</label>
+              <select id="rotationStrategySelect" style="background: transparent; border: none; outline: none; color: #fff; font-size: 0.76rem; font-weight: 600; cursor: pointer; padding-right: 5px;">
+                <option value="sequential" style="background: #0d0f14; color: #fff;">Sıralı Rotasyon</option>
+                <option value="health_priority" style="background: #0d0f14; color: #fff;">En Sağlıklı Seçim</option>
+              </select>
+            </div>
             <button class="btn btn-secondary btn-sm" id="refreshApiKeysBtn">
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M10 2v3H7M2 10V7h3M2.5 4.5A4 4 0 019 3.5l1 1.5M9.5 7.5A4 4 0 013 8.5l-1-1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
               Yenile
@@ -827,6 +834,12 @@
 
           const data = await response.json();
           renderApiKeys(data);
+          
+          // Rotation strategy select elementini güncelle
+          const select = document.getElementById("rotationStrategySelect");
+          if (select && data.rotation_strategy) {
+            select.value = data.rotation_strategy;
+          }
         } catch (error) {
           console.error("API keys fetch error:", error);
           showToast(error.message, "error");
@@ -1159,6 +1172,34 @@
 
               showToast("Yeni API anahtarı başarıyla eklendi", "success");
               input.value = "";
+              fetchApiKeys();
+            } catch (error) {
+              showToast(error.message, "error");
+            }
+          });
+        }
+
+        // Rotasyon stratejisi güncellemesini bağla
+        const strategySelect = document.getElementById("rotationStrategySelect");
+        if (strategySelect) {
+          strategySelect.addEventListener("change", async () => {
+            const strategy = strategySelect.value;
+            try {
+              const response = await fetch("/api/admin/api-keys/strategy", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ strategy })
+              });
+
+              const resData = await response.json();
+              if (!response.ok) {
+                throw new Error(resData.detail || "Rotasyon stratejisi güncellenemedi");
+              }
+
+              showToast("Rotasyon stratejisi başarıyla güncellendi", "success");
               fetchApiKeys();
             } catch (error) {
               showToast(error.message, "error");

@@ -925,6 +925,7 @@ class ChatService:
                 "last_error": None
             })
             
+        self.rotation_strategy = "sequential"  # "sequential" veya "health_priority"
         self._setup_client()
         self.timeout = 120.0
     
@@ -947,6 +948,36 @@ class ChatService:
     async def check_ollama_available(self) -> bool:
         """Gemini API anahtarının mevcut olup olmadığını kontrol et."""
         return len(self.api_keys) > 0
+
+    def _select_next_key(self, current_failed_index: int) -> int:
+        """
+        Rotasyon stratejisine göre bir sonraki API anahtarını seçer.
+        """
+        if len(self.api_keys) <= 1:
+            return 0
+            
+        strategy = getattr(self, "rotation_strategy", "sequential")
+        
+        if strategy == "health_priority":
+            candidates = []
+            for meta in self.keys_metadata:
+                if meta["index"] == current_failed_index:
+                    continue # Kendisini geç
+                
+                is_active = 1 if meta["status"] == "active" else 0
+                success_ratio = 1.0
+                if meta["request_count"] > 0:
+                    success_ratio = meta["success_count"] / meta["request_count"]
+                
+                # Skor: active olmalı (1000 puan), success_ratio ne kadar yüksekse o kadar iyi, failure_count ne kadar düşükse o kadar iyi
+                score = (is_active * 1000) + (success_ratio * 100) - (meta["failure_count"] * 10)
+                candidates.append((meta["index"], score))
+                
+            if candidates:
+                candidates.sort(key=lambda x: x[1], reverse=True)
+                return candidates[0][0]
+                
+        return (current_failed_index + 1) % len(self.api_keys)
     
     async def chat_stream(
         self,
@@ -1035,7 +1066,7 @@ class ChatService:
                 if (is_quota_error or is_invalid_key) and len(self.api_keys) > 1:
                     retry_count += 1
                     if retry_count < max_retries:
-                        self.current_key_index = (self.current_key_index + 1) % len(self.api_keys)
+                        self.current_key_index = self._select_next_key(self.current_key_index)
                         reason = "Kota doldu" if is_quota_error else "Hatalı anahtar"
                         logger.warning(f"⚠️ Gemini {reason}! Diğer anahtara geçiliyor... (Yeni İndeks: {self.current_key_index})")
                         self._setup_client()
@@ -2262,8 +2293,27 @@ async def get_api_keys_status(current_user: str = Depends(get_current_admin)):
     return {
         "keys": chat_service.keys_metadata,
         "current_key_index": chat_service.current_key_index,
-        "total_keys": len(chat_service.api_keys)
+        "total_keys": len(chat_service.api_keys),
+        "rotation_strategy": getattr(chat_service, "rotation_strategy", "sequential")
     }
+
+
+class RotationStrategyRequest(BaseModel):
+    strategy: str
+
+
+@app.post("/api/admin/api-keys/strategy")
+async def update_rotation_strategy(payload: RotationStrategyRequest, current_user: str = Depends(get_current_admin)):
+    """
+    Gemini API anahtarı rotasyon stratejisini günceller.
+    """
+    strategy = payload.strategy.strip()
+    if strategy not in ["sequential", "health_priority"]:
+        raise HTTPException(status_code=400, detail="Geçersiz rotasyon stratejisi")
+    
+    chat_service.rotation_strategy = strategy
+    logger.info(f"Rotasyon stratejisi güncellendi: {strategy}")
+    return {"message": "Rotasyon stratejisi başarıyla güncellendi.", "strategy": strategy}
 
 
 @app.post("/api/admin/api-keys/{index}/reset")
