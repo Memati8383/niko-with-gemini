@@ -974,11 +974,12 @@ class ChatService:
         except Exception as e:
             logger.warning(f"Geçmiş verileri tohumlanamadı: {e}")
 
-    def _record_history_stat(self, is_success: bool):
+    def _record_history_stat(self, is_success: bool, key_index: int = None):
         try:
             from datetime import datetime, timezone
             today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
             
+            # Global history stats
             if not hasattr(self, "history_stats") or self.history_stats is None:
                 self.history_stats = {}
                 
@@ -991,6 +992,20 @@ class ChatService:
             else:
                 self.history_stats[today_str]["failure"] += 1
                 
+            # Key-specific history stats
+            if key_index is not None and key_index < len(self.keys_metadata):
+                key_meta = self.keys_metadata[key_index]
+                if "history_stats" not in key_meta:
+                    key_meta["history_stats"] = {}
+                if today_str not in key_meta["history_stats"]:
+                    key_meta["history_stats"][today_str] = {"requests": 0, "success": 0, "failure": 0}
+                    
+                key_meta["history_stats"][today_str]["requests"] += 1
+                if is_success:
+                    key_meta["history_stats"][today_str]["success"] += 1
+                else:
+                    key_meta["history_stats"][today_str]["failure"] += 1
+
             self._save_metadata()
         except Exception as e:
             logger.error(f"Error recording history stat: {e}")
@@ -1161,7 +1176,7 @@ class ChatService:
                             if self.current_key_index < len(self.keys_metadata):
                                 self.keys_metadata[self.current_key_index]["success_count"] += 1
                                 self.keys_metadata[self.current_key_index]["status"] = "active"
-                                self._record_history_stat(is_success=True)
+                                self._record_history_stat(is_success=True, key_index=self.current_key_index)
                                 self._save_metadata()
                             first_chunk = False
                         yield chunk.text
@@ -1186,7 +1201,7 @@ class ChatService:
                         key_meta["status"] = "invalid"
                     else:
                         key_meta["status"] = "error"
-                    self._record_history_stat(is_success=False)
+                    self._record_history_stat(is_success=False, key_index=self.current_key_index)
                     self._save_metadata()
                 
                 if (is_quota_error or is_invalid_key) and len(self.api_keys) > 1:

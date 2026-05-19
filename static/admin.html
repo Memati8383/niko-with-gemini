@@ -202,7 +202,7 @@
           <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
             <div>
               <h3 style="font-size: 0.95rem; font-weight: 700; color: #fff; margin: 0; display: flex; align-items: center; gap: 8px; font-family: var(--adm-font);">
-                <span style="color: var(--adm-cyan); font-size: 1.1rem;">📊</span> Gemini API İstek Trafiği & Performans Trendi
+                <span style="color: var(--adm-cyan); font-size: 1.1rem;">📊</span> <span id="apiStatsChartTitleText">Gemini API İstek Trafiği & Performans Trendi</span>
               </h3>
               <p style="font-size: 0.74rem; color: var(--adm-muted); margin: 4px 0 0 0; font-family: var(--adm-font);">Son 7 günlük API istek hacmi ve başarı performansı analitiği</p>
             </div>
@@ -972,6 +972,47 @@
       }
 
       let apiChart = null;
+      let globalHistoryStats = null;
+      let apiKeysDataList = [];
+      let selectedChartKeyIndex = null;
+
+      function selectApiKeyForChart(index, event) {
+        if (event && (event.target.tagName === 'BUTTON' || event.target.tagName === 'SVG' || event.target.closest('button') || event.target.closest('.error-tooltip-container'))) {
+          return;
+        }
+        
+        const titleEl = document.getElementById('apiStatsChartTitleText');
+        
+        if (selectedChartKeyIndex === index) {
+          // Deselect and revert to global stats
+          selectedChartKeyIndex = null;
+          if (titleEl) titleEl.textContent = "Gemini API İstek Trafiği & Performans Trendi (Tümü)";
+          renderApiStatsChart(globalHistoryStats);
+        } else {
+          // Select specific key
+          selectedChartKeyIndex = index;
+          const keyData = apiKeysDataList.find(k => k.index === index);
+          if (titleEl) titleEl.textContent = `Gemini API İstek Trafiği & Performans Trendi (Anahtar ${index + 1})`;
+          renderApiStatsChart(keyData ? (keyData.history_stats || {}) : {});
+        }
+        
+        // Highlight active row visually
+        document.querySelectorAll('#apiKeysTableBody tr').forEach(tr => {
+          if (parseInt(tr.dataset.keyIndex) === selectedChartKeyIndex) {
+            tr.style.outline = '2px solid var(--adm-cyan)';
+            tr.style.outlineOffset = '-2px';
+            tr.style.background = 'rgba(0, 212, 255, 0.08)';
+          } else {
+            tr.style.outline = 'none';
+            // Restore active background if it is the active key
+            if (tr.classList.contains('active-key-row')) {
+              tr.style.background = 'rgba(0, 212, 255, 0.04)';
+            } else {
+              tr.style.background = 'transparent';
+            }
+          }
+        });
+      }
 
       function renderApiStatsChart(historyStats) {
         if (!historyStats) return;
@@ -1162,6 +1203,9 @@
       function renderApiKeys(data) {
         const keys = data.keys || [];
         const currentIndex = data.current_key_index;
+        
+        apiKeysDataList = keys;
+        globalHistoryStats = data.history_stats || {};
 
         // Metrik hesaplamaları yap
         const totalKeys = keys.length;
@@ -1262,7 +1306,7 @@
               : '';
 
             return `
-              <tr class="${isActiveKey ? 'active-key-row' : ''}" style="${isActiveKey ? 'background: rgba(0, 212, 255, 0.04);' : ''}">
+              <tr class="${isActiveKey ? 'active-key-row' : ''}" data-key-index="${key.index}" style="${isActiveKey ? 'background: rgba(0, 212, 255, 0.04);' : ''} cursor: pointer; transition: all 0.2s ease;" onclick="selectApiKeyForChart(${key.index}, event)" title="Bu anahtarın anlık istatistik grafiğini görmek için tıklayın">
                 <td data-label="İNDEKS" style="font-family: var(--adm-mono); font-weight: 700; color: ${isActiveKey ? 'var(--adm-cyan)' : 'var(--adm-muted)'};">${key.index + 1}</td>
                 <td data-label="API ANAHTARI">
                   <div style="display: flex; align-items: center; gap: 8px;">
@@ -1352,7 +1396,23 @@
           .join("");
 
         // Render or update statistics chart
-        renderApiStatsChart(data.history_stats);
+        if (selectedChartKeyIndex !== null) {
+          const selectedData = apiKeysDataList.find(k => k.index === selectedChartKeyIndex);
+          renderApiStatsChart(selectedData ? (selectedData.history_stats || {}) : {});
+          
+          // Ensure styling persists after table re-render
+          setTimeout(() => {
+            document.querySelectorAll('#apiKeysTableBody tr').forEach(tr => {
+              if (parseInt(tr.dataset.keyIndex) === selectedChartKeyIndex) {
+                tr.style.outline = '2px solid var(--adm-cyan)';
+                tr.style.outlineOffset = '-2px';
+                tr.style.background = 'rgba(0, 212, 255, 0.08)';
+              }
+            });
+          }, 10);
+        } else {
+          renderApiStatsChart(globalHistoryStats);
+        }
       }
 
       async function testApiKey(index) {
