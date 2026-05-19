@@ -814,6 +814,7 @@ function appendMessage(role, content) {
     
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${role}`;
+    messageDiv.dataset.content = content;
     
     let avatar = role === 'user'
         ? '👤'
@@ -863,7 +864,7 @@ function appendMessage(role, content) {
             copyBtn.classList.remove('copied');
         }, 1800);
 
-        copyToClipboard(content);
+        copyToClipboard(messageDiv.dataset.content || '');
     });
     
     elements.chatMessages.appendChild(messageDiv);
@@ -1086,6 +1087,7 @@ async function sendMessage() {
                         } else if (data.type === 'content') {
                             fullResponse += data.content;
                             messageText.innerHTML = parseMarkdown(fullResponse);
+                            botMessage.dataset.content = fullResponse;
                             scrollToBottom();
                         } else if (data.type === 'done') {
                             // Response complete
