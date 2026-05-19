@@ -7,6 +7,9 @@ Supabase (PostgreSQL) kullanılmaktadır.
 """
 
 import os
+from dotenv import load_dotenv
+load_dotenv()
+
 import logging
 from typing import Optional, List, Dict
 from datetime import datetime, timezone
@@ -22,6 +25,9 @@ class HTTPXSupabaseResponse:
     def __init__(self, data, count=None):
         self.data = data
         self.count = count
+
+    def execute(self):
+        return self
 
 class HTTPXSupabaseNotFilter:
     def __init__(self, query):
@@ -769,7 +775,7 @@ def migrate_json_to_supabase():
     """
     import json
     
-    print("🔄 JSON -> Supabase veri göçü başlıyor...")
+    print("[BILGI] JSON -> Supabase veri gocu basliyor...")
     
     db = get_supabase()
     
@@ -791,11 +797,11 @@ def migrate_json_to_supabase():
                     "created_at": data.get("created_at", datetime.now(timezone.utc).isoformat()),
                     "profile_image": data.get("profile_image"),
                 }).execute()
-                print(f"  ✅ Kullanıcı aktarıldı: {username}")
+                print(f"  [OK] Kullanici aktarildi: {username}")
             except Exception as e:
-                print(f"  ❌ Kullanıcı aktarılamadı ({username}): {e}")
+                print(f"  [HATA] Kullanici aktarilamadi ({username}): {e}")
     else:
-        print("  ⚠️ users.json bulunamadı, atlanıyor...")
+        print("  [UYARI] users.json bulunamadi, atlaniyor...")
     
     # 2. Sohbet geçmişini göç ettir
     history_dir = "history"
@@ -835,10 +841,16 @@ def migrate_json_to_supabase():
                     
                     db.table("chat_messages").insert(msg_data).execute()
                 
-                print(f"  ✅ Oturum aktarıldı: {filename}")
+                print(f"  [OK] Oturum aktarildi: {filename}")
             except Exception as e:
-                print(f"  ❌ Oturum aktarılamadı ({filename}): {e}")
+                error_msg = str(e)
+                if isinstance(e, httpx.HTTPStatusError):
+                    try:
+                        error_msg += f" | Detay: {e.response.text}"
+                    except:
+                        pass
+                print(f"  [HATA] Oturum aktarilamadi ({filename}): {error_msg}")
     else:
-        print("  ⚠️ history/ dizini bulunamadı, atlanıyor...")
+        print("  [UYARI] history/ dizini bulunamadi, atlaniyor...")
     
-    print("\n🎉 Veri göçü tamamlandı!")
+    print("\n[TAMAM] Veri gocu tamamlandi!")
