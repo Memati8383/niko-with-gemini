@@ -905,6 +905,9 @@ public class MainActivity extends Activity {
                 isListening = false;
                 addLog("[STT] Hata Kodu: " + e);
 
+                // Orb ve Halo rengini idle durumuna sıfırla
+                resetOrbToIdleState();
+
                 // Kullanıcıya sesli geri bildirim ver (UX İyileştirmesi)
                 if (e == SpeechRecognizer.ERROR_NO_MATCH) {
                     speak("Seni tam anlayamadım biraderim, tekrar söyler misin?", false);
@@ -954,8 +957,7 @@ public class MainActivity extends Activity {
                 voiceOrb.animate().scaleX(scale).scaleY(scale).setDuration(50)
                         .setInterpolator(new android.view.animation.OvershootInterpolator()).start();
 
-                // Halo efektini de ölçeklendir (limitli büyüme)
-                View orbHalo = findViewById(R.id.orbHalo);
+                // Halo efektini de ölçeklendir (sınıf alanını kullan, her karede findViewById yapma)
                 if (orbHalo != null) {
                     float haloScale = Math.min(1.0f + (Math.max(0, rmsdB) / 12.0f), 1.6f);
                     orbHalo.animate().scaleX(haloScale).scaleY(haloScale).alpha(0.2f + (rmsdB / 25.0f)).setDuration(120)
@@ -969,10 +971,8 @@ public class MainActivity extends Activity {
             public void onEndOfSpeech() {
                 runOnUiThread(() -> {
                     hapticFeedback(HapticType.LIGHT); // Dinleme bittiğini hissettir
-                    if (voiceOrb != null) {
-                        voiceOrb.setBackgroundTintList(null); // Rengi normale döndür
-                        voiceOrb.animate().scaleX(1f).scaleY(1f).setDuration(300).start();
-                    }
+                    // Orb ve Halo rengini idle durumuna sıfırla
+                    resetOrbToIdleState();
                 });
             }
 
@@ -1239,9 +1239,16 @@ public class MainActivity extends Activity {
             currentAiTask = null;
         }
 
+        // AI konuşma animasyonunu durdur (TTS/MediaPlayer kaynaklı)
+        stopAIOrbAnimation();
+
         runOnUiThread(() -> {
             aiResponseContainer.setVisibility(View.GONE);
             txtAIResponse.setText("");
+
+            // Orb ve Halo'yu idle durumuna sıfırla (dinleme/konuşma rengi takılı kalmasın)
+            resetOrbToIdleState();
+
             if (!withVoiceFeedback) {
                 Toast.makeText(this, "İşlem durduruldu", Toast.LENGTH_SHORT).show();
             }
@@ -1250,6 +1257,38 @@ public class MainActivity extends Activity {
         if (withVoiceFeedback) {
             speak("Tamam, işlemleri durdurdum.");
         }
+    }
+
+    /**
+     * Orb ve Halo'nun görsel durumunu idle (nefes alma) moduna sıfırlar.
+     * Dinleme, konuşma veya hata sonrası tüm çıkış noktalarından çağrılır.
+     * Bu metot, renk tintlerini temizler, ölçeği normalize eder ve
+     * nefes alma animasyonunu yeniden başlatır.
+     */
+    private void resetOrbToIdleState() {
+        runOnUiThread(() -> {
+            if (voiceOrb != null) {
+                voiceOrb.setBackgroundTintList(null);
+                voiceOrb.animate()
+                        .scaleX(1f)
+                        .scaleY(1f)
+                        .setDuration(400)
+                        .setInterpolator(new android.view.animation.OvershootInterpolator(0.8f))
+                        .start();
+            }
+            if (orbHalo != null) {
+                orbHalo.setBackgroundTintList(null);
+                orbHalo.animate()
+                        .scaleX(1f)
+                        .scaleY(1f)
+                        .alpha(1.0f)
+                        .setDuration(500)
+                        .setInterpolator(new android.view.animation.DecelerateInterpolator())
+                        .start();
+            }
+            // Idle nefes alma animasyonunu yeniden başlat
+            startBreathingAnimation();
+        });
     }
 
     /*
@@ -1697,6 +1736,9 @@ public class MainActivity extends Activity {
             return;
         }
 
+        // Önce yerel önbellekten yükle (anında görüntüleme için)
+        loadProfileFromCache();
+
         new Thread(() -> {
             HttpURLConnection conn = null;
             try {
@@ -1706,9 +1748,9 @@ public class MainActivity extends Activity {
                 conn.setRequestProperty("Authorization", "Bearer " + authToken);
                 conn.setRequestProperty("Accept", "application/json");
 
-                // Timeout ayarları ekle
-                conn.setConnectTimeout(15000); // 15 saniye bağlantı timeout
-                conn.setReadTimeout(15000); // 15 saniye okuma timeout
+                // Timeout: Vercel cold start 10-15sn sürebilir, yeterli süre ver
+                conn.setConnectTimeout(20000);
+                conn.setReadTimeout(20000);
 
                 addLog("[PROFIL] Veriler çekiliyor... URL: " + url.toString());
 
@@ -1725,6 +1767,9 @@ public class MainActivity extends Activity {
 
                     addLog("[PROFIL] Yanıt alındı. Uzunluk: " + sb.length());
 
+                    // Yerel önbelleğe kaydet (bir sonraki açılışta anında yüklenmesi için)
+                    saveProfileToCache(sb.toString());
+
                     JSONObject resp = new JSONObject(sb.toString());
                     String email = resp.optString("email", "");
                     String fullName = resp.optString("full_name", "");
@@ -1739,60 +1784,7 @@ public class MainActivity extends Activity {
                     final String fDisplayName = fullName.isEmpty() ? authUsername : fullName;
 
                     runOnUiThread(() -> {
-                        // Yeni profil kartı bilgilerini güncelle
-                        if (txtProfileUsername != null)
-                            txtProfileUsername.setText(authUsername);
-                        if (txtProfileEmail != null)
-                            txtProfileEmail.setText(fEmail);
-                        if (txtProfileFullName != null)
-                            txtProfileFullName.setText(fFullName);
-
-                        // Premium profil paneli ek bilgileri
-                        if (txtProfileDisplayName != null)
-                            txtProfileDisplayName.setText(fDisplayName);
-                        if (txtProfileUsernameSmall != null)
-                            txtProfileUsernameSmall.setText("@" + authUsername);
-
-                        // Profil kartının görünür olduğundan emin ol
-                        if (layoutLoggedIn != null) {
-                            layoutLoggedIn.setVisibility(View.VISIBLE);
-                            addLog("[PROFIL] Profil kartı görünür hale getirildi");
-                        }
-
-                        // Profil fotoğrafını yükle
-                        if (!profileImgBase64.isEmpty()) {
-                            try {
-                                if (profileImgBase64.contains(",")) {
-                                    String pureBase64 = profileImgBase64.split(",")[1];
-                                    byte[] decodedString = android.util.Base64.decode(pureBase64,
-                                            android.util.Base64.DEFAULT);
-                                    Bitmap decodedByte = BitmapFactory.decodeByteArray(decodedString, 0,
-                                            decodedString.length);
-                                    imgTopProfile.clearColorFilter();
-                                    imgMainProfile.clearColorFilter();
-                                    imgTopProfile.setImageBitmap(decodedByte);
-                                    imgMainProfile.setImageBitmap(decodedByte);
-                                    // Yeni profil kartı avatarına da yükle
-                                    if (imgProfileAvatar != null) {
-                                        imgProfileAvatar.clearColorFilter();
-                                        imgProfileAvatar.setImageBitmap(decodedByte);
-                                    }
-                                }
-                            } catch (Exception e) {
-                                addLog("[PROFIL] Profil resmi yüklenirken hata: " + e.getMessage());
-                                e.printStackTrace();
-                            }
-                        } else {
-                            // Placeholder durumunda ikonu beyaz yap
-                            imgTopProfile.setImageResource(android.R.drawable.ic_menu_myplaces);
-                            imgTopProfile.setColorFilter(Color.WHITE);
-                            imgMainProfile.setImageResource(android.R.drawable.ic_menu_myplaces);
-                            imgMainProfile.setColorFilter(Color.WHITE);
-                            if (imgProfileAvatar != null) {
-                                imgProfileAvatar.setImageResource(android.R.drawable.ic_menu_myplaces);
-                                imgProfileAvatar.setColorFilter(Color.WHITE);
-                            }
-                        }
+                        applyProfileToUI(fEmail, fFullName, fDisplayName, profileImgBase64);
 
                         if (isEditProfileMode) {
                             edtUsername.setText(authUsername);
@@ -1800,8 +1792,21 @@ public class MainActivity extends Activity {
                             edtFullName.setText(fullName);
                         }
                     });
+                } else if (code == 401 || code == 403) {
+                    // Token süresi dolmuş veya geçersiz — oturumu temizle
+                    addLog("[PROFIL] TOKEN GEÇERSİZ (" + code + "). Oturum temizleniyor.");
+                    runOnUiThread(() -> {
+                        authToken = null;
+                        authUsername = null;
+                        authPrefs.edit().clear().apply();
+                        clearProfileCache();
+                        updateAccountUI();
+                        Toast.makeText(MainActivity.this,
+                                "Oturumunuz sona erdi. Lütfen tekrar giriş yapın.",
+                                Toast.LENGTH_LONG).show();
+                    });
                 } else {
-                    // Hata durumunda detayları oku
+                    // Diğer hata durumları
                     InputStream errorStream = conn.getErrorStream();
                     String errorDetail = "";
                     if (errorStream != null) {
@@ -1814,40 +1819,135 @@ public class MainActivity extends Activity {
                         br.close();
                     }
                     addLog("[PROFIL] HATA: " + code + " - " + errorDetail);
-
-                    final String finalError = errorDetail;
-                    runOnUiThread(() -> {
-                        Toast.makeText(MainActivity.this, "Profil yüklenemedi: " + code, Toast.LENGTH_SHORT).show();
-                    });
+                    // Önbellekten yüklendi zaten, sessiz kal (tekrar toast gösterme)
                 }
             } catch (java.net.SocketTimeoutException e) {
                 addLog("[PROFIL] TIMEOUT: Sunucu yanıt vermedi - " + e.getMessage());
-                e.printStackTrace();
-                runOnUiThread(() -> {
-                    Toast.makeText(MainActivity.this,
-                            "Bağlantı zaman aşımı. Lütfen internet bağlantınızı kontrol edin.", Toast.LENGTH_LONG)
-                            .show();
-                });
+                // Önbellekten zaten yüklendi, kullanıcıyı rahatsız etme
             } catch (java.net.UnknownHostException e) {
                 addLog("[PROFIL] BAĞLANTI HATASI: Sunucuya ulaşılamıyor - " + e.getMessage());
-                e.printStackTrace();
-                runOnUiThread(() -> {
-                    Toast.makeText(MainActivity.this, "Sunucuya bağlanılamıyor. İnternet bağlantınızı kontrol edin.",
-                            Toast.LENGTH_LONG).show();
-                });
+                // Önbellekten zaten yüklendi, kullanıcıyı rahatsız etme
             } catch (Exception e) {
                 addLog("[PROFIL] İSTİSNA: " + e.getClass().getSimpleName() + " - " + e.getMessage());
                 e.printStackTrace();
-                runOnUiThread(() -> {
-                    Toast.makeText(MainActivity.this, "Profil yüklenirken hata oluştu: " + e.getMessage(),
-                            Toast.LENGTH_SHORT).show();
-                });
             } finally {
                 if (conn != null) {
                     conn.disconnect();
                 }
             }
         }).start();
+    }
+
+    /**
+     * Profil verilerini arayüze uygular (hem profil paneli hem ana ekran).
+     */
+    private void applyProfileToUI(String email, String fullName, String displayName, String profileImgBase64) {
+        // Yeni profil kartı bilgilerini güncelle
+        if (txtProfileUsername != null)
+            txtProfileUsername.setText(authUsername);
+        if (txtProfileEmail != null)
+            txtProfileEmail.setText(email);
+        if (txtProfileFullName != null)
+            txtProfileFullName.setText(fullName);
+
+        // Premium profil paneli ek bilgileri
+        if (txtProfileDisplayName != null)
+            txtProfileDisplayName.setText(displayName);
+        if (txtProfileUsernameSmall != null)
+            txtProfileUsernameSmall.setText("@" + authUsername);
+
+        // Profil kartının görünür olduğundan emin ol
+        if (layoutLoggedIn != null) {
+            layoutLoggedIn.setVisibility(View.VISIBLE);
+        }
+
+        // Profil fotoğrafını yükle
+        if (profileImgBase64 != null && !profileImgBase64.isEmpty()) {
+            try {
+                String pureBase64 = profileImgBase64;
+                if (profileImgBase64.contains(",")) {
+                    pureBase64 = profileImgBase64.split(",")[1];
+                }
+                byte[] decodedString = android.util.Base64.decode(pureBase64, android.util.Base64.DEFAULT);
+                Bitmap decodedByte = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
+                if (decodedByte != null) {
+                    imgTopProfile.clearColorFilter();
+                    imgMainProfile.clearColorFilter();
+                    imgTopProfile.setImageBitmap(decodedByte);
+                    imgMainProfile.setImageBitmap(decodedByte);
+                    if (imgProfileAvatar != null) {
+                        imgProfileAvatar.clearColorFilter();
+                        imgProfileAvatar.setImageBitmap(decodedByte);
+                    }
+                }
+            } catch (Exception e) {
+                addLog("[PROFIL] Profil resmi yüklenirken hata: " + e.getMessage());
+                setDefaultProfileIcon();
+            }
+        } else {
+            setDefaultProfileIcon();
+        }
+    }
+
+    /**
+     * Varsayılan profil simgesini ayarlar.
+     */
+    private void setDefaultProfileIcon() {
+        imgTopProfile.setImageResource(android.R.drawable.ic_menu_myplaces);
+        imgTopProfile.setColorFilter(Color.WHITE);
+        imgMainProfile.setImageResource(android.R.drawable.ic_menu_myplaces);
+        imgMainProfile.setColorFilter(Color.WHITE);
+        if (imgProfileAvatar != null) {
+            imgProfileAvatar.setImageResource(android.R.drawable.ic_menu_myplaces);
+            imgProfileAvatar.setColorFilter(Color.WHITE);
+        }
+    }
+
+    /**
+     * Profil verilerini yerel belleğe kaydeder (Çevrimdışı / hızlı yükleme için).
+     */
+    private void saveProfileToCache(String jsonString) {
+        try {
+            getSharedPreferences("profile_cache", MODE_PRIVATE).edit()
+                    .putString("data", jsonString)
+                    .putLong("timestamp", System.currentTimeMillis())
+                    .apply();
+            addLog("[PROFIL] Yerel önbellek güncellendi.");
+        } catch (Exception e) {
+            addLog("[PROFIL] Önbellek kaydetme hatası: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Yerel önbellekten profil verilerini yükler (ağ isteği beklenmeden hızlı gösterim).
+     */
+    private void loadProfileFromCache() {
+        try {
+            SharedPreferences cache = getSharedPreferences("profile_cache", MODE_PRIVATE);
+            String cached = cache.getString("data", null);
+            if (cached == null) return;
+
+            JSONObject resp = new JSONObject(cached);
+            String email = resp.optString("email", "");
+            String fullName = resp.optString("full_name", "");
+            String profileImgBase64 = resp.optString("profile_image", "");
+
+            final String fEmail = email.isEmpty() ? "Belirtilmedi" : email;
+            final String fFullName = fullName.isEmpty() ? authUsername : fullName;
+            final String fDisplayName = fullName.isEmpty() ? authUsername : fullName;
+
+            runOnUiThread(() -> applyProfileToUI(fEmail, fFullName, fDisplayName, profileImgBase64));
+            addLog("[PROFIL] Önbellekten yüklendi (anında görüntüleme).");
+        } catch (Exception e) {
+            addLog("[PROFIL] Önbellek okuma hatası: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Profil önbelleğini temizler (Çıkış yapıldığında).
+     */
+    private void clearProfileCache() {
+        getSharedPreferences("profile_cache", MODE_PRIVATE).edit().clear().apply();
     }
 
     /**
@@ -1917,11 +2017,14 @@ public class MainActivity extends Activity {
     private void loginRequest(String username, String password) {
         addLog("[GİRİŞ] Deneniyor: " + username);
         new Thread(() -> {
+            HttpURLConnection conn = null;
             try {
                 URL url = new URL(API_BASE_URL + "/login");
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("POST");
                 conn.setRequestProperty("Content-Type", "application/json");
+                conn.setConnectTimeout(20000);
+                conn.setReadTimeout(20000);
                 conn.setDoOutput(true);
 
                 JSONObject payload = new JSONObject();
@@ -1958,8 +2061,13 @@ public class MainActivity extends Activity {
                         Toast.makeText(this, "Giriş başarılı! Hoş geldin " + username, Toast.LENGTH_SHORT).show();
                         animateSuccess(btnSubmitAccount);
                         updateAccountUI();
-                        new Handler(Looper.getMainLooper()).postDelayed(this::hideAccount, 1500);
                     });
+
+                    // Profil verisi tamamen yüklenene kadar paneli kapatma
+                    // fetchProfile arka planda çalışıyor, bitmesini bekle
+                    // (updateAccountUI -> fetchProfile zaten çağrıldı, ek bekleme ekle)
+                    Thread.sleep(2500);
+                    runOnUiThread(this::hideAccount);
                 } else {
                     // Hata detayını oku
                     InputStream errorStream = conn.getErrorStream();
@@ -1974,17 +2082,33 @@ public class MainActivity extends Activity {
                     }
                     addLog("[GİRİŞ] HATA: " + code + " - " + errorDetail);
 
+                    // Sunucudan gelen hata mesajını ayrıştır
+                    String errorMessage = "Giriş başarısız. Kullanıcı adı veya şifre yanlış.";
+                    try {
+                        JSONObject errorJson = new JSONObject(errorDetail);
+                        if (errorJson.has("detail")) {
+                            errorMessage = errorJson.getString("detail");
+                        }
+                    } catch (Exception ignored) {}
+
+                    final String finalMsg = errorMessage;
                     runOnUiThread(() -> {
                         hapticFeedback(HapticType.ERROR);
-                        Toast.makeText(this, "Giriş başarısız. Kullanıcı adı veya şifre yanlış.",
-                                Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, finalMsg, Toast.LENGTH_LONG).show();
+                        shakeView(btnSubmitAccount);
                     });
                 }
 
+            } catch (java.net.SocketTimeoutException e) {
+                addLog("[GİRİŞ] TIMEOUT: " + e.getMessage());
+                runOnUiThread(() -> Toast.makeText(this,
+                        "Sunucu yanıt vermedi. Lütfen tekrar deneyin.", Toast.LENGTH_LONG).show());
             } catch (Exception e) {
                 addLog("[GİRİŞ] İSTİSNA: " + e.getMessage());
                 e.printStackTrace();
                 runOnUiThread(() -> Toast.makeText(this, "Bağlantı hatası", Toast.LENGTH_SHORT).show());
+            } finally {
+                if (conn != null) conn.disconnect();
             }
         }).start();
     }
@@ -3148,6 +3272,7 @@ public class MainActivity extends Activity {
         authToken = null;
         authUsername = null;
         authPrefs.edit().clear().apply(); // Tüm kayıtlı verileri temizle
+        clearProfileCache(); // Önbelleği temizle
 
         // Profil resimlerini varsayılana döndür
         imgTopProfile.setImageResource(android.R.drawable.ic_menu_myplaces);
@@ -3606,6 +3731,7 @@ public class MainActivity extends Activity {
                         authToken = null;
                         authUsername = null;
                         authPrefs.edit().clear().apply();
+                        clearProfileCache();
 
                         // Profil resimlerini varsayılana döndür
                         imgTopProfile.setImageResource(android.R.drawable.ic_menu_myplaces);
@@ -3842,12 +3968,12 @@ public class MainActivity extends Activity {
 
     private Runnable aiOrbRunnable;
     private android.os.Handler aiOrbHandler = new android.os.Handler(android.os.Looper.getMainLooper());
-    private boolean isAIOrmAnimating = false;
+    private boolean isAIOrbAnimating = false;
     private long lastSyllableTime = 0;
 
     private void startAIOrbAnimation() {
         runOnUiThread(() -> {
-            isAIOrmAnimating = true;
+            isAIOrbAnimating = true;
             if (aiOrbAnimator != null)
                 aiOrbAnimator.cancel();
 
@@ -3870,7 +3996,7 @@ public class MainActivity extends Activity {
                 aiOrbRunnable = new Runnable() {
                     @Override
                     public void run() {
-                        if (!isAIOrmAnimating)
+                        if (!isAIOrbAnimating)
                             return;
 
                         // Niko Stili: Daha akışkan ve enerjik bir dalgalanma
@@ -3919,7 +4045,7 @@ public class MainActivity extends Activity {
     }
 
     private void stopAIOrbAnimation() {
-        isAIOrmAnimating = false;
+        isAIOrbAnimating = false;
         runOnUiThread(() -> {
             if (aiOrbRunnable != null) {
                 aiOrbHandler.removeCallbacks(aiOrbRunnable);
