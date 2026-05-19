@@ -1065,16 +1065,21 @@
                   ${(() => {
                     const total = key.request_count || 0;
                     const success = key.success_count || 0;
-                    const rate = total > 0 ? Math.round((success / total) * 100) : 100;
-                    const rateColor = rate > 90 ? '#34d399' : (rate > 50 ? '#fbbf24' : 'var(--adm-danger)');
-                    return total > 0 
-                      ? `<div style="margin-top: 4px; display: flex; flex-direction: column; align-items: center; gap: 2px;">
-                           <div style="width: 50px; height: 3px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden;">
-                             <div style="width: ${rate}%; height: 100%; background: ${rateColor}; box-shadow: 0 0 4px ${rateColor};"></div>
-                           </div>
-                           <span style="font-size: 0.65rem; color: ${rateColor};">%${rate} Başarı</span>
-                         </div>`
-                      : '<div style="font-size: 0.65rem; color: var(--adm-muted); margin-top: 4px;">İstek Yok</div>';
+                    const rate = total > 0 ? Math.round((success / total) * 100) : 0;
+                    const rateColor = total > 0 
+                      ? (rate > 90 ? '#34d399' : (rate > 50 ? '#fbbf24' : 'var(--adm-danger)'))
+                      : 'rgba(255, 255, 255, 0.2)';
+                    const labelText = total > 0 ? `%${rate} Başarı` : 'İstek Yok';
+                    const barWidth = total > 0 ? rate : 0;
+                    
+                    return `
+                      <div style="margin-top: 4px; display: flex; flex-direction: column; align-items: center; gap: 2px;">
+                        <div style="width: 50px; height: 3px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden;">
+                          <div style="width: ${barWidth}%; height: 100%; background: ${rateColor}; box-shadow: ${total > 0 ? `0 0 4px ${rateColor}` : 'none'};"></div>
+                        </div>
+                        <span style="font-size: 0.65rem; color: ${total > 0 ? rateColor : 'var(--adm-muted)'};">${labelText}</span>
+                      </div>
+                    `;
                   })()}
                 </td>
                 <td data-label="HATALI" style="text-align: center; font-family: var(--adm-mono); font-weight: 600; color: var(--adm-danger);">${key.failure_count}</td>
