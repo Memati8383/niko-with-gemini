@@ -198,6 +198,7 @@
       let users = [];
       let currentEditUser = null;
       let userToDelete = null;
+      let isFirstLoad = true;
 
       // DOM Elemanları
       const usersTableBody = document.getElementById("usersTableBody");
@@ -340,8 +341,10 @@
         }
         params.append("t", Date.now());
 
-        loadingState.classList.remove("hidden");
-        emptyState.classList.add("hidden");
+        if (isFirstLoad) {
+          loadingState.classList.remove("hidden");
+          emptyState.classList.add("hidden");
+        }
 
         try {
           const response = await fetch(
@@ -376,6 +379,7 @@
           console.log("Fetched users:", data);
           users = data.users || [];
           renderUsers();
+          isFirstLoad = false;
         } catch (error) {
           console.error("Fetch error:", error);
           showToast(error.message, "error");
@@ -715,6 +719,9 @@
         }
 
         fetchUsers();
+        
+        // Yeni kullanıcı kayıt olduğunda anlık (her 5 saniyede bir) güncelleme yap
+        setInterval(fetchUsers, 5000);
       });
     </script>
   </body>
