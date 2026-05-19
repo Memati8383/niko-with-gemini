@@ -895,34 +895,89 @@ option {
 }
 
 .connection-status {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: var(--spacing-xs);
-  font-size: var(--font-size-xs);
+  gap: 0.5rem;
+  font-size: 0.72rem;
   color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 0.35rem 0.65rem;
+  border-radius: 8px;
+  font-family: var(--font-mono, monospace);
+  transition: all 0.2s ease;
+  user-select: none;
 }
 
-.status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--success);
-  box-shadow: 0 0 10px var(--success);
-  position: relative;
+.connection-status:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: var(--text-main);
 }
 
-@keyframes dotPulse {
-  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
-  70% { transform: scale(1.2); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
-  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+.signal-indicator {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  width: 14px;
+  height: 12px;
+  flex-shrink: 0;
 }
 
-.status-dot:not(.offline) {
-  animation: dotPulse 2s infinite;
+.signal-indicator .bar {
+  width: 3px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 1px;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.status-dot.offline {
-  background: var(--error);
+.signal-indicator .bar-1 { height: 35%; }
+.signal-indicator .bar-2 { height: 65%; }
+.signal-indicator .bar-3 { height: 100%; }
+
+/* 1. Mükemmel (Gecikme < 120ms) - Tüm çubuklar yeşil/turkuaz */
+.connection-status.state-excellent .bar {
+  background: #00f0ff;
+  box-shadow: 0 0 5px rgba(0, 240, 255, 0.4);
+}
+
+/* 2. İyi (Gecikme < 300ms) - İlk 2 çubuk turuncu/sarı */
+.connection-status.state-good .bar-1,
+.connection-status.state-good .bar-2 {
+  background: #f59e0b;
+  box-shadow: 0 0 5px rgba(245, 158, 11, 0.4);
+}
+.connection-status.state-good .bar-3 {
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow: none;
+}
+
+/* 3. Yavaş (Gecikme >= 300ms) - Sadece ilk çubuk kırmızı/turuncu */
+.connection-status.state-slow .bar-1 {
+  background: #ef4444;
+  box-shadow: 0 0 5px rgba(239, 68, 68, 0.4);
+}
+.connection-status.state-slow .bar-2,
+.connection-status.state-slow .bar-3 {
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow: none;
+}
+
+/* 4. Çevrimdışı / Hata - Tüm çubuklar sönük kırmızı ve yanıp söner */
+.connection-status.state-offline .bar {
+  background: rgba(239, 68, 68, 0.25);
+  animation: signalAlert 1.5s infinite ease-in-out;
+}
+
+@keyframes signalAlert {
+  0%, 100% {
+    background: rgba(239, 68, 68, 0.2);
+    box-shadow: none;
+  }
+  50% {
+    background: rgba(239, 68, 68, 0.8);
+    box-shadow: 0 0 6px rgba(239, 68, 68, 0.5);
+  }
 }
 
 .user-menu {

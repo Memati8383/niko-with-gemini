@@ -13,7 +13,7 @@
     <title>Niko AI - Yapay Zeka Sohbet</title>
     <link rel="icon" type="image/png" href="/niko-icon.png">
     <link rel="apple-touch-icon" href="/niko-icon.png">
-    <link rel="stylesheet" href="style.css?v=2.4">
+    <link rel="stylesheet" href="style.css?v=2.5">
     <!-- Kod renklendirme için Prism.js -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
@@ -81,9 +81,13 @@
                 </div>
                 
                 <div class="chat-header-right">
-                    <div class="connection-status" id="connectionStatus">
-                        <span class="status-dot"></span>
-                        <span class="status-text">Çevrimiçi</span>
+                    <div class="connection-status" id="connectionStatus" title="Sunucu gecikme süresi">
+                        <div class="signal-indicator">
+                            <span class="bar bar-1"></span>
+                            <span class="bar bar-2"></span>
+                            <span class="bar bar-3"></span>
+                        </div>
+                        <span class="status-text">Ölçülüyor...</span>
                     </div>
                     
                     <div class="user-menu">
@@ -325,6 +329,6 @@
             <span class="fab-icon" aria-hidden="true">+</span>
         </button>
     </div>
-    <script src="script.js?v=1.4"></script>
+    <script src="script.js?v=1.5"></script>
 </body>
 </html>

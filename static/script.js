@@ -317,16 +317,63 @@ function startNewChat() {
  * Update connection status indicator
  * @param {boolean} connected - Whether connected to Ollama
  */
-function updateConnectionStatus(connected) {
-    const statusDot = elements.connectionStatus.querySelector('.status-dot');
-    const statusText = elements.connectionStatus.querySelector('.status-text');
+let pingIntervalId = null;
+
+async function measurePing() {
+    const container = elements.connectionStatus;
+    const statusText = container ? container.querySelector('.status-text') : null;
+    if (!container || !statusText) return;
     
+    try {
+        const t0 = performance.now();
+        const response = await fetch('/health', { cache: 'no-store' });
+        const t1 = performance.now();
+        
+        if (response.ok) {
+            const ping = Math.round(t1 - t0);
+            
+            // Remove all visual state classes
+            container.classList.remove('state-excellent', 'state-good', 'state-slow', 'state-offline');
+            
+            if (ping < 120) {
+                container.classList.add('state-excellent');
+            } else if (ping < 300) {
+                container.classList.add('state-good');
+            } else {
+                container.classList.add('state-slow');
+            }
+            
+            statusText.textContent = `${ping} ms`;
+        } else {
+            setOfflineState();
+        }
+    } catch (e) {
+        setOfflineState();
+    }
+}
+
+function setOfflineState() {
+    const container = elements.connectionStatus;
+    const statusText = container ? container.querySelector('.status-text') : null;
+    if (!container || !statusText) return;
+    
+    container.classList.remove('state-excellent', 'state-good', 'state-slow');
+    container.classList.add('state-offline');
+    statusText.textContent = 'Çevrimdışı';
+}
+
+function updateConnectionStatus(connected) {
     if (connected) {
-        statusDot.classList.remove('offline');
-        statusText.textContent = 'Çevrimiçi';
+        if (!pingIntervalId) {
+            measurePing();
+            pingIntervalId = setInterval(measurePing, 10000);
+        }
     } else {
-        statusDot.classList.add('offline');
-        statusText.textContent = 'Çevrimdışı';
+        if (pingIntervalId) {
+            clearInterval(pingIntervalId);
+            pingIntervalId = null;
+        }
+        setOfflineState();
     }
 }
 
