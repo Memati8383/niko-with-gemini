@@ -9,7 +9,7 @@
     <link rel="icon" type="image/png" href="/niko-icon.png" />
     <link rel="apple-touch-icon" href="/niko-icon.png" />
     <link rel="stylesheet" href="/style.css" />
-    <link rel="stylesheet" href="/admin-panel.css?v=5" />
+    <link rel="stylesheet" href="/admin-panel.css?v=6" />
   </head>
   <body class="admin-scope">
     <div class="noise-overlay"></div>
@@ -525,7 +525,7 @@
                     </td>
                     <td data-label="ROL">
                         <span class="badge ${user.is_admin ? "badge-admin" : "badge-user"}">
-                            ${user.is_admin ? "⬡ Admin" : "◯ Kullanıcı"}
+                            ${user.is_admin ? "Admin" : "Kullanıcı"}
                         </span>
                     </td>
                     <td data-label="KAYIT" style="font-family: var(--adm-mono); font-size: 0.76rem; color: rgba(255,255,255,0.4);">${formatDate(user.created_at)}</td>

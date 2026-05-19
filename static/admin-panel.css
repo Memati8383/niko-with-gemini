@@ -557,26 +557,61 @@
 .admin-scope .badge {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.3rem 0.65rem;
-  border-radius: 999px;
+  gap: 0.5rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 8px;
   font-family: var(--adm-mono);
-  font-size: 0.58rem;
+  font-size: 0.65rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.12em;
+  position: relative;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.admin-scope .badge::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
 .admin-scope .badge-admin {
-  background: rgba(0, 212, 255, 0.12) !important;
-  color: var(--adm-cyan) !important;
-  border: 1px solid rgba(0, 212, 255, 0.28) !important;
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.15) 0%, rgba(0, 114, 255, 0.05) 100%) !important;
+  color: #00f0ff !important;
+  border: 1px solid rgba(0, 212, 255, 0.35) !important;
+  box-shadow: 0 2px 12px rgba(0, 212, 255, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.admin-scope .badge-admin::before {
+  background: #00f0ff;
+  box-shadow: 0 0 8px #00f0ff, 0 0 16px #00f0ff;
+  animation: badgePulseCyan 2s infinite ease-in-out;
 }
 
 .admin-scope .badge-user {
-  background: rgba(255, 255, 255, 0.06) !important;
-  color: var(--adm-muted) !important;
+  background: rgba(255, 255, 255, 0.03) !important;
+  color: #94a3b8 !important;
   border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+}
+
+.admin-scope .badge-user::before {
+  background: #64748b;
+  box-shadow: 0 0 4px rgba(100, 116, 139, 0.5);
+}
+
+@keyframes badgePulseCyan {
+  0%, 100% {
+    opacity: 0.6;
+    transform: scale(0.9);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+    box-shadow: 0 0 12px #00f0ff, 0 0 24px #00f0ff;
+  }
 }
 
 .admin-scope .action-buttons {
