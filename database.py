@@ -10,24 +10,137 @@ import os
 import logging
 from typing import Optional, List, Dict
 from datetime import datetime, timezone
-from supabase import create_client, Client
+import httpx
 
 logger = logging.getLogger("NikoAI")
 
 # ============================================================================
-# Supabase İstemcisi (Singleton)
+# Hafif Supabase HTTPX İstemcisi
 # ============================================================================
 
-_supabase_client: Optional[Client] = None
+class HTTPXSupabaseResponse:
+    def __init__(self, data, count=None):
+        self.data = data
+        self.count = count
+
+class HTTPXSupabaseNotFilter:
+    def __init__(self, query):
+        self.query = query
+
+    def is_(self, column, value):
+        self.query._filters.append(f"{column}=not.is.{value}")
+        return self.query
+
+class HTTPXSupabaseQuery:
+    def __init__(self, client, table_name):
+        self.client = client
+        self.table_name = table_name
+        self.headers = {
+            "apikey": client.key,
+            "Authorization": f"Bearer {client.key}",
+            "Content-Type": "application/json",
+            "Prefer": "return=representation"
+        }
+        self._select = "*"
+        self._filters = []
+        self._order = None
+
+    def select(self, columns="*", count=None):
+        self._select = columns
+        if count == "exact":
+            self.headers["Prefer"] = "count=exact"
+        return self
+
+    def eq(self, column, value):
+        self._filters.append(f"{column}=eq.{value}")
+        return self
+
+    def neq(self, column, value):
+        self._filters.append(f"{column}=neq.{value}")
+        return self
+
+    def lt(self, column, value):
+        self._filters.append(f"{column}=lt.{value}")
+        return self
+
+    @property
+    def not_(self):
+        return HTTPXSupabaseNotFilter(self)
+
+    def order(self, column, desc=False):
+        self._order = f"{column}.desc" if desc else f"{column}.asc"
+        return self
+
+    def execute(self):
+        url = f"{self.client.url}/rest/v1/{self.table_name}"
+        params = {"select": self._select}
+        for f in self._filters:
+            k, v = f.split("=", 1)
+            params[k] = v
+        if self._order:
+            params["order"] = self._order
+
+        response = httpx.get(url, headers=self.headers, params=params, timeout=10.0)
+        response.raise_for_status()
+        
+        count = None
+        if "Content-Range" in response.headers:
+            parts = response.headers["Content-Range"].split("/")
+            if len(parts) > 1 and parts[1].isdigit():
+                count = int(parts[1])
+                
+        return HTTPXSupabaseResponse(response.json(), count=count)
+
+    def insert(self, data):
+        url = f"{self.client.url}/rest/v1/{self.table_name}"
+        response = httpx.post(url, headers=self.headers, json=data, timeout=10.0)
+        response.raise_for_status()
+        return HTTPXSupabaseResponse(response.json())
+
+    def upsert(self, data):
+        self.headers["Prefer"] = "resolution=merge-duplicates,return=representation"
+        url = f"{self.client.url}/rest/v1/{self.table_name}"
+        response = httpx.post(url, headers=self.headers, json=data, timeout=10.0)
+        response.raise_for_status()
+        return HTTPXSupabaseResponse(response.json())
+
+    def update(self, data):
+        url = f"{self.client.url}/rest/v1/{self.table_name}"
+        params = {}
+        for f in self._filters:
+            k, v = f.split("=", 1)
+            params[k] = v
+        response = httpx.patch(url, headers=self.headers, json=data, params=params, timeout=10.0)
+        response.raise_for_status()
+        return HTTPXSupabaseResponse(response.json())
+
+    def delete(self):
+        url = f"{self.client.url}/rest/v1/{self.table_name}"
+        params = {}
+        for f in self._filters:
+            k, v = f.split("=", 1)
+            params[k] = v
+        response = httpx.delete(url, headers=self.headers, params=params, timeout=10.0)
+        response.raise_for_status()
+        return HTTPXSupabaseResponse(response.json())
+
+class HTTPXSupabaseClient:
+    def __init__(self, url: str, key: str):
+        self.url = url.rstrip('/')
+        self.key = key
+
+    def table(self, table_name: str) -> HTTPXSupabaseQuery:
+        return HTTPXSupabaseQuery(self, table_name)
+
+_supabase_client: Optional[HTTPXSupabaseClient] = None
 
 
-def get_supabase() -> Client:
+def get_supabase() -> HTTPXSupabaseClient:
     """
-    Supabase istemcisini singleton olarak döndürür.
-    .env dosyasından SUPABASE_URL ve SUPABASE_SERVICE_KEY değerlerini okur.
+    Supabase istemcisini singleton olarak döndürür (Hafif HTTPX Mock Versiyonu).
     
     Returns:
-        Client: Supabase istemci örneği
+        HTTPXSupabaseClient: Supabase istemci örneği
         
     Raises:
         ValueError: Supabase yapılandırması eksikse
@@ -43,8 +156,8 @@ def get_supabase() -> Client:
                 "Lütfen .env dosyanızı kontrol edin."
             )
         
-        _supabase_client = create_client(url, key)
-        logger.info("✅ Supabase bağlantısı kuruldu")
+        _supabase_client = HTTPXSupabaseClient(url, key)
+        logger.info("✅ Supabase HTTPX bağlantısı kuruldu")
     
     return _supabase_client
 
