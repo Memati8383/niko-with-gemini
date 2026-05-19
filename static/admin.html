@@ -134,6 +134,56 @@
           </div>
         </div>
 
+        <!-- API Analitik Kartları -->
+        <div class="api-analytics-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem; margin-bottom: 1.5rem;">
+          
+          <!-- Kart 1: Toplam Durum -->
+          <div class="stat-card" style="min-height: 120px; display: flex; flex-direction: column; justify-content: center; gap: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span class="stat-card-label" style="font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--adm-muted);">Aktif / Toplam Anahtar</span>
+              <span style="color: var(--adm-cyan); font-size: 1.2rem;">🔑</span>
+            </div>
+            <div style="display: flex; align-items: baseline; gap: 8px;">
+              <span class="stat-card-value" id="activeKeysRatio" style="font-size: 2rem; font-weight: 800; font-family: var(--adm-mono); color: #fff;">0/0</span>
+              <span id="activeKeysPercent" style="font-size: 0.85rem; color: #34d399; font-weight: 600;">%0 Sağlıklı</span>
+            </div>
+            <div style="width: 100%; height: 4px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden; margin-top: 4px;">
+              <div id="activeKeysProgress" style="width: 0%; height: 100%; background: var(--adm-cyan); box-shadow: 0 0 8px var(--adm-cyan); transition: width 0.3s ease;"></div>
+            </div>
+          </div>
+
+          <!-- Kart 2: Toplam İstek Metrikleri -->
+          <div class="stat-card" style="min-height: 120px; display: flex; flex-direction: column; justify-content: center; gap: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span class="stat-card-label" style="font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--adm-muted);">Genel Başarı Yüzdesi</span>
+              <span style="color: #34d399; font-size: 1.2rem;">📈</span>
+            </div>
+            <div style="display: flex; align-items: baseline; gap: 8px;">
+              <span class="stat-card-value" id="globalSuccessRate" style="font-size: 2rem; font-weight: 800; font-family: var(--adm-mono); color: #fff;">%0</span>
+              <span id="globalRequestTotal" style="font-size: 0.85rem; color: var(--adm-muted); font-weight: 600;">0 Toplam İstek</span>
+            </div>
+            <div style="width: 100%; height: 4px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden; margin-top: 4px;">
+              <div id="globalSuccessProgress" style="width: 0%; height: 100%; background: #34d399; box-shadow: 0 0 8px #34d399; transition: width 0.3s ease;"></div>
+            </div>
+          </div>
+
+          <!-- Kart 3: Hatalı İşlem Payı -->
+          <div class="stat-card" style="min-height: 120px; display: flex; flex-direction: column; justify-content: center; gap: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span class="stat-card-label" style="font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--adm-muted);">Engellenen / Kota Aşımı</span>
+              <span style="color: var(--adm-danger); font-size: 1.2rem;">⚠️</span>
+            </div>
+            <div style="display: flex; align-items: baseline; gap: 8px;">
+              <span class="stat-card-value" id="blockedKeysCount" style="font-size: 2rem; font-weight: 800; font-family: var(--adm-mono); color: var(--adm-danger);">0</span>
+              <span style="font-size: 0.85rem; color: var(--adm-muted); font-weight: 600;">Anahtar Bloke</span>
+            </div>
+            <div style="width: 100%; height: 4px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden; margin-top: 4px;">
+              <div id="blockedKeysProgress" style="width: 0%; height: 100%; background: var(--adm-danger); box-shadow: 0 0 8px var(--adm-danger); transition: width 0.3s ease;"></div>
+            </div>
+          </div>
+
+        </div>
+
         <div class="users-table-container">
           <table class="users-table" id="apiKeysTable">
             <thead>
@@ -784,6 +834,58 @@
       function renderApiKeys(data) {
         const keys = data.keys || [];
         const currentIndex = data.current_key_index;
+
+        // Metrik hesaplamaları yap
+        const totalKeys = keys.length;
+        const healthyKeys = keys.filter(k => k.status === 'active').length;
+        const blockedKeys = keys.filter(k => k.status === 'quota_exceeded' || k.status === 'invalid' || k.status === 'error').length;
+        
+        let totalRequests = 0;
+        let totalSuccess = 0;
+        
+        keys.forEach(k => {
+          totalRequests += (k.request_count || 0);
+          totalSuccess += (k.success_count || 0);
+        });
+
+        const healthyPercent = totalKeys > 0 ? Math.round((healthyKeys / totalKeys) * 100) : 0;
+        const globalSuccessRateVal = totalRequests > 0 ? Math.round((totalSuccess / totalRequests) * 100) : 100;
+        const blockedPercent = totalKeys > 0 ? Math.round((blockedKeys / totalKeys) * 100) : 0;
+
+        // Kartları güncelle
+        const activeKeysRatioEl = document.getElementById("activeKeysRatio");
+        const activeKeysPercentEl = document.getElementById("activeKeysPercent");
+        const activeKeysProgressEl = document.getElementById("activeKeysProgress");
+
+        const globalSuccessRateEl = document.getElementById("globalSuccessRate");
+        const globalRequestTotalEl = document.getElementById("globalRequestTotal");
+        const globalSuccessProgressEl = document.getElementById("globalSuccessProgress");
+
+        const blockedKeysCountEl = document.getElementById("blockedKeysCount");
+        const blockedKeysProgressEl = document.getElementById("blockedKeysProgress");
+
+        if (activeKeysRatioEl) activeKeysRatioEl.textContent = `${healthyKeys}/${totalKeys}`;
+        if (activeKeysPercentEl) activeKeysPercentEl.textContent = `%${healthyPercent} Sağlıklı`;
+        if (activeKeysProgressEl) activeKeysProgressEl.style.width = `${healthyPercent}%`;
+
+        if (globalSuccessRateEl) globalSuccessRateEl.textContent = `%${globalSuccessRateVal}`;
+        if (globalRequestTotalEl) globalRequestTotalEl.textContent = `${totalRequests} Toplam İstek`;
+        if (globalSuccessProgressEl) {
+          globalSuccessProgressEl.style.width = `${globalSuccessRateVal}%`;
+          if (globalSuccessRateVal > 90) {
+            globalSuccessProgressEl.style.background = '#34d399';
+            globalSuccessProgressEl.style.boxShadow = '0 0 8px #34d399';
+          } else if (globalSuccessRateVal > 50) {
+            globalSuccessProgressEl.style.background = '#fbbf24';
+            globalSuccessProgressEl.style.boxShadow = '0 0 8px #fbbf24';
+          } else {
+            globalSuccessProgressEl.style.background = 'var(--adm-danger)';
+            globalSuccessProgressEl.style.boxShadow = '0 0 8px var(--adm-danger)';
+          }
+        }
+
+        if (blockedKeysCountEl) blockedKeysCountEl.textContent = blockedKeys;
+        if (blockedKeysProgressEl) blockedKeysProgressEl.style.width = `${blockedPercent}%`;
 
         if (keys.length === 0) {
           apiKeysTableBody.innerHTML = `
