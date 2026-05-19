@@ -1286,9 +1286,9 @@
         fetchUsers();
         fetchApiKeys();
         
-        // Yeni kullanıcı kayıt olduğunda anlık (her 5 saniyede bir) güncelleme yap
+        // Anlık (her saniye) güncellemeler ile gerçek zamanlı veri akışı sağla
         setInterval(fetchUsers, 5000);
-        setInterval(fetchApiKeys, 5000);
+        setInterval(fetchApiKeys, 1000);
 
         // Yenile butonunu bağla
         document.getElementById("refreshApiKeysBtn").addEventListener("click", fetchApiKeys);
