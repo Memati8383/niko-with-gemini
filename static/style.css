@@ -2264,15 +2264,20 @@ option {
   align-items: center;
   justify-content: center;
   gap: 0.4rem;
-  background: radial-gradient(circle, rgba(0, 40, 80, 0.75) 0%, rgba(4, 8, 20, 0.88) 100%);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  background: radial-gradient(circle, rgba(0, 34, 68, 0.8) 0%, rgba(4, 8, 20, 0.9) 100%);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 50%; /* Tarayıcılardaki köşeli taşma hatasını düzeltir */
   opacity: 0;
-  transition: opacity var(--transition-normal);
+  border: 1.5px solid rgba(0, 212, 255, 0.35);
+  transition: opacity var(--transition-normal), transform var(--transition-normal);
+  transform: scale(0.92);
+  pointer-events: none;
 }
 
 #profileModal .profile-pic-wrapper:hover .profile-pic-overlay {
   opacity: 1;
+  transform: scale(1);
 }
 
 #profileModal .profile-pic-overlay-icon {
