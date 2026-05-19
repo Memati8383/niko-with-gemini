@@ -973,12 +973,12 @@ class ChatService:
                     yield "Hata: Gemini API istemcisi başlatılamadı. Lütfen API anahtarınızı kontrol edin."
                     return
 
-                response = self.client.models.generate_content_stream(
+                response = await self.client.aio.models.generate_content_stream(
                     model=selected_model_name,
                     contents=contents
                 )
                 
-                for chunk in response:
+                async for chunk in response:
                     if chunk.text:
                         yield chunk.text
                 
