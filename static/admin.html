@@ -9,7 +9,7 @@
     <link rel="icon" type="image/png" href="/niko-icon.png" />
     <link rel="apple-touch-icon" href="/niko-icon.png" />
     <link rel="stylesheet" href="/style.css" />
-    <link rel="stylesheet" href="/admin-panel.css?v=6" />
+    <link rel="stylesheet" href="/admin-panel.css?v=7" />
   </head>
   <body class="admin-scope">
     <div class="noise-overlay"></div>
@@ -505,18 +505,16 @@
                     <td data-label="E-POSTA">${escapeHtml(user.email) || '<span style="color: rgba(255,255,255,0.2);">—</span>'}</td>
                     <td data-label="AD SOYAD">${escapeHtml(user.full_name) || '<span style="color: rgba(255,255,255,0.2);">—</span>'}</td>
                     <td data-label="ŞİFRE">
-                        <div style="display:flex; align-items:center; gap:6px;">
-                          <code id="pw-${escapeHtml(user.username)}" style="background: rgba(0,210,255,0.06); border: 1px solid rgba(0,210,255,0.12); padding: 3px 8px; border-radius: 6px; font-family: var(--adm-mono); font-size: 0.75rem; color: rgba(0,210,255,0.7); letter-spacing: 0.05em;">
-                            ${user.plain_password || user._plain_password ? '••••••••' : '<span style="color:rgba(255,255,255,0.2);">—</span>'}
+                        <div class="pw-wrapper">
+                          <code id="pw-${escapeHtml(user.username)}" class="pw-badge">
+                            ${user.plain_password || user._plain_password ? '••••••••' : '<span class="pw-empty">—</span>'}
                           </code>
                           ${user.plain_password || user._plain_password ? `
-                          <button onclick="togglePw('${escapeHtml(user.username)}', '${escapeHtml(user.plain_password || user._plain_password)}')"
+                          <button type="button" onclick="togglePw('${escapeHtml(user.username)}', '${escapeHtml(user.plain_password || user._plain_password)}')"
                             id="pw-btn-${escapeHtml(user.username)}"
-                            title="Şifreyi göster/gizle"
-                            style="background:none; border:none; cursor:pointer; padding:3px; color:rgba(0,210,255,0.5); transition:color 0.2s; flex-shrink:0;"
-                            onmouseover="this.style.color='rgba(0,210,255,1)'"
-                            onmouseout="this.style.color='rgba(0,210,255,0.5)'">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            class="pw-toggle-btn"
+                            title="Şifreyi göster/gizle">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                               <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                               <circle cx="12" cy="12" r="3"/>
                             </svg>
@@ -731,10 +729,14 @@
         pwVisible[username] = !pwVisible[username];
         if (pwVisible[username]) {
           codeEl.textContent = plainPw;
-          btnEl.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`;
+          codeEl.classList.add('revealed');
+          btnEl.classList.add('active');
+          btnEl.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`;
         } else {
           codeEl.textContent = '••••••••';
-          btnEl.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
+          codeEl.classList.remove('revealed');
+          btnEl.classList.remove('active');
+          btnEl.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
         }
       }
 
