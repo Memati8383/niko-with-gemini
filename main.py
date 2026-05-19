@@ -902,51 +902,19 @@ class ChatService:
     """
     
     def __init__(self):
-        from gemini_key_manager import GeminiKeyManager
-        self.key_manager = GeminiKeyManager()
         self.default_model = "gemini-2.5-flash"
         self.timeout = 120.0
+        self.api_key = os.getenv("GEMINI_API_KEY", "").strip()
+        if "," in self.api_key:
+            self.api_key = self.api_key.split(",")[0].strip()
+        
+        from google import genai
+        self.client = genai.Client(api_key=self.api_key)
 
     @property
-    def keys_metadata(self):
-        return self.key_manager.keys_metadata
-
-    @property
-    def current_key_index(self):
-        return self.key_manager.current_key_index
-
-    @current_key_index.setter
-    def current_key_index(self, value):
-        self.key_manager.current_key_index = value
-
-    @property
-    def api_keys(self):
-        return self.key_manager.api_keys
-
-    @property
-    def rotation_strategy(self):
-        return self.key_manager.rotation_strategy
-
-    @rotation_strategy.setter
-    def rotation_strategy(self, value):
-        self.key_manager.rotation_strategy = value
-
-    @property
-    def history_stats(self):
-        return self.key_manager.history_stats
-
-    @property
-    def key_rotation_logs(self):
-        return self.key_manager.key_rotation_logs
-
-    def _add_log(self, level: str, message: str):
-        self.key_manager._add_log(level, message)
-
-    def _save_metadata(self):
-        self.key_manager._save_metadata()
-
-    def _setup_client(self):
-        pass
+    def api_keys(self) -> List[str]:
+        """Geriye dönük uyumluluk için tek anahtarı liste olarak dön."""
+        return [self.api_key] if self.api_key else []
 
     async def get_models(self) -> List[str]:
         """Sadece Gemini 2.5 Flash modelini döndür."""
@@ -954,7 +922,7 @@ class ChatService:
     
     async def check_ollama_available(self) -> bool:
         """Gemini API anahtarının mevcut olup olmadığını kontrol et."""
-        return len(self.api_keys) > 0
+        return bool(self.api_key)
 
     async def chat_stream(
         self,
@@ -982,41 +950,21 @@ class ChatService:
                     mime_type=mime_type
                 ))
 
-        max_retries = max(1, len(self.api_keys))
-        retry_count = 0
-        
-        while retry_count < max_retries:
-            client, key_index = await self.key_manager.get_active_client()
-            if not client:
-                yield "Hata: Gemini API istemcisi başlatılamadı. Lütfen API anahtarlarınızı kontrol edin."
-                return
+        if not self.api_key:
+            yield "Hata: Gemini API anahtarı bulunamadı. Lütfen .env dosyasındaki GEMINI_API_KEY değerini kontrol edin."
+            return
 
-            try:
-                response = await client.aio.models.generate_content_stream(
-                    model=selected_model_name,
-                    contents=contents
-                )
-                
-                first_chunk = True
-                async for chunk in response:
-                    if chunk.text:
-                        if first_chunk:
-                            await self.key_manager.mark_success(key_index)
-                            first_chunk = False
-                        yield chunk.text
-                break
-                
-            except Exception as e:
-                logger.warning(f"İstek başarısız oldu (Anahtar İndeks: {key_index}): {e}")
-                rotated = await self.key_manager.mark_failure(key_index, e)
-                
-                retry_count += 1
-                if rotated and retry_count < max_retries:
-                    continue
-                
-                logger.error(f"Gemini API hatası: {e}")
-                yield f"Gemini API hatası oluştu: {str(e)}"
-                break
+        try:
+            response = await self.client.aio.models.generate_content_stream(
+                model=selected_model_name,
+                contents=contents
+            )
+            async for chunk in response:
+                if chunk.text:
+                    yield chunk.text
+        except Exception as e:
+            logger.error(f"Gemini API hatası: {e}")
+            yield f"Gemini API hatası oluştu: {str(e)}"
 
     async def chat(
         self,
@@ -2227,125 +2175,7 @@ async def create_user(user: UserAdminCreate, current_user: str = Depends(get_cur
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@app.get("/api/admin/api-keys")
-async def get_api_keys_status(current_user: str = Depends(get_current_admin)):
-    """
-    Tüm Gemini API anahtarlarının durumunu ve kota bilgilerini getir.
-    """
-    return await chat_service.key_manager.get_keys_status_payload()
 
-
-@app.get("/api/admin/api-keys/logs")
-async def get_api_keys_logs(current_user: str = Depends(get_current_admin)):
-    """
-    Gemini API anahtarı rotasyon ve olay günlüklerini getirir.
-    """
-    return await chat_service.key_manager.get_logs_payload()
-
-
-class RotationStrategyRequest(BaseModel):
-    strategy: str
-
-
-@app.post("/api/admin/api-keys/strategy")
-async def update_rotation_strategy(payload: RotationStrategyRequest, current_user: str = Depends(get_current_admin)):
-    """
-    Gemini API anahtarı rotasyon stratejisini günceller.
-    """
-    strategy = payload.strategy.strip()
-    try:
-        new_strategy = await chat_service.key_manager.update_rotation_strategy(strategy)
-        logger.info(f"Rotasyon stratejisi güncellendi: {new_strategy}")
-        return {"message": "Rotasyon stratejisi başarıyla güncellendi.", "strategy": new_strategy}
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-
-@app.post("/api/admin/api-keys/{index}/reset")
-async def reset_api_key_status(index: int, current_user: str = Depends(get_current_admin)):
-    """
-    Belirli bir API anahtarının durumunu sıfırlar ve tekrar 'active' yapar.
-    """
-    try:
-        key_meta = await chat_service.key_manager.reset_key(index)
-        logger.info(f"Yönetici tarafından API anahtarı sıfırlandı: İndeks {index}")
-        return {"message": f"Anahtar {index} başarıyla sıfırlandı ve aktif hale getirildi.", "key": key_meta}
-    except IndexError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-
-@app.post("/api/admin/api-keys/{index}/activate")
-async def activate_api_key(index: int, current_user: str = Depends(get_current_admin)):
-    """
-    Belirli bir API anahtarını aktif (şu an kullanılan) anahtar olarak ayarlar.
-    """
-    try:
-        new_index = await chat_service.key_manager.set_active_key(index)
-        logger.info(f"Yönetici tarafından aktif API anahtarı değiştirildi: Yeni İndeks {new_index}")
-        return {
-            "message": f"Aktif anahtar değiştirildi. Yeni İndeks: {new_index}",
-            "current_key_index": new_index
-        }
-    except IndexError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-
-@app.post("/api/admin/api-keys/{index}/test")
-async def test_api_key(index: int, current_user: str = Depends(get_current_admin)):
-    """
-    Belirli bir API anahtarını doğrudan test eder (Gemini'ye hızlı bir test isteği gönderir).
-    """
-    try:
-        return await chat_service.key_manager.test_key(index)
-    except IndexError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-
-class AddKeyRequest(BaseModel):
-    api_key: str
-
-
-@app.post("/api/admin/api-keys/add")
-async def add_api_key(payload: AddKeyRequest, current_user: str = Depends(get_current_admin)):
-    """
-    Sisteme dinamik olarak yeni bir Gemini API anahtarı ekler.
-    """
-    try:
-        new_meta = await chat_service.key_manager.add_key(payload.api_key)
-        logger.info(f"Yönetici tarafından yeni API anahtarı eklendi: {new_meta['masked_key']}")
-        return {"message": "API anahtarı başarıyla sisteme eklendi.", "key": new_meta}
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-
-@app.delete("/api/admin/api-keys/{index}")
-async def delete_api_key(index: int, current_user: str = Depends(get_current_admin)):
-    """
-    Sistemden dinamik olarak bir Gemini API anahtarını kaldırır.
-    """
-    try:
-        await chat_service.key_manager.delete_key(index)
-        logger.info(f"Yönetici tarafından API anahtarı silindi: İndeks {index}")
-        return {"message": "API anahtarı sistemden başarıyla kaldırıldı."}
-    except (IndexError, ValueError) as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-
-class UpdateLimitRequest(BaseModel):
-    limit: int
-
-
-@app.post("/api/admin/api-keys/{index}/limit")
-async def update_api_key_limit(index: int, payload: UpdateLimitRequest, current_user: str = Depends(get_current_admin)):
-    """
-    Belirli bir API anahtarının maksimum istek limitini günceller.
-    """
-    try:
-        new_limit = await chat_service.key_manager.update_key_limit(index, payload.limit)
-        logger.info(f"Yönetici tarafından API anahtarı {index} limiti güncellendi: {new_limit}")
-        return {"message": "API anahtarı limiti başarıyla güncellendi.", "limit": new_limit}
-    except (IndexError, ValueError) as e:
-        raise HTTPException(status_code=400, detail=str(e))
 
 
 
