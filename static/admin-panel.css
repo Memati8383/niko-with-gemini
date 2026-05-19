@@ -441,6 +441,24 @@
   background: transparent !important;
 }
 
+/* Premium Dark Scrollbar for table horizontal scrolling */
+.admin-scope .users-table-container::-webkit-scrollbar {
+  height: 6px;
+}
+.admin-scope .users-table-container::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 3px;
+}
+.admin-scope .users-table-container::-webkit-scrollbar-thumb {
+  background: rgba(0, 212, 255, 0.18);
+  border-radius: 3px;
+  border: 1px solid rgba(0, 212, 255, 0.05);
+}
+.admin-scope .users-table-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 212, 255, 0.35);
+  box-shadow: 0 0 6px rgba(0, 212, 255, 0.3);
+}
+
 .admin-scope .loading-state:not(.hidden) {
   position: absolute;
   inset: 0;
@@ -457,7 +475,7 @@
 
 .admin-scope .users-table {
   width: 100%;
-  min-width: 720px;
+  min-width: 1080px;
   border-collapse: collapse;
 }
 
