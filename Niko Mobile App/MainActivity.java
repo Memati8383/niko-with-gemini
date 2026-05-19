@@ -719,6 +719,22 @@ public class MainActivity extends Activity {
         animSet.addAnimation(scale);
         orbSection.startAnimation(animSet);
 
+        // Niko Stili: Idle (Breathing) durumunda premium renk geçişi (Cyan -> Magenta)
+        if (voiceOrb != null) {
+            android.animation.ValueAnimator colorAnim = android.animation.ValueAnimator.ofArgb(
+                    android.graphics.Color.parseColor("#00E5FF"), // Cyan
+                    android.graphics.Color.parseColor("#FF2A6D") // Niko Magenta
+            );
+            colorAnim.setDuration(5000);
+            colorAnim.setRepeatMode(android.animation.ValueAnimator.REVERSE);
+            colorAnim.setRepeatCount(android.animation.ValueAnimator.INFINITE);
+            colorAnim.addUpdateListener(animation -> {
+                voiceOrb.setBackgroundTintList(
+                        android.content.res.ColorStateList.valueOf((int) animation.getAnimatedValue()));
+            });
+            colorAnim.start();
+        }
+
         // Halo için yavaş ve premium bir dönme efekti ekle
         if (orbHalo != null) {
             android.animation.ObjectAnimator rotation = android.animation.ObjectAnimator.ofFloat(orbHalo, "rotation",
@@ -914,11 +930,16 @@ public class MainActivity extends Activity {
                     }
                     txtAIResponse.setText("Dinliyorum...");
 
-                    // Dinleme başladığında orb rengini hafif mavi/cyan yap
+                    // Dinleme başladığında orb rengini Niko Magenta yap (Series Vibe)
                     if (voiceOrb != null) {
                         voiceOrb.setBackgroundTintList(
                                 android.content.res.ColorStateList
-                                        .valueOf(android.graphics.Color.parseColor("#00E5FF")));
+                                        .valueOf(android.graphics.Color.parseColor("#FF2A6D")));
+                    }
+                    if (orbHalo != null) {
+                        orbHalo.setBackgroundTintList(
+                                android.content.res.ColorStateList
+                                        .valueOf(android.graphics.Color.parseColor("#FF0055")));
                     }
                 });
             }
@@ -1371,6 +1392,19 @@ public class MainActivity extends Activity {
         runOnUiThread(() -> {
             aiResponseContainer.setVisibility(View.VISIBLE);
             txtAIResponse.setText("Niko düşünüyor...");
+
+            // Niko Stili: Düşünme modunda premium geçiş (Derin Mor)
+            if (voiceOrb != null) {
+                voiceOrb.setBackgroundTintList(
+                        android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#6A11CB")));
+                voiceOrb.animate().scaleX(1.1f).scaleY(1.1f).alpha(0.8f).setDuration(800)
+                        .setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator()).start();
+            }
+            if (orbHalo != null) {
+                orbHalo.setBackgroundTintList(
+                        android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#2575FC")));
+                orbHalo.animate().alpha(0.5f).scaleX(1.2f).scaleY(1.2f).setDuration(1200).start();
+            }
         });
 
         // Önceki görevi iptal et (Hızlı art arda isteklerde karışıklığı önler)
@@ -3666,6 +3700,7 @@ public class MainActivity extends Activity {
             // Medya oynatıcıyı arayüz iş parçacığında başlat
             runOnUiThread(() -> {
                 try {
+                    startAIOrbAnimation(); // Animasyonu başlat
                     MediaPlayer mp = new MediaPlayer();
                     mp.setDataSource(tempMp3.getAbsolutePath());
                     mp.prepare();
@@ -3673,9 +3708,11 @@ public class MainActivity extends Activity {
 
                     mp.setOnCompletionListener(mediaPlayer -> {
                         mediaPlayer.release();
+                        stopAIOrbAnimation(); // Bittiğinde durdur
                     });
                 } catch (Exception ex) {
                     ex.printStackTrace();
+                    stopAIOrbAnimation();
                 }
             });
 
@@ -3814,16 +3851,19 @@ public class MainActivity extends Activity {
             if (aiOrbAnimator != null)
                 aiOrbAnimator.cancel();
 
-            // AI konuşurken renk pembe/kırmızımsı ve mor arası premium efekt
+            // AI konuşurken renk: Canlı Niko Magenta (#FF2A6D)
+            final int nikoMagenta = android.graphics.Color.parseColor("#FF2A6D");
+            final int nikoGlow = android.graphics.Color.parseColor("#FF0055");
+
             if (voiceOrb != null) {
-                voiceOrb.setBackgroundTintList(
-                        android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#FF2A6D")));
+                voiceOrb.setBackgroundTintList(android.content.res.ColorStateList.valueOf(nikoMagenta));
             }
+
             if (orbHalo == null)
                 orbHalo = findViewById(R.id.orbHalo);
             if (orbHalo != null) {
-                orbHalo.setBackgroundTintList(
-                        android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#FF2A6D")));
+                orbHalo.setBackgroundTintList(android.content.res.ColorStateList.valueOf(nikoGlow));
+                orbHalo.setAlpha(0.7f);
             }
 
             if (aiOrbRunnable == null) {
@@ -3833,42 +3873,48 @@ public class MainActivity extends Activity {
                         if (!isAIOrmAnimating)
                             return;
 
-                        // Konuşma benzeri ritmik ve rastgele bir dalgalanma (Hece simülasyonu)
-                        float fakeRms = 0;
+                        // Niko Stili: Daha akışkan ve enerjik bir dalgalanma
+                        // Rastgelelik yerine sinüzoidal bir temel üzerine binen organik gürültü
                         long now = System.currentTimeMillis();
-                        if (now - lastSyllableTime > 150 + Math.random() * 200) {
-                            // Yeni bir hece/kelime vurgusu
-                            fakeRms = 12f + (float) (Math.random() * 12.0);
-                            lastSyllableTime = now;
+                        double basePulse = Math.sin(now / 150.0) * 0.15;
+                        float randomSpike = (float) (Math.random() * 0.2);
 
-                            // Ekstra olarak mikro bir haptik dokunuş eklenebilir (istenirse)
-                            // hapticFeedback(HapticType.LIGHT);
-                        } else {
-                            // Sönümlenme evresi veya sessizlik
-                            fakeRms = 3f + (float) (Math.random() * 6.0);
-                        }
-
-                        float rawScale = 1.0f + (fakeRms / 20.0f);
-                        float scale = Math.min(rawScale, 1.4f);
+                        float orbScale = 1.15f + (float) basePulse + randomSpike;
+                        float haloScale = 1.3f + (float) (basePulse * 2.0) + (randomSpike * 1.5f);
+                        float haloAlpha = 0.4f + (float) (basePulse * 2.0) + randomSpike;
 
                         if (voiceOrb != null) {
-                            voiceOrb.animate().scaleX(scale).scaleY(scale).setDuration(80)
-                                    .setInterpolator(new android.view.animation.OvershootInterpolator()).start();
+                            voiceOrb.animate()
+                                    .scaleX(orbScale)
+                                    .scaleY(orbScale)
+                                    .setDuration(120)
+                                    .setInterpolator(new android.view.animation.DecelerateInterpolator())
+                                    .start();
                         }
 
                         if (orbHalo != null) {
-                            float haloScale = Math.min(1.0f + (fakeRms / 12.0f), 1.6f);
-                            orbHalo.animate().scaleX(haloScale).scaleY(haloScale).alpha(0.3f + (fakeRms / 20.0f))
-                                    .setDuration(120)
+                            orbHalo.animate()
+                                    .scaleX(haloScale)
+                                    .scaleY(haloScale)
+                                    .alpha(Math.min(haloAlpha, 0.9f))
+                                    .setDuration(180)
                                     .setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator())
                                     .start();
                         }
 
-                        aiOrbHandler.postDelayed(this, 90);
+                        // Niko Karakteristiği: Konuşma sırasında hafif bir rotasyon ekleyelim
+                        if (orbHalo != null) {
+                            orbHalo.setRotation(orbHalo.getRotation() + 2f);
+                        }
+
+                        aiOrbHandler.postDelayed(this, 100);
                     }
                 };
             }
             aiOrbHandler.post(aiOrbRunnable);
+
+            // Haptik başlangıç
+            hapticFeedback(HapticType.LIGHT);
         });
     }
 
@@ -3882,23 +3928,20 @@ public class MainActivity extends Activity {
                 aiOrbAnimator.cancel();
             }
 
+            // Orijinal (Breathing) durumuna yumuşak geçiş
             if (voiceOrb != null) {
-                voiceOrb.setBackgroundTintList(null); // Orijinal renge dön
-                voiceOrb.animate().scaleX(1f).scaleY(1f).setDuration(400)
-                        .setInterpolator(new android.view.animation.DecelerateInterpolator()).start();
+                voiceOrb.setBackgroundTintList(null); // Orijinal degradeye dön
+                voiceOrb.animate().scaleX(1f).scaleY(1f).setDuration(600)
+                        .setInterpolator(new android.view.animation.OvershootInterpolator(0.8f)).start();
             }
             if (orbHalo != null) {
                 orbHalo.setBackgroundTintList(null);
-                orbHalo.animate().scaleX(1f).scaleY(1f).alpha(1f).setDuration(400)
-                        .setInterpolator(new android.view.animation.DecelerateInterpolator()).start(); // Alpha'yı 1.0f
-                                                                                                       // veya orijinal
-                                                                                                       // değerine
-                                                                                                       // ayarlıyoruz,
-                                                                                                       // burada kalıcı
-                                                                                                       // olması için
-                                                                                                       // tam dönüş
-                                                                                                       // yapıyoruz
+                orbHalo.animate().scaleX(1f).scaleY(1f).alpha(1.0f).setDuration(800)
+                        .setInterpolator(new android.view.animation.DecelerateInterpolator()).start();
             }
+
+            // Eğer breathing animasyonu durmuşsa tekrar başlat
+            startBreathingAnimation();
         });
     }
 
@@ -6623,7 +6666,8 @@ public class MainActivity extends Activity {
                 0.82f);
         android.animation.ObjectAnimator iconTwist = android.animation.ObjectAnimator.ofFloat(updateIcon, View.ROTATION,
                 -4f, 4f, -4f);
-        for (android.animation.ObjectAnimator animator : new android.animation.ObjectAnimator[] { pulseX, pulseY, glow }) {
+        for (android.animation.ObjectAnimator animator : new android.animation.ObjectAnimator[] { pulseX, pulseY,
+                glow }) {
             animator.setDuration(1700);
             animator.setRepeatCount(android.animation.ValueAnimator.INFINITE);
             animator.setRepeatMode(android.animation.ValueAnimator.RESTART);

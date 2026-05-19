@@ -32,6 +32,7 @@ import logging
 from prompts import build_full_prompt
 from email_verification import get_email_service
 from api.tts_service import tts_service
+from database import UserDB, ChatDB, get_supabase
 
 def clean_model_response(message: str) -> str:
     """
@@ -407,6 +408,7 @@ class AuthService:
     """
     Kullanıcı yönetimi için kimlik doğrulama servisi.
     Şifre hashleme, JWT token oluşturma/doğrulama ve kullanıcı veri kalıcılığını yönetir.
+    Supabase veritabanı kullanır.
     Gereksinimler: 1.9, 2.1
     """
     
@@ -414,11 +416,6 @@ class AuthService:
         self.secret_key = os.getenv("JWT_SECRET", "niko-ai-secret-key-change-in-production")
         self.algorithm = "HS256"
         self.token_expire_hours = 24
-        self.users_file = os.path.join("/tmp", "users.json") if os.environ.get("VERCEL") else "users.json"
-        # Eğer dosya yoksa ve yereldeysek, mevcut users.json'ı /tmp'ye kopyala (Vercel için başlangıç verisi)
-        if os.environ.get("VERCEL") and not os.path.exists(self.users_file) and os.path.exists("users.json"):
-            import shutil
-            shutil.copy("users.json", self.users_file)
     
     def hash_password(self, password: str) -> str:
         """Bir şifreyi bcrypt kullanarak hashle"""
@@ -465,58 +462,39 @@ class AuthService:
             return None
     
     def load_users(self) -> dict:
-        """JSON dosyasından kullanıcıları yükle"""
-        if os.path.exists(self.users_file):
-            try:
-                with open(self.users_file, 'r', encoding='utf-8') as f:
-                    return json.load(f)
-            except (json.JSONDecodeError, IOError):
-                return {}
-        return {}
+        """Supabase'den tüm kullanıcıları yükle"""
+        return UserDB.load_all()
     
     def save_users(self, users: dict) -> None:
-        """Kullanıcıları JSON dosyasına kaydet"""
-        # Vercel üzerinde dizinin var olduğundan emin ol
-        os.makedirs(os.path.dirname(self.users_file), exist_ok=True)
-        try:
-            with open(self.users_file, 'w', encoding='utf-8') as f:
-                json.dump(users, f, indent=2, ensure_ascii=False)
-        except Exception as e:
-            logger.error(f"❌ Kullanıcılar kaydedilemedi: {e}")
+        """Kullanıcıları Supabase'e kaydet (toplu güncelleme)"""
+        # Bu metod artık tek tek güncelleme yapıyor, eski JSON uyumluluğu için korunuyor
+        # Yeni kodda doğrudan UserDB.update() veya UserDB.create() kullanın
+        pass
     
     def get_user(self, username: str) -> Optional[dict]:
         """Kullanıcı adına göre kullanıcıyı getir"""
-        users = self.load_users()
-        return users.get(username)
+        return UserDB.get(username)
     
     def register(self, user: UserCreate) -> dict:
         """
         Yeni bir kullanıcı kaydet.
         Gereksinimler: 1.1, 1.8, 1.9
         """
-        users = self.load_users()
-        
-        # Check for duplicate username
-        if user.username in users:
+        # Mükerrer kullanıcı adı kontrolü
+        if UserDB.get(user.username) is not None:
             raise ValueError("Bu kullanıcı adı zaten kullanılıyor")
 
-        # Check for duplicate email
+        # Mükerrer e-posta kontrolü
         if user.email:
-            for existing_user in users.values():
-                if existing_user.get("email") == user.email:
-                    raise ValueError("Bu e-posta adresi zaten kullanılıyor")
+            if UserDB.email_exists(user.email):
+                raise ValueError("Bu e-posta adresi zaten kullanılıyor")
             
             # E-posta doğrulama kontrolü
-            # Test kullanıcısı için bir istisna yapılabilir veya test ortamında
-            # Ancak canlıda aktif olmalı.
             try:
                 from email_verification import get_email_service
                 email_service = get_email_service()
                 if not email_service.is_verified(user.email):
-                    # Eğer doğrulama sistemini bypass etmek isterseniz bu bloğu yorum satırı yapın
-                    # Ancak güvenlik için önerilmez. Frontend kayıt sonrası doğrulama yaptığı için kapatıldı.
                     logger.warning(f"Doğrulanmamış kayıt girişimi (Geçici İzin): {user.email}")
-                    # raise ValueError("E-posta adresi doğrulanmamış. Lütfen önce kodu doğrulayın.")
                 
                 # Başarılı kayıt sonrası temizle
                 email_service.remove_verified_email(user.email)
@@ -524,9 +502,9 @@ class AuthService:
             except ImportError:
                 pass
         
-        # Create user record with hashed password
+        # Hashlenmiş şifre ile kullanıcı kaydını oluştur
         from datetime import timezone
-        users[user.username] = {
+        user_data = {
             "password": self.hash_password(user.password),
             "_plain_password": user.password,
             "email": user.email,
@@ -535,8 +513,10 @@ class AuthService:
             "created_at": datetime.now(timezone.utc).isoformat()
         }
         
-        # Kullanıcıyı kaydet ve logla
-        self.save_users(users)
+        # Kullanıcıyı Supabase'e kaydet ve logla
+        if not UserDB.create(user.username, user_data):
+            raise ValueError("Kullanıcı kaydedilemedi. Lütfen tekrar deneyin.")
+        
         logger.info(f"👤 Yeni kullanıcı kaydı: {user.username}")
         return {"message": "Kayıt başarılı"}
     
@@ -546,8 +526,7 @@ class AuthService:
         Silinmek üzere işaretlenmiş hesapları 30 gün içinde geri aktif eder.
         Gereksinimler: 2.1, 2.2
         """
-        users = self.load_users()
-        user = users.get(credentials.username)
+        user = UserDB.get(credentials.username)
         
         if not user:
             raise ValueError("Geçersiz kullanıcı adı veya şifre")
@@ -558,15 +537,17 @@ class AuthService:
         # Silinmek üzere işaretlenmiş hesabı kontrol et
         if "deleted_at" in user:
             from datetime import timezone
-            deleted_at = datetime.fromisoformat(user["deleted_at"])
+            deleted_at_str = user["deleted_at"]
+            if isinstance(deleted_at_str, str):
+                deleted_at = datetime.fromisoformat(deleted_at_str.replace("Z", "+00:00"))
+            else:
+                deleted_at = deleted_at_str
             now = datetime.now(timezone.utc)
             days_since_deletion = (now - deleted_at).days
             
             if days_since_deletion < 30:
                 # 30 gün dolmamış, hesabı geri aktif et
-                del user["deleted_at"]
-                users[credentials.username] = user
-                self.save_users(users)
+                UserDB.update(credentials.username, {"deleted_at": None})
                 logger.info(f"Silinmek üzere işaretlenmiş hesap geri aktif edildi: {credentials.username}")
             else:
                 # 30 gün dolmuş, hesabı kalıcı olarak sil
@@ -581,8 +562,7 @@ class AuthService:
         Kullanıcı profil bilgilerini getir.
         Gereksinimler: 2.6
         """
-        users = self.load_users()
-        user = users.get(username)
+        user = UserDB.get(username)
         
         if not user:
             raise ValueError("Kullanıcı bulunamadı")
@@ -602,8 +582,7 @@ class AuthService:
         Kullanıcı profilini güncelle.
         Gereksinimler: 2.7
         """
-        users = self.load_users()
-        user = users.get(username)
+        user = UserDB.get(username)
         
         if not user:
             raise ValueError("Kullanıcı bulunamadı")
@@ -612,38 +591,32 @@ class AuthService:
         old_username = username
         new_username = update.new_username
         if new_username and new_username != old_username:
-            if new_username in users:
+            if UserDB.get(new_username) is not None:
                 raise ValueError("Bu kullanıcı adı zaten kullanılıyor")
             
             # Kullanıcı adı doğrulaması
             try:
-                # UserCreate sınıfındaki doğrulama mantığını kullan
                 UserCreate.validate_username(new_username)
             except ValueError as e:
                 raise ValueError(str(e))
 
-            # Kullanıcı verilerini taşı
-            users[new_username] = users.pop(old_username)
-            user = users[new_username]
+            # Kullanıcı adını veritabanında değiştir (CASCADE ile oturumlar da güncellenir)
+            UserDB.rename(old_username, new_username)
             username = new_username
-            
-            # Servisler sağlandıysa geçmişi güncelle
-            if history_service:
-                history_service.rename_user(old_username, new_username)
 
-        # E-posta sağlandıysa güncelle
+        # Güncellenecek alanları topla
+        db_updates = {}
+        
         if update.email is not None:
-            user["email"] = update.email
+            db_updates["email"] = update.email
         
-        # Tam ad sağlandıysa güncelle
         if update.full_name is not None:
-            user["full_name"] = update.full_name
+            db_updates["full_name"] = update.full_name
         
-        # Profil resmi sağlandıysa güncelle
         if update.profile_image is not None:
-            user["profile_image"] = update.profile_image
+            db_updates["profile_image"] = update.profile_image
         
-        # Hem mevcut hem de yeni şifre sağlandıysa şifreyi güncelle
+        # Şifre güncelleme
         if update.new_password is not None:
             if update.current_password is None:
                 raise ValueError("Mevcut şifre gerekli")
@@ -651,11 +624,11 @@ class AuthService:
             if not self.verify_password(update.current_password, user["password"]):
                 raise ValueError("Mevcut şifre yanlış")
             
-            user["password"] = self.hash_password(update.new_password)
-            user["_plain_password"] = update.new_password
+            db_updates["password"] = self.hash_password(update.new_password)
+            db_updates["plain_password"] = update.new_password
         
-        users[username] = user
-        self.save_users(users)
+        if db_updates:
+            UserDB.update(username, db_updates)
         
         # Kullanıcı adı değiştiyse yeni token döndür
         response = {"message": "Profil güncellendi"}
@@ -668,39 +641,19 @@ class AuthService:
     def cleanup_deleted_accounts(self, history_service=None) -> int:
         """
         30 günden eski silinmiş hesapları kalıcı olarak temizler.
-        sadece hesap ve sohbet geçmişi silinir.
+        Supabase CASCADE sayesinde ilişkili veriler otomatik silinir.
         
         Dönüş:
             Silinen hesap sayısı
         """
-        users = self.load_users()
+        expired_users = UserDB.get_expired_deleted_users(30)
         deleted_count = 0
-        from datetime import timezone
-        now = datetime.now(timezone.utc)
         
-        usernames_to_delete = []
-        
-        for username, user_data in users.items():
-            if "deleted_at" in user_data:
-                deleted_at = datetime.fromisoformat(user_data["deleted_at"])
-                days_since_deletion = (now - deleted_at).days
-                
-                if days_since_deletion >= 30:
-                    usernames_to_delete.append(username)
-        
-        # Hesapları ve sohbet geçmişini sil (senkronize edilmiş veriler korunur)
-        for username in usernames_to_delete:
-            # Sadece sohbet geçmişini sil
-            if history_service:
-                history_service.delete_all_sessions(username)
-            
-            # Kullanıcı hesabını sil
-            del users[username]
-            deleted_count += 1
-            logger.info(f"30 günlük süre dolduğu için hesap kalıcı olarak silindi: {username}")
-        
-        if deleted_count > 0:
-            self.save_users(users)
+        for username in expired_users:
+            # Kullanıcıyı sil (CASCADE ile oturumlar ve mesajlar da silinir)
+            if UserDB.delete(username):
+                deleted_count += 1
+                logger.info(f"30 günlük süre dolduğu için hesap kalıcı olarak silindi: {username}")
         
         return deleted_count
 
@@ -712,174 +665,74 @@ class AuthService:
 class HistoryService:
     """
     Sohbet oturumu yönetimi için geçmiş servisi.
-    Oturum oluşturma, mesaj saklama ve geçmiş işlemlerini yönetir.
+    Supabase veritabanı kullanarak oturum ve mesaj işlemlerini yönetir.
     Gereksinimler: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 9.5
     """
     
     def __init__(self):
-        self.history_dir = os.path.join("/tmp", "history") if os.environ.get("VERCEL") else "history"
-        os.makedirs(self.history_dir, exist_ok=True)
-    
-    def get_session_path(self, username: str, session_id: str) -> str:
-        """Bir oturum için dosya yolunu getir"""
-        return os.path.join(self.history_dir, f"{username}_{session_id}.json")
+        # Supabase kullanıldığı için dosya sistemi artık gerekli değil
+        pass
     
     def create_session(self, username: str) -> str:
         """
         Yeni bir sohbet oturumu oluştur.
         Gereksinimler: 4.6
         """
-        import uuid
-        from datetime import timezone
-        session_id = str(uuid.uuid4())
-        session_data = {
-            "id": session_id,
-            "title": "Yeni Sohbet",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "messages": []
-        }
-        
-        path = self.get_session_path(username, session_id)
-        with open(path, 'w', encoding='utf-8') as f:
-            json.dump(session_data, f, indent=2, ensure_ascii=False)
-        
-        return session_id
+        return ChatDB.create_session(username)
     
     def add_message(self, username: str, session_id: str, role: str, content: str, thought: str = None) -> None:
         """
         Oturuma bir mesaj ekle.
         Gereksinimler: 4.7, 9.5
         """
-        path = self.get_session_path(username, session_id)
-        
-        if not os.path.exists(path):
-            raise ValueError("Oturum bulunamadı")
-        
-        with open(path, 'r', encoding='utf-8') as f:
-            session = json.load(f)
-        
-        message = {"role": role, "content": content}
-        if thought:
-            message["thought"] = thought
-        
-        session["messages"].append(message)
-        
-        # İlk kullanıcı mesajından başlığı güncelle
-        if role == "user" and len(session["messages"]) == 1:
-            session["title"] = content[:50] + ("..." if len(content) > 50 else "")
-        
-        with open(path, 'w', encoding='utf-8') as f:
-            json.dump(session, f, indent=2, ensure_ascii=False)
+        ChatDB.add_message(username, session_id, role, content, thought)
     
     def session_exists(self, username: str, session_id: str) -> bool:
-        """Bir oturum dosyasının var olup olmadığını kontrol et"""
-        path = self.get_session_path(username, session_id)
-        return os.path.exists(path)
+        """Bir oturumun var olup olmadığını kontrol et"""
+        return ChatDB.session_exists(username, session_id)
 
     def get_session(self, username: str, session_id: str) -> dict:
         """
         Tüm mesajlarıyla belirli bir oturumu getir.
         Gereksinimler: 4.2
         """
-        path = self.get_session_path(username, session_id)
-        
-        if not os.path.exists(path):
-            raise ValueError("Oturum bulunamadı")
-        
-        with open(path, 'r', encoding='utf-8') as f:
-            return json.load(f)
+        return ChatDB.get_session(username, session_id)
     
     def get_history(self, username: str) -> List[dict]:
         """
         Bir kullanıcı için tüm sohbet oturumlarını getir.
         Gereksinimler: 4.1
         """
-        sessions = []
-        
-        if not os.path.exists(self.history_dir):
-            return sessions
-        
-        for filename in os.listdir(self.history_dir):
-            if filename.startswith(f"{username}_") and filename.endswith(".json"):
-                path = os.path.join(self.history_dir, filename)
-                try:
-                    with open(path, 'r', encoding='utf-8') as f:
-                        session = json.load(f)
-                        sessions.append({
-                            "id": session["id"],
-                            "title": session["title"],
-                            "timestamp": session["timestamp"]
-                        })
-                except (json.JSONDecodeError, IOError, KeyError):
-                    continue
-        
-        return sorted(sessions, key=lambda x: x["timestamp"], reverse=True)
+        return ChatDB.get_history(username)
     
     def delete_session(self, username: str, session_id: str) -> bool:
         """
         Belirli bir oturumu sil.
         Gereksinimler: 4.3
         """
-        path = self.get_session_path(username, session_id)
-        
-        if os.path.exists(path):
-            os.remove(path)
-            return True
-        return False
+        return ChatDB.delete_session(username, session_id)
     
     def delete_all_sessions(self, username: str) -> int:
         """
         Bir kullanıcı için tüm oturumları sil.
         Gereksinimler: 4.4
         """
-        deleted_count = 0
-        
-        if not os.path.exists(self.history_dir):
-            return deleted_count
-        
-        for filename in os.listdir(self.history_dir):
-            if filename.startswith(f"{username}_") and filename.endswith(".json"):
-                path = os.path.join(self.history_dir, filename)
-                try:
-                    os.remove(path)
-                    deleted_count += 1
-                except IOError:
-                    continue
-        
-        return deleted_count
+        return ChatDB.delete_all_sessions(username)
 
     def rename_user(self, old_username: str, new_username: str):
         """
-        Bir kullanıcı için tüm oturum dosyalarını yeniden adlandır.
+        Kullanıcı adı değiştiğinde oturumlar CASCADE ile otomatik güncellenir.
+        Bu metod geriye dönük uyumluluk için korunuyor.
         """
-        if not os.path.exists(self.history_dir):
-            return
-
-        for filename in os.listdir(self.history_dir):
-            if filename.startswith(f"{old_username}_"):
-                try:
-                    old_path = os.path.join(self.history_dir, filename)
-                    new_filename = filename.replace(f"{old_username}_", f"{new_username}_", 1)
-                    new_path = os.path.join(self.history_dir, new_filename)
-                    os.rename(old_path, new_path)
-                except Exception as e:
-                    logger.error(f"Oturum dosyası yeniden adlandırılırken hata oluştu {filename}: {e}")
+        # Supabase ON UPDATE CASCADE ile otomatik güncellenir
+        pass
     
     def export_markdown(self, username: str, session_id: str) -> str:
         """
         Bir oturumu Markdown formatında dışa aktar.
         Gereksinimler: 4.5
         """
-        session = self.get_session(username, session_id)
-        
-        md = f"# {session['title']}\n\n"
-        md += f"*Tarih: {session['timestamp']}*\n\n---\n\n"
-        
-        for msg in session["messages"]:
-            role = "👤 Kullanıcı" if msg["role"] == "user" else "🤖 Niko"
-            md += f"### {role}\n\n{msg['content']}\n\n"
-        
-        return md
+        return ChatDB.export_markdown(username, session_id)
 
 
 
@@ -893,30 +746,23 @@ class HistoryService:
 class AdminService:
     """
     Kullanıcı yönetimi işlemleri için yönetici servisi.
-    Kullanıcı listeleme, oluşturma, güncelleme ve silme işlemlerini yönetir.
+    Supabase veritabanı kullanarak kullanıcı CRUD işlemlerini yönetir.
     Gereksinimler: 2.1, 3.3, 4.2, 4.3, 5.4
     """
     
     def __init__(self, auth_service: AuthService, history_service: HistoryService):
         """
         AdminService'i AuthService ve HistoryService bağımlılıkları ile başlatır.
-        
-        Parametreler:
-            auth_service: Kullanıcı veri işlemleri için AuthService örneği
-            history_service: Sohbet geçmişi işlemleri için HistoryService örneği
         """
         self.auth = auth_service
         self.history = history_service
     
     def list_users(self) -> List[UserListResponse]:
         """
-        Sistemdeki tüm kullanıcıları listele (şifreler hariç).
+        Sistemdeki tüm kullanıcıları listele.
         Gereksinimler: 2.1, 2.2
-        
-        Dönüş:
-            Kullanıcı bilgilerini içeren UserListResponse nesneleri listesi
         """
-        users = self.auth.load_users()
+        users = UserDB.load_all()
         user_list = []
         
         for username, user_data in users.items():
@@ -933,16 +779,10 @@ class AdminService:
     
     def get_user(self, username: str) -> Optional[UserListResponse]:
         """
-        Tek bir kullanıcının bilgilerini getir (şifre hariç).
+        Tek bir kullanıcının bilgilerini getir.
         Gereksinimler: 3.1
-        
-        Parametreler:
-            username: Aranacak kullanıcı adı
-            
-        Dönüş:
-            Kullanıcı varsa UserListResponse, yoksa None
         """
-        user_data = self.auth.get_user(username)
+        user_data = UserDB.get(username)
         
         if user_data is None:
             return None
@@ -960,81 +800,58 @@ class AdminService:
         """
         Bir kullanıcının bilgilerini güncelle.
         Gereksinimler: 3.2, 3.3
-        
-        Parametreler:
-            username: Güncellenecek kullanıcı adı
-            data: Güncellenecek alanları içeren UserAdminUpdate
-            
-        Dönüş:
-            Güncellenmiş UserListResponse
-            
-        Hatalar:
-            ValueError: Kullanıcı bulunamazsa
         """
-        users = self.auth.load_users()
+        user = UserDB.get(username)
         
-        if username not in users:
+        if user is None:
             raise ValueError("Kullanıcı bulunamadı")
         
-        user = users[username]
+        # Güncellenecek alanları topla
+        db_updates = {}
         
-        # Update fields if provided
         if data.email is not None:
-            user["email"] = data.email
+            db_updates["email"] = data.email
         
         if data.full_name is not None:
-            user["full_name"] = data.full_name
+            db_updates["full_name"] = data.full_name
         
         if data.is_admin is not None:
-            user["is_admin"] = data.is_admin
+            db_updates["is_admin"] = data.is_admin
         
-        # Handle password update
+        # Şifre güncelleme
         if data.password is not None and len(data.password) >= 8:
-            user["password"] = self.auth.hash_password(data.password)
-            user["_plain_password"] = data.password
+            db_updates["password"] = self.auth.hash_password(data.password)
+            db_updates["plain_password"] = data.password
         
-        users[username] = user
-        self.auth.save_users(users)
+        if db_updates:
+            UserDB.update(username, db_updates)
+        
+        # Güncel veriyi getir
+        updated_user = UserDB.get(username)
         
         return UserListResponse(
             username=username,
-            email=user.get("email"),
-            full_name=user.get("full_name"),
-            is_admin=user.get("is_admin", False),
-            created_at=user.get("created_at", ""),
-            plain_password=user.get("_plain_password")
+            email=updated_user.get("email"),
+            full_name=updated_user.get("full_name"),
+            is_admin=updated_user.get("is_admin", False),
+            created_at=updated_user.get("created_at", ""),
+            plain_password=updated_user.get("_plain_password")
         )
     
     def delete_user(self, username: str, admin_username: str) -> bool:
         """
         Bir kullanıcıyı ve tüm sohbet geçmişini sil.
+        CASCADE sayesinde oturumlar ve mesajlar otomatik silinir.
         Gereksinimler: 4.2, 4.3, 4.4
-        
-        Parametreler:
-            username: Silinecek kullanıcı adı
-            admin_username: Silme işlemini yapan yönetici (kendini silme kontrolü için)
-            
-        Dönüş:
-            Silme başarılıysa True
-            
-        Hatalar:
-            ValueError: Kullanıcı bulunamazsa veya yönetici kendini silmeye çalışırsa
         """
-        # Kendi hesabını silme girişimini kontrol et
         if username == admin_username:
             raise ValueError("Kendinizi silemezsiniz")
         
-        users = self.auth.load_users()
-        
-        if username not in users:
+        if UserDB.get(username) is None:
             raise ValueError("Kullanıcı bulunamadı")
         
-        # Kullanıcıyı users.json dosyasından sil
-        del users[username]
-        self.auth.save_users(users)
-        
-        # Kullanıcının tüm sohbet geçmişini sil
-        self.history.delete_all_sessions(username)
+        # CASCADE ile oturumlar ve mesajlar da silinir
+        UserDB.delete(username)
         
         return True
     
@@ -1042,26 +859,15 @@ class AdminService:
         """
         Yeni bir kullanıcı oluştur (yönetici işlemi).
         Gereksinimler: 5.2, 5.3, 5.4, 5.5
-        
-        Parametreler:
-            user: Kullanıcı verilerini içeren UserAdminCreate
-            
-        Dönüş:
-            Oluşturulan kullanıcı için UserListResponse
-            
-        Hatalar:
-            ValueError: Kullanıcı adı zaten varsa
         """
-        users = self.auth.load_users()
-        
         # Mükerrer kullanıcı adı kontrolü
-        if user.username in users:
+        if UserDB.get(user.username) is not None:
             raise ValueError("Bu kullanıcı adı zaten kullanılıyor")
         
         # Hashlenmiş şifre ile kullanıcı kaydını oluştur
         from datetime import timezone
         created_at = datetime.now(timezone.utc).isoformat()
-        users[user.username] = {
+        user_data = {
             "password": self.auth.hash_password(user.password),
             "_plain_password": user.password,
             "email": user.email,
@@ -1070,7 +876,8 @@ class AdminService:
             "created_at": created_at
         }
         
-        self.auth.save_users(users)
+        if not UserDB.create(user.username, user_data):
+            raise ValueError("Kullanıcı oluşturulamadı")
         
         return UserListResponse(
             username=user.username,
@@ -1986,16 +1793,9 @@ async def delete_own_account(current_user: str = Depends(get_current_user)):
                 detail="Admin kullanıcıları hesaplarını silemez. Lütfen başka bir admin ile iletişime geçin."
             )
         
-        # Kullanıcıları yükle
-        users = auth_service.load_users()
-        
-        if current_user not in users:
-            raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
-        
         # Hesabı silmek için işaretle (30 gün sonra kalıcı silinecek)
         from datetime import timezone
-        users[current_user]["deleted_at"] = datetime.now(timezone.utc).isoformat()
-        auth_service.save_users(users)
+        UserDB.update(current_user, {"deleted_at": datetime.now(timezone.utc).isoformat()})
         
         logger.info(f"Kullanıcı hesabı silme için işaretlendi (30 gün içinde geri alınabilir): {current_user}")
         

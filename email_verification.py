@@ -20,6 +20,7 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import os
+from database import EmailVerificationDB
 
 
 class EmailVerificationService:
@@ -337,10 +338,9 @@ class EmailVerificationService:
             }
         
         # Mevcut kod var mı kontrol et (cooldown)
-        if to_email in self._verification_codes:
-            existing = self._verification_codes[to_email]
+        existing = EmailVerificationDB.get_code(to_email)
+        if existing:
             created_at = existing.get("created_at")
-            
             if created_at:
                 now = datetime.now(timezone.utc)
                 elapsed = (now - created_at).total_seconds()
@@ -375,14 +375,13 @@ class EmailVerificationService:
             )
         
         if result["success"]:
-            # Kodu bellekte sakla
-            self._verification_codes[to_email] = {
-                "code": code,
-                "expires_at": expires_at,
-                "created_at": now,
-                "attempts": 0,
-                "username": username
-            }
+            # Kodu veritabanına kaydet
+            EmailVerificationDB.set_code(
+                email=to_email,
+                code=code,
+                username=username,
+                expires_at=expires_at
+            )
             
             return {
                 "success": True,
@@ -408,20 +407,20 @@ class EmailVerificationService:
             }
         """
         # E-posta için kayıt var mı?
-        if email not in self._verification_codes:
+        record = EmailVerificationDB.get_code(email)
+        if not record:
             return {
                 "success": False,
                 "message": "Bu e-posta için aktif doğrulama kodu bulunamadı",
                 "verified": False
             }
         
-        record = self._verification_codes[email]
         now = datetime.now(timezone.utc)
         
         # Kod süresi dolmuş mu?
         if now > record["expires_at"]:
             # Süresi dolmuş kodu temizle
-            del self._verification_codes[email]
+            EmailVerificationDB.delete_code(email)
             return {
                 "success": False,
                 "message": "Doğrulama kodunun süresi dolmuş. Lütfen yeni kod isteyin",
@@ -431,7 +430,7 @@ class EmailVerificationService:
         # Maksimum deneme sayısı aşıldı mı? (Brute force koruması)
         if record["attempts"] >= self.MAX_ATTEMPTS:
             # Kodu geçersiz kıl
-            del self._verification_codes[email]
+            EmailVerificationDB.delete_code(email)
             return {
                 "success": False,
                 "message": "Maksimum deneme sayısına ulaşıldı. Lütfen yeni kod isteyin",
@@ -439,16 +438,14 @@ class EmailVerificationService:
             }
         
         # Deneme sayısını artır
-        record["attempts"] += 1
+        EmailVerificationDB.increment_attempts(email)
         
         # Kod doğru mu?
         if record["code"] == code.strip():
             # Başarılı doğrulama - doğrulandı olarak işaretle (silme!)
             # Böylece kayıt işlemi sırasında kontrol edilebilir
-            record["verified"] = True
-            record["verified_at"] = datetime.now(timezone.utc)
-            # Doğrulandıktan sonra süre sınırını uzat (örn. 10 dakika içinde kayıt olmalı)
-            record["expires_at"] = datetime.now(timezone.utc) + timedelta(minutes=10)
+            new_expiry = datetime.now(timezone.utc) + timedelta(minutes=10)
+            EmailVerificationDB.set_verified(email, verified=True, expires_at=new_expiry)
             
             return {
                 "success": True,
@@ -457,7 +454,7 @@ class EmailVerificationService:
                 "username": record.get("username", "")
             }
         else:
-            remaining = self.MAX_ATTEMPTS - record["attempts"]
+            remaining = self.MAX_ATTEMPTS - (record["attempts"] + 1)
             return {
                 "success": False,
                 "message": f"Geçersiz kod. {remaining} deneme hakkınız kaldı",
@@ -474,10 +471,10 @@ class EmailVerificationService:
         Returns:
             bool: Doğrulanmışsa True
         """
-        if email not in self._verification_codes:
+        record = EmailVerificationDB.get_code(email)
+        if not record:
             return False
             
-        record = self._verification_codes[email]
         # Süresi dolmuş mu?
         if datetime.now(timezone.utc) > record["expires_at"]:
             return False
@@ -486,8 +483,7 @@ class EmailVerificationService:
         
     def remove_verified_email(self, email: str):
         """Doğrulanmış ve kayıt olmuş e-posta kaydını temizle"""
-        if email in self._verification_codes:
-            del self._verification_codes[email]
+        EmailVerificationDB.delete_code(email)
 
     def resend_code(self, email: str) -> dict:
         """
@@ -505,11 +501,12 @@ class EmailVerificationService:
         """
         # Kullanıcı adını al
         username = "Kullanıcı"
-        if email in self._verification_codes:
-            username = self._verification_codes[email].get("username", "Kullanıcı")
+        record = EmailVerificationDB.get_code(email)
+        if record:
+            username = record.get("username", "Kullanıcı")
             
             # Eğer zaten doğrulanmışsa tekrar kod gönderme
-            if self._verification_codes[email].get("verified", False):
+            if record.get("verified", False):
                  return {
                     "success": False,
                     "message": "Bu e-posta zaten doğrulanmış."
@@ -526,17 +523,7 @@ class EmailVerificationService:
         Returns:
             int: Temizlenen kod sayısı
         """
-        now = datetime.now(timezone.utc)
-        expired_emails = []
-        
-        for email, record in self._verification_codes.items():
-            if now > record["expires_at"]:
-                expired_emails.append(email)
-        
-        for email in expired_emails:
-            del self._verification_codes[email]
-        
-        return len(expired_emails)
+        return EmailVerificationDB.cleanup_expired_codes()
     
     def get_pending_verification(self, email: str) -> Optional[dict]:
         """
@@ -548,10 +535,10 @@ class EmailVerificationService:
         Returns:
             dict veya None: Bekleyen doğrulama bilgisi
         """
-        if email not in self._verification_codes:
+        record = EmailVerificationDB.get_code(email)
+        if not record:
             return None
         
-        record = self._verification_codes[email]
         return {
             "email": email,
             "expires_at": record["expires_at"].isoformat(),
@@ -570,15 +557,14 @@ class EmailVerificationService:
         Returns:
             bool: Bekleyen doğrulama varsa True
         """
-        if email not in self._verification_codes:
+        record = EmailVerificationDB.get_code(email)
+        if not record:
             return False
         
         # Süresi dolmuş mu kontrol et
-        record = self._verification_codes[email]
         now = datetime.now(timezone.utc)
-        
         if now > record["expires_at"]:
-            del self._verification_codes[email]
+            EmailVerificationDB.delete_code(email)
             return False
         
         return True

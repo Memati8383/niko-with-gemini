@@ -10,9 +10,12 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import bcrypt
+from dotenv import load_dotenv
 
-# --- Yapılandırma ---
-USERS_FILE = "users.json"
+# .env dosyasını yükle
+load_dotenv()
+
+from database import UserDB
 HOST = "127.0.0.1"
 PORT = 8085  # Ana uygulamayla çakışmayı önlemek için farklı port kullanılıyor
 
@@ -36,23 +39,13 @@ class UserUpdate(BaseModel):
 
 # --- Yardımcı Fonksiyonlar ---
 def load_users():
-    if not os.path.exists(USERS_FILE):
-        return {}
-    try:
-        with open(USERS_FILE, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    except Exception as e:
-        print(f"Kullanıcılar yüklenirken hata: {e}")
-        return {}
+    """Supabase'den tüm kullanıcıları yükle"""
+    return UserDB.load_all()
 
 def save_users(users):
-    try:
-        with open(USERS_FILE, 'w', encoding='utf-8') as f:
-            json.dump(users, f, indent=2, ensure_ascii=False)
-        return True
-    except Exception as e:
-        print(f"Kullanıcılar kaydedilirken hata: {e}")
-        return False
+    """Geriye dönük uyumluluk için korunuyor - bireysel güncellemeler kullanılır"""
+    # Artık JSON dosyasına yazmak yerine doğrudan UserDB metodları kullanılır
+    pass
 
 def hash_password(password: str) -> str:
     password_bytes = password.encode('utf-8')
@@ -468,38 +461,32 @@ async def get_users():
 
 @app.put("/api/users/{username}")
 async def update_user(username: str, update: UserUpdate):
-    users = load_users()
-    if username not in users:
+    user = UserDB.get(username)
+    if user is None:
         raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
     
-    user = users[username]
+    db_updates = {}
     if update.email is not None:
-        user['email'] = update.email
+        db_updates["email"] = update.email
     if update.full_name is not None:
-        user['full_name'] = update.full_name
+        db_updates["full_name"] = update.full_name
     if update.is_admin is not None:
-        user['is_admin'] = update.is_admin
+        db_updates["is_admin"] = update.is_admin
     if update.password is not None and len(update.password) > 0:
-        # Uygulama için HASH sakla (Güvenlik)
-        user['password'] = hash_password(update.password)
-        # Sadece bu Yönetici Paneli için DÜZ METİN sakla (Kolaylık)
-        user['_plain_password'] = update.password
+        db_updates["password"] = hash_password(update.password)
+        db_updates["plain_password"] = update.password
     
-    users[username] = user
-    if save_users(users):
-        return {"message": "Kullanıcı güncellendi"}
-    raise HTTPException(status_code=500, detail="Kaydetme başarısız")
+    if db_updates:
+        UserDB.update(username, db_updates)
+    return {"message": "Kullanıcı güncellendi"}
 
 @app.delete("/api/users/{username}")
 async def delete_user(username: str):
-    users = load_users()
-    if username not in users:
+    if UserDB.get(username) is None:
         raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
     
-    del users[username]
-    if save_users(users):
-        return {"message": "Kullanıcı silindi"}
-    raise HTTPException(status_code=500, detail="Kaydetme başarısız")
+    UserDB.delete(username)
+    return {"message": "Kullanıcı silindi"}
 
 if __name__ == "__main__":
     print("Kullanıcı Yönetim Sistemi başlatılıyor...")
