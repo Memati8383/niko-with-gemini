@@ -8,6 +8,8 @@ from dotenv import load_dotenv
 
 # Çevresel değişkenleri yükle
 load_dotenv()
+# Ana dizin absolute yolunu belirle
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 import re
 import json
@@ -1493,25 +1495,25 @@ async def rate_limit_middleware(request: Request, call_next):
     return response
 
 # Gerekli dizinlerin var olduğundan emin ol (Gereksinimler: 10.1)
-for folder in ["history"]:
-    os.makedirs(folder, exist_ok=True)
+for folder in ["history", "static"]:
+    os.makedirs(os.path.join(BASE_DIR, folder), exist_ok=True)
 
 # Statik dosyaları bağla
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
 
 
 @app.get("/")
 async def root():
     """Ana sayfayı sun"""
     logger.info("Serving index.html (v1.2)")
-    return FileResponse("static/index.html")
+    return FileResponse(os.path.join(BASE_DIR, "static/index.html"))
 
 
 @app.get("/login.html")
 @app.get("/login")
 async def login_page():
     """Giriş sayfasını sun"""
-    return FileResponse("static/login.html")
+    return FileResponse(os.path.join(BASE_DIR, "static/login.html"))
 
 
 @app.get("/signup.html")
@@ -1519,7 +1521,7 @@ async def login_page():
 @app.get("/signup/")
 async def signup_page():
     """Kayıt sayfasını sun"""
-    return FileResponse("static/signup.html")
+    return FileResponse(os.path.join(BASE_DIR, "static/signup.html"))
 
 
 @app.get("/admin.html")
@@ -1527,7 +1529,7 @@ async def signup_page():
 @app.get("/admin/")
 async def admin_page():
     """Yönetici panelini sun"""
-    return FileResponse("static/admin.html")
+    return FileResponse(os.path.join(BASE_DIR, "static/admin.html"))
 
 
 @app.get("/test")
@@ -1540,7 +1542,7 @@ async def test_route():
 async def verify_page():
     """E-posta doğrulama sayfasını sun"""
     logger.info("Serving verify.html")
-    return FileResponse("static/verify.html")
+    return FileResponse(os.path.join(BASE_DIR, "static/verify.html"))
 
 
 @app.get("/sw.js")
@@ -1550,7 +1552,7 @@ async def service_worker():
     Servis çalışanları, tüm siteyi kontrol etmek için kök kapsamdan sunulmalıdır.
     """
     return FileResponse(
-        "static/sw.js",
+        os.path.join(BASE_DIR, "static/sw.js"),
         media_type="application/javascript",
         headers={
             "Cache-Control": "no-cache, no-store, must-revalidate",
@@ -1562,24 +1564,24 @@ async def service_worker():
 @app.get("/style.css")
 async def style_css():
     """Ana stil dosyasını sun"""
-    return FileResponse("static/style.css", media_type="text/css")
+    return FileResponse(os.path.join(BASE_DIR, "static/style.css"), media_type="text/css")
 
 
 @app.get("/auth.css")
 async def auth_css():
-    return FileResponse("static/auth.css", media_type="text/css")
+    return FileResponse(os.path.join(BASE_DIR, "static/auth.css"), media_type="text/css")
 
 
 @app.get("/admin-panel.css")
 async def admin_panel_css():
     """Admin paneli stil dosyasını sun"""
-    return FileResponse("static/admin-panel.css", media_type="text/css")
+    return FileResponse(os.path.join(BASE_DIR, "static/admin-panel.css"), media_type="text/css")
 
 
 @app.get("/script.js")
 async def script_js():
     """Ana JavaScript dosyasını sun"""
-    return FileResponse("static/script.js", media_type="application/javascript")
+    return FileResponse(os.path.join(BASE_DIR, "static/script.js"), media_type="application/javascript")
 
 
 @app.get("/health")
@@ -1591,13 +1593,13 @@ async def health_check():
 @app.get("/favicon.ico")
 async def favicon():
     """Tarayıcı varsayılan favicon isteği için uygulama ikonu."""
-    return FileResponse("static/icons/niko_icon_8.png", media_type="image/png")
+    return FileResponse(os.path.join(BASE_DIR, "static/icons/niko_icon_8.png"), media_type="image/png")
 
 
 @app.get("/niko-icon.png")
 async def niko_app_icon():
     """Marka ikonu — SW/alt yol sorunlarına karşı kök URL (StaticFiles'e ek olarak)."""
-    return FileResponse("static/icons/niko_icon_8.png", media_type="image/png")
+    return FileResponse(os.path.join(BASE_DIR, "static/icons/niko_icon_8.png"), media_type="image/png")
 
 
 # ============================================================================
