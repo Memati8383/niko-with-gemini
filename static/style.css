@@ -1857,8 +1857,8 @@ option {
   }
 
   #profileModal .profile-pic-ring {
-    width: 100px !important;
-    height: 100px !important;
+    width: 110px !important;
+    height: 110px !important;
   }
 
   #profileModal .profile-modal-body {
@@ -2078,6 +2078,10 @@ option {
   0% { transform: translate(-50%, -50%) rotate(0deg); }
   100% { transform: translate(-50%, -50%) rotate(360deg); }
 }
+@keyframes profileRingSpinRev {
+  0% { transform: translate(-50%, -50%) rotate(360deg); }
+  100% { transform: translate(-50%, -50%) rotate(0deg); }
+}
 @keyframes profileSlideUp {
   from { opacity: 0; transform: translateY(24px) scale(0.97); }
   to { opacity: 1; transform: translateY(0) scale(1); }
@@ -2210,21 +2214,49 @@ option {
 #profileModal .profile-pic-ring {
   position: absolute;
   left: 50%; top: 50%;
-  width: 118px; height: 118px;
-  border-radius: 50%;
-  border: 2px solid transparent;
-  border-top-color: rgba(0, 212, 255, 0.6);
-  border-right-color: rgba(0, 114, 255, 0.25);
-  animation: profileRingSpin 4s linear infinite;
+  transform: translate(-50%, -50%);
+  width: 130px;
+  height: 130px;
   pointer-events: none;
-  transition: border-color var(--transition-normal), box-shadow var(--transition-normal);
+  z-index: 0;
+  transition: all var(--transition-normal);
 }
 
-#profileModal .profile-pic-container:hover .profile-pic-ring {
-  border-top-color: rgba(0, 212, 255, 0.95);
-  border-right-color: rgba(0, 212, 255, 0.45);
-  animation-duration: 2s;
-  box-shadow: 0 0 15px rgba(0, 212, 255, 0.25);
+#profileModal .profile-pic-ring::before {
+  content: "";
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 86%; height: 86%;
+  border-radius: 50%;
+  border: 1.5px dashed rgba(0, 212, 255, 0.45);
+  animation: profileRingSpin 12s linear infinite;
+  transition: border-color var(--transition-normal);
+}
+
+#profileModal .profile-pic-ring::after {
+  content: "";
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 94%; height: 94%;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  border-top-color: rgba(0, 212, 255, 0.7);
+  border-bottom-color: rgba(0, 114, 255, 0.25);
+  animation: profileRingSpinRev 8s linear infinite;
+  filter: drop-shadow(0 0 5px rgba(0, 212, 255, 0.35));
+  transition: border-color var(--transition-normal), filter var(--transition-normal);
+}
+
+#profileModal .profile-pic-container:hover .profile-pic-ring::before {
+  border-color: rgba(0, 212, 255, 0.85);
+  animation-duration: 5s;
+}
+
+#profileModal .profile-pic-container:hover .profile-pic-ring::after {
+  border-top-color: #ffffff;
+  border-bottom-color: rgba(0, 212, 255, 0.7);
+  animation-duration: 4s;
+  filter: drop-shadow(0 0 10px rgba(0, 212, 255, 0.75));
 }
 
 #profileModal .profile-pic-wrapper {
