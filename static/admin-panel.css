@@ -905,10 +905,7 @@
 
 /* ── Responsive ── */
 @media (max-width: 1024px) {
-  .admin-scope .users-table th:nth-child(4),
-  .admin-scope .users-table td:nth-child(4) {
-    display: none;
-  }
+  /* Keep columns visible and utilize the horizontal scrollbar if needed */
 }
 
 @media (max-width: 900px) {
