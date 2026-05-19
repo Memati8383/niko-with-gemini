@@ -10,7 +10,7 @@ set "TUNNEL_SCRIPT=%~dp0start_tunnel.py"
 set "ADMIN_SCRIPT=%~dp0manage_users.py"
 set "REQ_FILE=%~dp0requirements.txt"
 
-:: Python Çalıştırıcı Seçimi (Önce .venv, sonra global Python)
+:: Python Calistirici Secimi (Once .venv, sonra global Python)
 if exist "!VENV_PYTHON!" (
     set "PYTHON_EXE=!VENV_PYTHON!"
 ) else (
@@ -41,12 +41,12 @@ echo  ===================================================================
 echo    N I K O   A I   -   S I S T E M   K O N T R O L   M E R K E Z I
 echo  ===================================================================
 echo.
-echo    [1] 🚀 TAM BASLAT (Backend + Cloudflare Tüneli)
-echo    [2] 🗄️  SUPABASE VERITABANI ISLEMLERI (Yönetim Menüsü)
-echo    [3] 👥 KULLANICI YONETICISI (manage_users.py)
-echo    [4] 📦 BAGIMLILIKLARI GUNCELLE (pip install)
-echo    [5] 🎯 TEK TEK CALISTIRMA SEÇENEKLERİ (Alt Menü)
-echo    [6] 🚪 CIKIS
+echo    [1] [+] TAM BASLAT (Backend + Cloudflare Tuneli)
+echo    [2] [*] SUPABASE VERITABANI ISLEMLERI (Yonetim Menusu)
+echo    [3] [+] KULLANICI YONETICISI (manage_users.py)
+echo    [4] [+] BAGIMLILIKLARI GUNCELLE (pip install)
+echo    [5] [*] TEK TEK CALISTIRMA SECENEKLERI (Alt Menu)
+echo    [6] [-] CIKIS
 echo.
 echo  ===================================================================
 echo   [Python]: !PYTHON_EXE!
@@ -70,10 +70,10 @@ echo  ===================================================================
 echo    N I K O   A I   -   SUPABASE VERITABANI YONETIMI
 echo  ===================================================================
 echo.
-echo    [1] 🔌 Supabase Baglantisini Test Et
-echo    [2] 🔄 Yerel JSON Verilerini Supabase'e Goc Ettir (Migration)
-echo    [3] 📊 Veritabanı Istatistiklerini Görüntüle
-echo    [4] ⬅️  ANA MENUYE DON
+echo    [1] [+] Supabase Baglantisini Test Et
+echo    [2] [*] Yerel JSON Verilerini Supabase'e Goc Ettir (Migration)
+echo    [3] [?] Veritabani Istatistiklerini Goruntule
+echo    [4] [-] ANA MENUYE DON
 echo.
 echo  ===================================================================
 set /p "dbchoice= Seciminiz (1-4): "
@@ -114,7 +114,7 @@ goto SUPABASE_MENU
 :DB_STATS
 cls
 echo.
-echo  [*] Veritabanı istatistikleri yukleniyor...
+echo  [*] Veritabani istatistikleri yukleniyor...
 echo.
 "!PYTHON_EXE!" -c "from database import get_supabase; db = get_supabase(); u = len(db.table('users').select('username').execute().data); s = len(db.table('chat_sessions').select('id').execute().data); m = len(db.table('chat_messages').select('id').execute().data); v = len(db.table('email_verifications').select('email').execute().data); print(f'  - Kayitli Kullanici Sayisi: {u}'); print(f'  - Toplam Sohbet Oturumu   : {s}'); print(f'  - Toplam Sohbet Mesaji    : {m}'); print(f'  - Bekleyen E-posta Dogr.  : {v}')" 2>nul
 if !ERRORLEVEL! NEQ 0 (
@@ -130,12 +130,12 @@ cls
 color 0E
 echo.
 echo  ===================================================================
-echo    N I K O   A I   -   TEK TEK CALISTIRMA SEÇENEKLERİ
+echo    N I K O   A I   -   TEK TEK CALISTIRMA SECENEKLERI
 echo  ===================================================================
 echo.
-echo    [1] Sadece Backend Servisini Baslat (Port: 8001)
-echo    [2] Sadece Cloudflare Tünelini Baslat
-echo    [3] ⬅️  ANA MENUYE DON
+echo    [1] [+] Sadece Backend Servisini Baslat (Port: 8001)
+echo    [2] [*] Sadece Cloudflare Tunelini Baslat
+echo    [3] [-] ANA MENUYE DON
 echo.
 echo  ===================================================================
 set /p "subchoice= Seciminiz (1-3): "
@@ -159,16 +159,16 @@ echo  [+] Backend Servisi baslatiliyor (Port: 8001)...
 start "Niko - Backend Server" cmd /k ""!PYTHON_EXE!" "!MAIN_SCRIPT!""
 
 echo.
-echo  [+] Tünel Servisi baslatiliyor...
-echo  [i] Backend ve Tünel aktif. Bu pencere tüneli ayakta tutar.
-echo  [!] Kapatmak veya ana menüye dönmek için CTRL+C yapabilirsiniz.
+echo  [+] Tunel Servisi baslatiliyor...
+echo  [i] Backend ve Tunel aktif. Bu pencere tuneli ayakta tutar.
+echo  [!] Kapatmak veya ana menuye donmek icin CTRL+C yapabilirsiniz.
 echo.
 
 :: 2. Tünel Baslat (Bu Pencerede - Blocking)
 "!PYTHON_EXE!" "!TUNNEL_SCRIPT!"
 
 echo.
-echo  [!] Tünel scripti durdu.
+echo  [!] Tunel scripti durdu.
 pause
 goto MENU
 
@@ -187,11 +187,11 @@ goto INDIVIDUAL_MENU
 :START_TUNNEL_ONLY
 cls
 echo.
-echo  [+] Tünel Servisi baslatiliyor...
-echo  [i] Tünel bu pencerede calisacak.
+echo  [+] Tunel Servisi baslatiliyor...
+echo  [i] Tunel bu pencerede calisacak.
 "!PYTHON_EXE!" "!TUNNEL_SCRIPT!"
 echo.
-echo  [!] Tünel scripti durdu.
+echo  [!] Tunel scripti durdu.
 pause
 goto INDIVIDUAL_MENU
 
