@@ -470,10 +470,11 @@ class ChatDB:
         try:
             db = get_supabase()
             
-            # Mesajı ekle
+            # Mesajı ekle (Supabase tablosundaki CHECK kısıtlaması nedeniyle 'bot' -> 'assistant' olarak kaydedilir)
+            db_role = "assistant" if role == "bot" else role
             msg_data = {
                 "session_id": session_id,
-                "role": role,
+                "role": db_role,
                 "content": content,
                 "created_at": datetime.now(timezone.utc).isoformat()
             }
@@ -525,7 +526,9 @@ class ChatDB:
             
             messages = []
             for msg in messages_result.data:
-                m = {"role": msg["role"], "content": msg["content"]}
+                # Veritabanındaki 'assistant' rolünü uygulama için 'bot' rolüne geri dönüştür
+                app_role = "bot" if msg["role"] == "assistant" else msg["role"]
+                m = {"role": app_role, "content": msg["content"]}
                 if msg.get("thought"):
                     m["thought"] = msg["thought"]
                 messages.append(m)
@@ -837,9 +840,10 @@ def migrate_json_to_supabase():
                 
                 # Mesajları ekle
                 for msg in session.get("messages", []):
+                    db_role = "assistant" if msg["role"] == "bot" else msg["role"]
                     msg_data = {
                         "session_id": session["id"],
-                        "role": msg["role"],
+                        "role": db_role,
                         "content": msg["content"],
                     }
                     if msg.get("thought"):
